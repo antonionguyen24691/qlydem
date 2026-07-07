@@ -29,7 +29,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     for (const table of tables) {
       const rows = await fetchTableRows(table);
       sheets.push({
-        name: table.slice(0, 31),
+        sheet: table.slice(0, 31),
         data: rowsToSheet(rows)
       });
     }

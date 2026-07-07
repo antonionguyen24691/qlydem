@@ -5,6 +5,7 @@ export const EXPORTABLE_TABLES = [
   "customers",
   "suppliers",
   "products",
+  "product_status_history",
   "warehouses",
   "inventory_balances",
   "sales_orders",
@@ -14,9 +15,18 @@ export const EXPORTABLE_TABLES = [
   "receipts",
   "payments",
   "customer_debt_ledger",
+  "order_debts",
+  "receipt_allocations",
+  "debt_assignments",
+  "debt_reminders",
+  "debt_reminder_logs",
+  "payment_promises",
+  "customer_contacts",
   "supplier_debt_ledger",
   "inventory_transactions",
-  "cashbook_entries"
+  "cashbook_entries",
+  "import_batches",
+  "import_errors"
 ] as const;
 
 export type ExportableTable = (typeof EXPORTABLE_TABLES)[number];

@@ -94,6 +94,49 @@ GET /api/export/xlsx?tables=customers,products,customer_debt_ledger
 x-internal-secret: <INTERNAL_API_SECRET>
 ```
 
+Tai file mau upload:
+
+```http
+GET /api/templates/customers
+GET /api/templates/suppliers
+GET /api/templates/products
+```
+
+Upload file `.xlsx`:
+
+```http
+POST /api/import/customers
+POST /api/import/suppliers
+POST /api/import/products
+x-internal-secret: <INTERNAL_API_SECRET>
+x-file-name: customers.xlsx
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+```
+
+Body la binary cua file `.xlsx`. Ket qua import duoc ghi vao:
+
+- `import_batches`
+- `import_errors`
+
+File mau `products` co cot `Loai hang`, nhan cac gia tri de xuat:
+
+- `RAW_MATERIAL`: nguyen lieu.
+- `SEMI_FINISHED`: ban thanh pham.
+- `FINISHED`: thanh pham.
+- `MERCHANDISE`: hang hoa mua ban.
+
+## 4.1 He thong cong no theo tung don
+
+Schema hien co them cac bang:
+
+- `order_debts`: cong no rieng cho tung don ban.
+- `receipt_allocations`: mot phieu thu co the chia tra cho nhieu don; mot don co the duoc tra nhieu lan.
+- `debt_assignments`: giao khoan no cho tung sale/ke toan/nhan su phu trach.
+- `debt_reminders`: lich nhac no theo don/khach/nguoi phu trach.
+- `debt_reminder_logs`: lich su da nhac, kenh nhac, phan hoi.
+- `payment_promises`: cam ket/hua tra no cua khach.
+- `customer_contacts`: nguoi lien he/thanh toan ben khach.
+
 ## 5. Git workflow de xuat
 
 Branch:

@@ -602,3 +602,17 @@ Da kiem tra ngay 2026-07-07:
 - `npm audit` trong qua trinh install bao `found 0 vulnerabilities`.
 
 Ket luan: demo hien tai build duoc, nhung moi la frontend mock. De dung thuc te can uu tien Phase 0 va Phase 1 truoc khi deploy san xuat cho nhan vien.
+
+## 17. Cap nhat schema/API van hanh
+
+Da bo sung them nen de quan ly no va upload du lieu:
+
+- `order_debts`: theo doi no theo tung don.
+- `receipt_allocations`: tra mot phan, mot phieu thu chia cho nhieu don.
+- `debt_assignments`: giao no cho tung ca nhan phu trach.
+- `debt_reminders` va `debt_reminder_logs`: lich nhac no va lich su nhac.
+- `payment_promises`: cam ket tra no.
+- `customer_contacts`: nguoi lien he thanh toan.
+- `import_batches` va `import_errors`: lich su upload/import file.
+- `products.product_type`: phan loai `RAW_MATERIAL`, `SEMI_FINISHED`, `FINISHED`, `MERCHANDISE`.
+- API template/upload cho `customers`, `suppliers`, `products`.

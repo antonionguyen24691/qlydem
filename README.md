@@ -36,11 +36,13 @@ npm run audit
 ```http
 GET /api/health
 GET /api/data/customers
+GET /api/templates/products
+POST /api/import/products
 POST /api/sync/google-sheets?tables=customers,products
 GET /api/export/xlsx?tables=customers,products
 ```
 
-Các endpoint sync/export cần header:
+Các endpoint import/sync/export cần header:
 
 ```http
 x-internal-secret: <INTERNAL_API_SECRET>
@@ -49,7 +51,7 @@ x-internal-secret: <INTERNAL_API_SECRET>
 ## Deploy Vercel
 
 ```powershell
-vercel link
+npx --yes vercel link
 npm run deploy:vercel
 ```
 
