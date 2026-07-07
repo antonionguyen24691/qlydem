@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Database, Download, KeyRound, Upload } from "lucide-react";
+import { useAuthStore } from "../store/auth";
 
 const importTargets = [
   {
@@ -29,16 +30,11 @@ type ImportResult = {
 };
 
 export function Settings() {
-  const [secret, setSecret] = useState(() => localStorage.getItem("crm.internalSecret") ?? "");
+  const { secret, setSecret } = useAuthStore();
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
 
   const canUpload = useMemo(() => secret.trim().length > 0, [secret]);
-
-  const saveSecret = (value: string) => {
-    setSecret(value);
-    localStorage.setItem("crm.internalSecret", value);
-  };
 
   const downloadTemplate = (entity: string) => {
     window.open(`/api/templates/${entity}`, "_blank");
@@ -96,7 +92,7 @@ export function Settings() {
             <input
               type="password"
               value={secret}
-              onChange={(event) => saveSecret(event.target.value)}
+              onChange={(event) => setSecret(event.target.value)}
               placeholder="Nhập INTERNAL_API_SECRET"
               className="mt-3 w-full max-w-xl rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] focus:ring-1 focus:ring-[#006B68]"
             />

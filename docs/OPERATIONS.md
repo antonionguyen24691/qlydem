@@ -190,7 +190,7 @@ Nen lam tiep theo thu tu nay:
 2. Tao Google Sheets mirror va service account.
 3. Set env local + Vercel.
 4. Import du lieu tu `NHAT KY BAN HANG.xlsx` vao Supabase.
-5. Chuyen frontend doc `/api/data/*` thay cho mock.
+5. Frontend da doc `/api/data/*`; sau khi deploy can upload data that truoc khi van hanh.
 6. Viet API tao don ban co transaction: order, items, ton kho, ledger cong no.
 7. Them login/RBAC.
 8. Them in bill va Customer 360.

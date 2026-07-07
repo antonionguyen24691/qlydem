@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { usePOSStore } from "../store/pos";
 import { useDataStore } from "../store/data";
+import { useAuthStore } from "../store/auth";
 import { Search, Trash2, Plus, Minus, X } from "lucide-react";
 
 export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
-  const { products, customers, addOrder, updateProductStock, updateCustomerDebt } = useDataStore();
+  const { products, customers, loadLiveData } = useDataStore();
+  const { secret } = useAuthStore();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState(products);
@@ -69,57 +71,50 @@ export function POS() {
       }))
     };
 
-    const internalSecret = localStorage.getItem("crm.internalSecret");
-    if (internalSecret) {
-      setIsCheckingOut(true);
-      try {
-        const response = await fetch("/api/orders/create", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-internal-secret": internalSecret
-          },
-          body: JSON.stringify({
-            customerId: selectedCustomer?.id,
-            paymentMethod,
-            paidAmount: selectedCustomer ? amountPaid : finalTotal,
-            discountAmount,
-            items: cart.map((item) => ({
-              productId: item.id,
-              productCode: item.code,
-              productName: item.name,
-              unit: item.unit,
-              quantity: item.quantity,
-              unitPrice: item.price
-            }))
-          })
-        });
-        const body = await response.json();
-        if (!response.ok || !body.ok) {
-          throw new Error(body.error ?? "Không tạo được đơn hàng");
-        }
-        newOrder.id = body.order?.code ?? newOrder.id;
-      } catch (error) {
-        alert(`Không ghi được đơn lên server, app sẽ giữ ở demo local.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
-      } finally {
-        setIsCheckingOut(false);
-      }
+    if (!secret) {
+      alert("Chưa đăng nhập hoặc thiếu INTERNAL_API_SECRET.");
+      return;
     }
 
-    addOrder(newOrder);
-    
-    // Deduct stock
-    cart.forEach(item => {
-      updateProductStock(item.id, -item.quantity);
-    });
-
-    // Update customer debt if any
-    if (selectedCustomer && debtAmount > 0) {
-      updateCustomerDebt(selectedCustomer.id, debtAmount);
+    setIsCheckingOut(true);
+    try {
+      const response = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-internal-secret": secret
+        },
+        body: JSON.stringify({
+          customerId: selectedCustomer?.id,
+          paymentMethod,
+          paidAmount: selectedCustomer ? amountPaid : finalTotal,
+          discountAmount,
+          items: cart.map((item) => ({
+            productId: item.id,
+            productCode: item.code,
+            productName: item.name,
+            unit: item.unit,
+            quantity: item.quantity,
+            unitPrice: item.price
+          }))
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) {
+        throw new Error(body.error ?? "Không tạo được đơn hàng");
+      }
+      newOrder.id = body.order?.code ?? newOrder.id;
+      await loadLiveData();
+    } catch (error) {
+      alert(`Không ghi được đơn lên server.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
+      setIsCheckingOut(false);
+      return;
+    } finally {
+      setIsCheckingOut(false);
     }
 
     const paymentName = paymentMethod === "CASH" ? "Tiền mặt" : "Chuyển khoản";
-    alert(`Thanh toán thành công đơn hàng!\n\nMã HĐ: ${newOrder.id}\nKhách hàng: ${newOrder.customerName}\nTổng thanh toán: ${finalTotal.toLocaleString()} đ\nĐã thu: ${newOrder.paid.toLocaleString()} đ\nGhi nợ: ${debtAmount.toLocaleString()} đ\nPhương thức: ${paymentName}\n\nĐã lưu vào hệ thống.`);
+    alert(`Thanh toán thành công đơn hàng!\n\nMã HĐ: ${newOrder.id}\nKhách hàng: ${newOrder.customerName}\nTổng thanh toán: ${finalTotal.toLocaleString()} đ\nĐã thu: ${newOrder.paid.toLocaleString()} đ\nGhi nợ: ${debtAmount.toLocaleString()} đ\nPhương thức: ${paymentName}\n\nĐã lưu vào Supabase.`);
     
     // Reset state
     clearCart();

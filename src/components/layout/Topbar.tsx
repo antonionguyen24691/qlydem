@@ -1,8 +1,10 @@
 import { Bell, Search, User, Menu } from "lucide-react";
 import { useUIStore } from "../../store/ui";
+import { useAuthStore } from "../../store/auth";
 
 export function Topbar() {
   const { toggleSidebar } = useUIStore();
+  const { user, logout } = useAuthStore();
   
   return (
     <header className="flex h-16 items-center justify-between border-b bg-white px-4 shrink-0">
@@ -29,15 +31,20 @@ export function Topbar() {
           <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           <Bell className="h-5 w-5" />
         </button>
-        <div className="flex items-center gap-2 border-l pl-4 cursor-pointer hover:opacity-80">
+        <button
+          type="button"
+          onClick={logout}
+          className="flex items-center gap-2 border-l pl-4 cursor-pointer hover:opacity-80 text-left"
+          title="Đăng xuất"
+        >
           <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
             <User className="h-5 w-5 text-gray-500" />
           </div>
           <div className="hidden md:block text-sm">
-            <div className="font-medium text-gray-700">Admin User</div>
-            <div className="text-xs text-gray-500">Quản trị viên</div>
+            <div className="font-medium text-gray-700">{user?.name ?? "Admin"}</div>
+            <div className="text-xs text-gray-500">{user?.role ?? "ADMIN"}</div>
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

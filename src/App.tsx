@@ -13,11 +13,13 @@ import { Inventory } from "./pages/Inventory";
 import { Customers } from "./pages/Customers";
 import { Finance } from "./pages/Finance";
 import { Settings } from "./pages/Settings";
+import { Login } from "./pages/Login";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="pos" element={<POS />} />
