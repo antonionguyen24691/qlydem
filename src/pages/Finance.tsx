@@ -10,6 +10,7 @@ export function Finance() {
   const [selectedCustomerForReceipt, setSelectedCustomerForReceipt] = useState("");
   const [receiptAmount, setReceiptAmount] = useState<number | ''>('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSavingReceipt, setIsSavingReceipt] = useState(false);
 
   const totalReceivables = customers.reduce((acc, c) => acc + c.oldDebt, 0);
 
@@ -18,12 +19,39 @@ export function Finance() {
     c.phone.includes(searchTerm)
   );
 
-  const handleReceiptSubmit = (e: React.FormEvent) => {
+  const handleReceiptSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = Number(receiptAmount);
     if (!selectedCustomerForReceipt || amount <= 0) {
       alert("Vui lòng chọn khách hàng và nhập số tiền hợp lệ");
       return;
+    }
+    const internalSecret = localStorage.getItem("crm.internalSecret");
+    if (internalSecret) {
+      setIsSavingReceipt(true);
+      try {
+        const response = await fetch("/api/receipts/create", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-internal-secret": internalSecret
+          },
+          body: JSON.stringify({
+            customerId: selectedCustomerForReceipt,
+            amount,
+            paymentMethod: "CASH",
+            note: "Thu nợ từ màn hình tài chính"
+          })
+        });
+        const body = await response.json();
+        if (!response.ok || !body.ok) {
+          throw new Error(body.error ?? "Không lưu được phiếu thu");
+        }
+      } catch (error) {
+        alert(`Không ghi được phiếu thu lên server, app sẽ cập nhật demo local.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
+      } finally {
+        setIsSavingReceipt(false);
+      }
     }
     updateCustomerDebt(selectedCustomerForReceipt, -amount);
     alert(`Lập phiếu thu thành công!\nSố tiền: ${amount.toLocaleString()} đ`);
@@ -246,9 +274,10 @@ export function Finance() {
             </button>
             <button 
               type="submit"
+              disabled={isSavingReceipt}
               className="px-4 py-2 bg-[#006B68] text-white rounded-md text-sm font-medium hover:bg-[#005a57]"
             >
-              Lưu phiếu thu
+              {isSavingReceipt ? "Đang lưu..." : "Lưu phiếu thu"}
             </button>
           </div>
         </form>

@@ -38,6 +38,8 @@ GET /api/health
 GET /api/data/customers
 GET /api/templates/products
 POST /api/import/products
+POST /api/orders/create
+POST /api/receipts/create
 POST /api/sync/google-sheets?tables=customers,products
 GET /api/export/xlsx?tables=customers,products
 ```
