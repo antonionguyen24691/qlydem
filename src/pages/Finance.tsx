@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { useDataStore, Customer } from "../store/data";
 import { DollarSign, Wallet, FileText, Search } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
+import { useAuthStore } from "../store/auth";
 
 export function Finance() {
-  const { customers, updateCustomerDebt, orders } = useDataStore();
+  const { customers, orders, loadLiveData } = useDataStore();
+  const { secret } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedCustomerForReceipt, setSelectedCustomerForReceipt] = useState("");
@@ -26,34 +28,38 @@ export function Finance() {
       alert("Vui lòng chọn khách hàng và nhập số tiền hợp lệ");
       return;
     }
-    const internalSecret = localStorage.getItem("crm.internalSecret");
-    if (internalSecret) {
-      setIsSavingReceipt(true);
-      try {
-        const response = await fetch("/api/receipts/create", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-internal-secret": internalSecret
-          },
-          body: JSON.stringify({
-            customerId: selectedCustomerForReceipt,
-            amount,
-            paymentMethod: "CASH",
-            note: "Thu nợ từ màn hình tài chính"
-          })
-        });
-        const body = await response.json();
-        if (!response.ok || !body.ok) {
-          throw new Error(body.error ?? "Không lưu được phiếu thu");
-        }
-      } catch (error) {
-        alert(`Không ghi được phiếu thu lên server, app sẽ cập nhật demo local.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
-      } finally {
-        setIsSavingReceipt(false);
-      }
+    if (!secret) {
+      alert("Chưa đăng nhập hoặc thiếu INTERNAL_API_SECRET.");
+      return;
     }
-    updateCustomerDebt(selectedCustomerForReceipt, -amount);
+
+    setIsSavingReceipt(true);
+    try {
+      const response = await fetch("/api/receipts/create", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-internal-secret": secret
+        },
+        body: JSON.stringify({
+          customerId: selectedCustomerForReceipt,
+          amount,
+          paymentMethod: "CASH",
+          note: "Thu nợ từ màn hình tài chính"
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) {
+        throw new Error(body.error ?? "Không lưu được phiếu thu");
+      }
+      await loadLiveData();
+    } catch (error) {
+      alert(`Không ghi được phiếu thu lên server.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
+      setIsSavingReceipt(false);
+      return;
+    } finally {
+      setIsSavingReceipt(false);
+    }
     alert(`Lập phiếu thu thành công!\nSố tiền: ${amount.toLocaleString()} đ`);
     setIsReceiptOpen(false);
     setSelectedCustomerForReceipt("");

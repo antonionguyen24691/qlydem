@@ -264,6 +264,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       });
     }
 
+    if (paidAmount > 0 && !customerId) {
+      await supabase.from("cashbook_entries").insert({
+        code: createCode("TM"),
+        account_type: paymentMethod === "TRANSFER" ? "BANK" : "CASH",
+        direction: "IN",
+        source_type: "SALES_ORDER",
+        source_id: order.id,
+        amount: paidAmount,
+        payment_method: paymentMethod,
+        note: `Thu tiền khách lẻ đơn ${code}`,
+        created_by: optionalString(body.saleId)
+      });
+    }
+
     if (customerId) {
       await supabase
         .from("customers")

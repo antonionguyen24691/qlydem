@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { MOCK_CUSTOMERS, MOCK_PRODUCTS, MOCK_ORDERS } from '../data/mock';
 
 export interface Customer {
   id: string;
@@ -59,12 +58,6 @@ interface DataStore {
   updateProductStock: (productId: string, quantityChange: number) => void;
   loadLiveData: () => Promise<void>;
 }
-
-const INITIAL_ORDERS: Order[] = MOCK_ORDERS.map(o => ({
-  ...o,
-  paid: o.total,
-  status: "Đã thanh toán"
-}));
 
 async function fetchRows(table: string) {
   const response = await fetch(`/api/data/${table}`);
@@ -130,9 +123,9 @@ function mapOrder(row: any, items: any[], customers: Customer[]): Order {
 }
 
 export const useDataStore = create<DataStore>((set, get) => ({
-  customers: MOCK_CUSTOMERS.map(mapCustomer),
-  products: MOCK_PRODUCTS.map((product) => ({ ...product })),
-  orders: INITIAL_ORDERS,
+  customers: [],
+  products: [],
+  orders: [],
   isLiveData: false,
   isLoadingLiveData: false,
   addCustomer: (customer) => set((state) => ({ customers: [customer, ...state.customers] })),

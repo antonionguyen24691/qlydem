@@ -2,7 +2,7 @@
 
 Ngay lap: 2026-07-07  
 Nguon nghiep vu goc: `NHAT KY BAN HANG.xlsx`  
-App hien tai: React 19 + Vite + Tailwind CSS + Zustand, dang chay bang mock data tren trinh duyet.
+App hien tai: React 19 + Vite + Tailwind CSS + Zustand, doc/ghi du lieu qua API Supabase khi da cau hinh env.
 
 ## 1. Ket luan sau khi doc app demo
 
@@ -19,9 +19,9 @@ App hien tai la ban demo giao dien POS/ERP cho vat lieu xay dung, da co cac man 
 
 Nhung app chua phai ban san xuat:
 
-- Du lieu dang nam trong `src/data/mock.ts`, khong doc/ghi tu Excel, Google Sheets hay database.
-- Them khach, them san pham, ban hang, thu no chi cap nhat Zustand trong bo nho trinh duyet, reload la mat.
-- Chua co login, chua co phan quyen, topbar dang hard-code `Admin User`.
+- Du lieu khong con dung mock mac dinh; frontend yeu cau API/Supabase hoat dong.
+- Them khach, them san pham can duoc noi tiep thanh form API; POS va thu no da goi API that.
+- Da co login bootstrap bang `INTERNAL_API_SECRET`; chua co Firebase/Auth.js RBAC day du.
 - Chua co backend/API, chua co secret handling, chua san sang dung truc tiep Google Sheets tu client.
 - Chua co in bill that, nut in hien moi `alert`.
 - Chua co format bill A4/A5/K80, chua co so phieu/tien no/thanh toan theo mau cong ty.
@@ -169,7 +169,7 @@ Checklist:
 - [ ] Chuan hoa env: `.env.example`, `.env.local`, Vercel env.
 - [ ] Them `vercel.json` neu giu Vite SPA de route fallback ve `index.html`.
 - [ ] Tach types rieng: Customer, Product, Order, OrderItem, Receipt, User, Role.
-- [ ] Bo phu thuoc mock khoi store, tao API client layer.
+- [x] Bo phu thuoc mock khoi store, tao API client layer.
 - [ ] Them error boundary, loading state, empty state, toast thay cho `alert`.
 - [ ] Chuan hoa currency/date parser cho tien Viet Nam va ngay Viet Nam.
 - [ ] Them test/lint script ro rang: `typecheck`, `build`, `test`.
@@ -511,8 +511,8 @@ Khi Google Sheets bat dau cham hoac du lieu lon:
 - `README.md` con noi dung AI Studio mac dinh.
 - `vite.config.ts` co comment bi mojibake.
 - `clean` script dung `rm -rf`, khong than thien Windows PowerShell.
-- `src/data/mock.ts` la nguon du lieu duy nhat.
-- `src/store/data.ts` dung `typeof MOCK_*` lam type, kho mo rong.
+- Du lieu that da doc tu `/api/data/*`; can tiep tuc thay cac form them/sua bang API.
+- `src/store/data.ts` da co type rieng, khong con phu thuoc `typeof MOCK_*`.
 - Cac nut nghiep vu trong Inventory/Orders/POS con `alert`.
 - POS cho giam gia phan tram nhung chua validate >100 hoac so am.
 - POS tru kho am duoc, chua check ton.
@@ -601,7 +601,7 @@ Da kiem tra ngay 2026-07-07:
 - `npm.cmd run build` pass.
 - `npm audit` trong qua trinh install bao `found 0 vulnerabilities`.
 
-Ket luan: demo hien tai build duoc, nhung moi la frontend mock. De dung thuc te can uu tien Phase 0 va Phase 1 truoc khi deploy san xuat cho nhan vien.
+Ket luan: app build duoc va da chuyen sang nguon du lieu API/Supabase. De dung thuc te can deploy Supabase/Vercel, set env va hoan thien login/RBAC day du.
 
 ## 17. Cap nhat schema/API van hanh
 
@@ -618,4 +618,4 @@ Da bo sung them nen de quan ly no va upload du lieu:
 - API template/upload cho `customers`, `suppliers`, `products`.
 - API `orders/create`: tao don, chi tiet don, cong no theo don, phieu thu neu co, ledger, cashbook, ton kho, audit log.
 - API `receipts/create`: thu tien, tra mot phan, tu phan bo vao cac don no cu nhat neu khong chi dinh allocation.
-- Frontend POS va Finance da goi API that khi co `INTERNAL_API_SECRET`, fallback mock khi chua cau hinh backend.
+- Frontend POS va Finance da goi API that; khong con fallback mock khi server loi.
