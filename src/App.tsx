@@ -12,7 +12,7 @@ import { Products } from "./pages/Products";
 import { Inventory } from "./pages/Inventory";
 import { Customers } from "./pages/Customers";
 import { Finance } from "./pages/Finance";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { Settings } from "./pages/Settings";
 
 export default function App() {
   return (
@@ -26,10 +26,9 @@ export default function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="customers" element={<Customers />} />
           <Route path="finance" element={<Finance />} />
-          <Route path="settings" element={<PlaceholderPage title="Cấu hình hệ thống" />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
-
