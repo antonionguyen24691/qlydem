@@ -38,31 +38,25 @@ Private key can giu dang mot dong voi `\n`, giong `.env.example`.
 
 ## 3. Vercel
 
-1. Cai Vercel CLI neu chua co:
+1. Link project:
 
 ```powershell
-npm i -g vercel
+npx --yes vercel link
 ```
 
-2. Link project:
+2. Them env tren Vercel dashboard hoac CLI:
 
 ```powershell
-vercel link
+npx --yes vercel env add SUPABASE_URL production
+npx --yes vercel env add SUPABASE_ANON_KEY production
+npx --yes vercel env add SUPABASE_SERVICE_ROLE_KEY production
+npx --yes vercel env add GOOGLE_SHEETS_SPREADSHEET_ID production
+npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_EMAIL production
+npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY production
+npx --yes vercel env add INTERNAL_API_SECRET production
 ```
 
-3. Them env tren Vercel dashboard hoac CLI:
-
-```powershell
-vercel env add SUPABASE_URL production
-vercel env add SUPABASE_ANON_KEY production
-vercel env add SUPABASE_SERVICE_ROLE_KEY production
-vercel env add GOOGLE_SHEETS_SPREADSHEET_ID production
-vercel env add GOOGLE_SERVICE_ACCOUNT_EMAIL production
-vercel env add GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY production
-vercel env add INTERNAL_API_SECRET production
-```
-
-4. Deploy:
+3. Deploy:
 
 ```powershell
 npm run deploy:vercel
