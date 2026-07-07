@@ -1,9 +1,37 @@
 import { create } from 'zustand';
 import { MOCK_CUSTOMERS, MOCK_PRODUCTS, MOCK_ORDERS } from '../data/mock';
 
-export type Customer = typeof MOCK_CUSTOMERS[0];
-export type Product = typeof MOCK_PRODUCTS[0];
-export type OrderItem = typeof MOCK_ORDERS[0]['items'][0];
+export interface Customer {
+  id: string;
+  code?: string;
+  name: string;
+  phone: string;
+  address: string;
+  oldDebt: number;
+  creditLimit: number;
+}
+
+export interface Product {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  size: string;
+  unit: string;
+  stock: number;
+  price: number;
+  cost: number;
+}
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  size: string;
+  unit: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
 
 export interface Order {
   id: string;
@@ -21,11 +49,15 @@ interface DataStore {
   customers: Customer[];
   products: Product[];
   orders: Order[];
+  isLiveData: boolean;
+  isLoadingLiveData: boolean;
+  liveDataError?: string;
   addCustomer: (customer: Customer) => void;
   addProduct: (product: Product) => void;
   addOrder: (order: Order) => void;
   updateCustomerDebt: (customerId: string, amountChange: number) => void;
   updateProductStock: (productId: string, quantityChange: number) => void;
+  loadLiveData: () => Promise<void>;
 }
 
 const INITIAL_ORDERS: Order[] = MOCK_ORDERS.map(o => ({
@@ -34,21 +66,115 @@ const INITIAL_ORDERS: Order[] = MOCK_ORDERS.map(o => ({
   status: "Đã thanh toán"
 }));
 
-export const useDataStore = create<DataStore>((set) => ({
-  customers: MOCK_CUSTOMERS,
-  products: MOCK_PRODUCTS,
+async function fetchRows(table: string) {
+  const response = await fetch(`/api/data/${table}`);
+  if (!response.ok) throw new Error(`Không đọc được ${table}`);
+  const body = await response.json();
+  if (!body.ok) throw new Error(body.error ?? `Không đọc được ${table}`);
+  return body.rows ?? [];
+}
+
+function money(value: unknown) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mapCustomer(row: any): Customer {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name ?? row.short_name ?? row.code,
+    phone: row.phone ?? "",
+    address: row.address ?? "",
+    oldDebt: money(row.current_debt ?? row.oldDebt),
+    creditLimit: money(row.credit_limit ?? row.creditLimit)
+  };
+}
+
+function mapProduct(row: any, stockByProduct: Map<string, number>): Product {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.product_name ?? row.invoice_name ?? row.code,
+    category: row.category ?? row.product_type ?? "",
+    size: row.size ?? "",
+    unit: row.unit ?? "",
+    stock: stockByProduct.get(row.id) ?? 0,
+    price: money(row.sell_price_box_vat ?? row.price_by_m2),
+    cost: money(row.cost_price)
+  };
+}
+
+function mapOrder(row: any, items: any[], customers: Customer[]): Order {
+  const customer = customers.find((item) => item.id === row.customer_id);
+  const orderItems = items.filter((item) => item.order_id === row.id).map((item) => ({
+    id: item.product_id ?? item.product_code ?? item.id,
+    name: item.product_name,
+    size: "",
+    unit: item.unit ?? "",
+    quantity: money(item.quantity),
+    price: money(item.unit_price),
+    total: money(item.line_total)
+  }));
+
+  return {
+    id: row.code ?? row.id,
+    date: String(row.order_date ?? row.created_at ?? "").slice(0, 10),
+    customerName: customer?.name ?? "Khách lẻ",
+    customerId: row.customer_id,
+    items: orderItems,
+    total: money(row.total_amount),
+    paid: money(row.paid_amount),
+    status: money(row.debt_amount) > 0 ? "Nợ" : "Đã thanh toán"
+  };
+}
+
+export const useDataStore = create<DataStore>((set, get) => ({
+  customers: MOCK_CUSTOMERS.map(mapCustomer),
+  products: MOCK_PRODUCTS.map((product) => ({ ...product })),
   orders: INITIAL_ORDERS,
+  isLiveData: false,
+  isLoadingLiveData: false,
   addCustomer: (customer) => set((state) => ({ customers: [customer, ...state.customers] })),
   addProduct: (product) => set((state) => ({ products: [product, ...state.products] })),
   addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
   updateCustomerDebt: (customerId, amountChange) => set((state) => ({
-    customers: state.customers.map(c => 
+    customers: state.customers.map(c =>
       c.id === customerId ? { ...c, oldDebt: c.oldDebt + amountChange } : c
     )
   })),
   updateProductStock: (productId, quantityChange) => set((state) => ({
-    products: state.products.map(p => 
+    products: state.products.map(p =>
       p.id === productId ? { ...p, stock: p.stock + quantityChange } : p
     )
   })),
+  loadLiveData: async () => {
+    if (get().isLoadingLiveData) return;
+    set({ isLoadingLiveData: true, liveDataError: undefined });
+    try {
+      const [customerRows, productRows, inventoryRows, orderRows, orderItemRows] = await Promise.all([
+        fetchRows("customers"),
+        fetchRows("products"),
+        fetchRows("inventory_balances"),
+        fetchRows("sales_orders"),
+        fetchRows("sales_order_items")
+      ]);
+
+      const stockByProduct = new Map<string, number>();
+      for (const row of inventoryRows) {
+        stockByProduct.set(row.product_id, (stockByProduct.get(row.product_id) ?? 0) + money(row.quantity_box));
+      }
+
+      const customers = customerRows.map(mapCustomer);
+      const products = productRows.map((row: any) => mapProduct(row, stockByProduct));
+      const orders = orderRows.map((row: any) => mapOrder(row, orderItemRows, customers));
+      set({ customers, products, orders, isLiveData: true, isLoadingLiveData: false });
+    } catch (error) {
+      set({
+        isLiveData: false,
+        isLoadingLiveData: false,
+        liveDataError: error instanceof Error ? error.message : "Không tải được dữ liệu thật"
+      });
+    }
+  }
 }));

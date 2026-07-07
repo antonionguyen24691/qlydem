@@ -616,3 +616,6 @@ Da bo sung them nen de quan ly no va upload du lieu:
 - `import_batches` va `import_errors`: lich su upload/import file.
 - `products.product_type`: phan loai `RAW_MATERIAL`, `SEMI_FINISHED`, `FINISHED`, `MERCHANDISE`.
 - API template/upload cho `customers`, `suppliers`, `products`.
+- API `orders/create`: tao don, chi tiet don, cong no theo don, phieu thu neu co, ledger, cashbook, ton kho, audit log.
+- API `receipts/create`: thu tien, tra mot phan, tu phan bo vao cac don no cu nhat neu khong chi dinh allocation.
+- Frontend POS va Finance da goi API that khi co `INTERNAL_API_SECRET`, fallback mock khi chua cau hinh backend.

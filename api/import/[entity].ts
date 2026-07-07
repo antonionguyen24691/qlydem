@@ -43,11 +43,17 @@ function normalizeProductType(value: unknown) {
 
 function normalizeRow(entity: string, row: Record<string, unknown>) {
   if (entity === "products") {
+    const { warehouse_code, opening_stock, min_stock_level, ...productRow } = row;
     return {
-      ...row,
+      ...productRow,
       product_type: normalizeProductType(row.product_type),
       status: row.status ?? "ACTIVE",
-      lifecycle_status: row.lifecycle_status ?? "ACTIVE"
+      lifecycle_status: row.lifecycle_status ?? "ACTIVE",
+      _inventory: {
+        warehouse_code,
+        opening_stock,
+        min_stock_level
+      }
     };
   }
   if (entity === "customers") {
@@ -64,6 +70,67 @@ function normalizeRow(entity: string, row: Record<string, unknown>) {
     };
   }
   return row;
+}
+
+async function ensureWarehouse(code: string) {
+  const supabase = getSupabaseAdmin();
+  const { data: existing } = await supabase
+    .from("warehouses")
+    .select("id")
+    .eq("code", code)
+    .maybeSingle();
+  if (existing?.id) return existing.id as string;
+
+  const { data, error } = await supabase
+    .from("warehouses")
+    .insert({ code, name: code, status: "ACTIVE" })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id as string;
+}
+
+async function upsertProductOpeningStock(rows: Array<Record<string, unknown>>) {
+  const inventoryRows = rows
+    .filter((row) => row._inventory && typeof row._inventory === "object")
+    .map((row) => ({
+      code: String(row.code),
+      inventory: row._inventory as Record<string, unknown>
+    }))
+    .filter((row) => Number(row.inventory.opening_stock ?? 0) !== 0);
+
+  if (inventoryRows.length === 0) return;
+
+  const supabase = getSupabaseAdmin();
+  const codes = inventoryRows.map((row) => row.code);
+  const { data: products, error } = await supabase
+    .from("products")
+    .select("id,code")
+    .in("code", codes);
+  if (error) throw new Error(error.message);
+
+  const productByCode = new Map((products ?? []).map((product) => [product.code, product.id]));
+  const balanceRows = [];
+  for (const row of inventoryRows) {
+    const productId = productByCode.get(row.code);
+    if (!productId) continue;
+    const warehouseCode = String(row.inventory.warehouse_code ?? "KHO-CHINH");
+    const warehouseId = await ensureWarehouse(warehouseCode);
+    balanceRows.push({
+      warehouse_id: warehouseId,
+      product_id: productId,
+      quantity_box: Number(row.inventory.opening_stock ?? 0),
+      quantity_piece: 0,
+      min_stock_level: Number(row.inventory.min_stock_level ?? 0)
+    });
+  }
+
+  if (balanceRows.length > 0) {
+    const { error: balanceError } = await supabase
+      .from("inventory_balances")
+      .upsert(balanceRows, { onConflict: "warehouse_id,product_id" });
+    if (balanceError) throw new Error(balanceError.message);
+  }
 }
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -96,14 +163,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const parsedRows = await parseImportWorkbook(entity, buffer);
     const invalidRows = parsedRows.filter((row) => row.error);
-    const validRows = parsedRows.filter((row) => !row.error).map((row) => normalizeRow(entity, row.data));
+    const normalizedRows = parsedRows.filter((row) => !row.error).map((row) => normalizeRow(entity, row.data));
+    const validRows = normalizedRows.map(({ _inventory, ...row }) => row);
 
     let upserted = 0;
     let upsertError: string | undefined;
     if (validRows.length > 0) {
       const { error } = await supabase.from(entity).upsert(validRows, { onConflict: "code" });
       if (error) upsertError = error.message;
-      else upserted = validRows.length;
+      else {
+        if (entity === "products") await upsertProductOpeningStock(normalizedRows);
+        upserted = validRows.length;
+      }
     }
 
     const allErrors = [

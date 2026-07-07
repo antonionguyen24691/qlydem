@@ -27,7 +27,8 @@ function cleanValue(key: string, value: unknown) {
     key.includes("m2") ||
     key.includes("pieces") ||
     key.includes("vat") ||
-    key.includes("payable")
+    key.includes("payable") ||
+    key.includes("stock")
   ) {
     return toNumber(value);
   }

@@ -78,6 +78,26 @@ GET /api/data/products
 GET /api/data/sales_orders
 ```
 
+Tao don ban that:
+
+```http
+POST /api/orders/create
+x-internal-secret: <INTERNAL_API_SECRET>
+Content-Type: application/json
+```
+
+API nay ghi `sales_orders`, `sales_order_items`, `order_debts`, `customer_debt_ledger`, `receipt_allocations`, `cashbook_entries`, `inventory_transactions`, `audit_logs` va cap nhat `customers.current_debt`. Neu co kho mac dinh, API dong thoi cap nhat `inventory_balances`.
+
+Lap phieu thu/phan bo tra no:
+
+```http
+POST /api/receipts/create
+x-internal-secret: <INTERNAL_API_SECRET>
+Content-Type: application/json
+```
+
+Neu khong truyen allocations, API tu phan bo vao cac don no dang mo cu nhat cua khach.
+
 Dong bo Supabase ve Google Sheets:
 
 ```http
@@ -124,6 +144,12 @@ File mau `products` co cot `Loai hang`, nhan cac gia tri de xuat:
 - `SEMI_FINISHED`: ban thanh pham.
 - `FINISHED`: thanh pham.
 - `MERCHANDISE`: hang hoa mua ban.
+
+File mau `products` cung co:
+
+- `Ma kho`: neu kho chua co, he thong tu tao kho.
+- `Ton dau ky`: tao/cap nhat ton dau ky trong `inventory_balances`.
+- `Muc ton toi thieu`: dung cho canh bao ton kho.
 
 ## 4.1 He thong cong no theo tung don
 

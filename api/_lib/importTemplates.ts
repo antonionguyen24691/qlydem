@@ -50,6 +50,9 @@ export const IMPORT_TEMPLATES: Record<ImportEntity, TemplateColumn[]> = {
     { key: "cost_price", label: "Giá vốn", sample: 150000, aliases: ["gia von"] },
     { key: "vat_rate", label: "VAT %", sample: 8, aliases: ["vat"] },
     { key: "barcode", label: "Barcode", sample: "893000000001", aliases: ["ma vach"] },
+    { key: "warehouse_code", label: "Mã kho", sample: "KHO-CHINH", aliases: ["ma kho", "kho"] },
+    { key: "opening_stock", label: "Tồn đầu kỳ", sample: 0, aliases: ["ton dau ky", "ton kho", "so luong ton"] },
+    { key: "min_stock_level", label: "Mức tồn tối thiểu", sample: 0, aliases: ["muc ton toi thieu", "min stock"] },
     { key: "lifecycle_status", label: "Trạng thái hàng", sample: "ACTIVE", aliases: ["trang thai hang"] },
     { key: "status", label: "Trạng thái", sample: "ACTIVE", aliases: ["trang thai"] }
   ]

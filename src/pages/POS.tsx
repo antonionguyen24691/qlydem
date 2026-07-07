@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { usePOSStore } from "../store/pos";
 import { useDataStore } from "../store/data";
 import { Search, Trash2, Plus, Minus, X } from "lucide-react";
@@ -17,6 +17,7 @@ export function POS() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
   const [customerPaid, setCustomerPaid] = useState<string>("");
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
@@ -33,13 +34,21 @@ export function POS() {
     setSearchResults(filtered);
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       alert("Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán!");
       return;
     }
+    if (discountPercent < 0 || discountPercent > 100) {
+      alert("Chiết khấu phải nằm trong khoảng 0-100%.");
+      return;
+    }
     const amountPaid = customerPaid ? Number(customerPaid.replace(/\D/g, "")) : 0;
     const debtAmount = selectedCustomer ? Math.max(0, finalTotal - amountPaid) : 0;
+    if (!selectedCustomer && debtAmount > 0) {
+      alert("Đơn ghi nợ phải chọn khách hàng.");
+      return;
+    }
 
     const newOrder = {
       id: `HD${String(Date.now()).slice(-6)}`,
@@ -60,7 +69,43 @@ export function POS() {
       }))
     };
 
-    // Update store
+    const internalSecret = localStorage.getItem("crm.internalSecret");
+    if (internalSecret) {
+      setIsCheckingOut(true);
+      try {
+        const response = await fetch("/api/orders/create", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-internal-secret": internalSecret
+          },
+          body: JSON.stringify({
+            customerId: selectedCustomer?.id,
+            paymentMethod,
+            paidAmount: selectedCustomer ? amountPaid : finalTotal,
+            discountAmount,
+            items: cart.map((item) => ({
+              productId: item.id,
+              productCode: item.code,
+              productName: item.name,
+              unit: item.unit,
+              quantity: item.quantity,
+              unitPrice: item.price
+            }))
+          })
+        });
+        const body = await response.json();
+        if (!response.ok || !body.ok) {
+          throw new Error(body.error ?? "Không tạo được đơn hàng");
+        }
+        newOrder.id = body.order?.code ?? newOrder.id;
+      } catch (error) {
+        alert(`Không ghi được đơn lên server, app sẽ giữ ở demo local.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
+      } finally {
+        setIsCheckingOut(false);
+      }
+    }
+
     addOrder(newOrder);
     
     // Deduct stock
@@ -339,9 +384,10 @@ export function POS() {
             <div className="mt-4 pt-4 border-t space-y-3">
               <button 
                 onClick={handleCheckout}
+                disabled={isCheckingOut}
                 className="w-full rounded bg-[#006B68] px-4 py-4 text-base font-bold text-white shadow-sm hover:bg-[#005a57] active:bg-[#004a48] transition-colors"
               >
-                Thanh toán (F9)
+                {isCheckingOut ? "Đang lưu..." : "Thanh toán (F9)"}
               </button>
             </div>
           </div>
@@ -350,4 +396,3 @@ export function POS() {
     </div>
   );
 }
-
