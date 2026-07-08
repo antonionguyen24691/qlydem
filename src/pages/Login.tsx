@@ -2,10 +2,12 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Store } from "lucide-react";
 import { useEffect } from "react";
 import { useAuthStore } from "../store/auth";
+import { useBrandingStore } from "../store/branding";
 
 export function Login() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, loginError, signInWithGoogle, loadSession } = useAuthStore();
+  const branding = useBrandingStore((state) => state.branding);
 
   if (isAuthenticated) return <Navigate to="/" replace />;
 
@@ -19,12 +21,16 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md rounded-lg border bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-lg bg-[#006B68] p-2 text-white">
-            <Store className="h-6 w-6" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-[#006B68] text-white">
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.appName} className="h-full w-full object-cover" />
+            ) : (
+              <Store className="h-6 w-6" />
+            )}
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">CRM QLBH</h1>
-            <p className="text-sm text-gray-500">Đăng nhập quản trị bootstrap</p>
+            <h1 className="text-xl font-semibold text-gray-900">{branding.appName}</h1>
+            <p className="text-sm text-gray-500">{branding.appDescription}</p>
           </div>
         </div>
 

@@ -1,6 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Database, Download, Save, Upload, UserPlus, Users } from "lucide-react";
+import type { ChangeEvent, FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { Building2, Database, Download, Image, Save, Upload, UserPlus, Users } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
+import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 
 const importTargets = [
   {
@@ -55,9 +57,37 @@ const emptyForm = {
   saleCode: ""
 };
 
+function readImageFile(file?: File) {
+  return new Promise<string>((resolve, reject) => {
+    if (!file) {
+      resolve("");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("File phải là ảnh."));
+      return;
+    }
+    if (file.size > 500 * 1024) {
+      reject(new Error("Ảnh nên nhỏ hơn 500KB để favicon/logo tải nhanh trên mobile."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Không đọc được file ảnh."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function Settings() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
+  const branding = useBrandingStore((state) => state.branding);
+  const loadBranding = useBrandingStore((state) => state.loadBranding);
+  const saveBrandingSettings = useBrandingStore((state) => state.saveBranding);
+  const [brandForm, setBrandForm] = useState<BrandingSettings>(defaultBranding);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [brandingMessage, setBrandingMessage] = useState("");
+  const [brandingError, setBrandingError] = useState("");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -85,7 +115,12 @@ export function Settings() {
 
   useEffect(() => {
     loadAdminData();
+    loadBranding();
   }, []);
+
+  useEffect(() => {
+    setBrandForm(branding);
+  }, [branding]);
 
   const downloadTemplate = (entity: string) => {
     window.open(`/api/templates/${entity}`, "_blank");
@@ -183,14 +218,149 @@ export function Settings() {
     }
   };
 
+  const updateBrandField = (key: keyof BrandingSettings, value: string) => {
+    setBrandForm((current) => ({ ...current, [key]: value }));
+    setBrandingMessage("");
+    setBrandingError("");
+  };
+
+  const uploadBrandImage = async (key: "logoUrl" | "faviconUrl", event: ChangeEvent<HTMLInputElement>) => {
+    try {
+      const dataUrl = await readImageFile(event.target.files?.[0]);
+      if (dataUrl) updateBrandField(key, dataUrl);
+    } catch (error) {
+      setBrandingError(error instanceof Error ? error.message : "Không đọc được ảnh");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const saveBranding = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSavingBranding(true);
+    setBrandingError("");
+    setBrandingMessage("");
+    try {
+      await saveBrandingSettings(brandForm);
+      setBrandingMessage("Đã lưu nhận diện app.");
+    } catch (error) {
+      setBrandingError(error instanceof Error ? error.message : "Không lưu được nhận diện app");
+    } finally {
+      setIsSavingBranding(false);
+    }
+  };
+
   return (
     <div className="min-h-full bg-gray-50 p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Cấu hình hệ thống</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Khu vực bootstrap dữ liệu ban đầu: tải file mẫu, nhập dữ liệu và upload vào Supabase.
+          Cấu hình nhận diện, phân quyền, dữ liệu khởi tạo và các kết nối vận hành.
         </p>
       </div>
+
+      <section className="mb-6 rounded-lg border bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="rounded-md bg-[#006B68]/10 p-2 text-[#006B68]">
+            <Building2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900">Nhận diện app</h2>
+            <p className="text-sm text-gray-500">Tên app, thông tin đơn vị, logo và favicon dùng cho web/mobile.</p>
+          </div>
+        </div>
+
+        {brandingError && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{brandingError}</div>}
+        {brandingMessage && <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{brandingMessage}</div>}
+
+        <form onSubmit={saveBranding} className="grid gap-4 lg:grid-cols-[1fr_240px]">
+          <div className="grid gap-3 md:grid-cols-2">
+            <input
+              value={brandForm.appName}
+              onChange={(event) => updateBrandField("appName", event.target.value)}
+              placeholder="Tên app"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+              required
+            />
+            <input
+              value={brandForm.companyName}
+              onChange={(event) => updateBrandField("companyName", event.target.value)}
+              placeholder="Tên công ty/đơn vị"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+              required
+            />
+            <input
+              value={brandForm.appDescription}
+              onChange={(event) => updateBrandField("appDescription", event.target.value)}
+              placeholder="Mô tả ngắn"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
+            />
+            <input
+              value={brandForm.address}
+              onChange={(event) => updateBrandField("address", event.target.value)}
+              placeholder="Địa chỉ"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
+            />
+            <input
+              value={brandForm.hotline}
+              onChange={(event) => updateBrandField("hotline", event.target.value)}
+              placeholder="Hotline"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+            />
+            <input
+              value={brandForm.taxCode}
+              onChange={(event) => updateBrandField("taxCode", event.target.value)}
+              placeholder="Mã số thuế"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+            />
+            <input
+              value={brandForm.logoUrl}
+              onChange={(event) => updateBrandField("logoUrl", event.target.value)}
+              placeholder="Logo URL hoặc data URL"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+            />
+            <input
+              value={brandForm.faviconUrl}
+              onChange={(event) => updateBrandField("faviconUrl", event.target.value)}
+              placeholder="Favicon URL hoặc data URL"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+            />
+            <div className="flex flex-wrap gap-2 md:col-span-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <Image className="h-4 w-4" />
+                Upload logo
+                <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("logoUrl", event)} />
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <Image className="h-4 w-4" />
+                Upload favicon
+                <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("faviconUrl", event)} />
+              </label>
+              <button
+                type="submit"
+                disabled={isSavingBranding}
+                className="inline-flex items-center gap-2 rounded-md bg-[#006B68] px-3 py-2 text-sm font-medium text-white hover:bg-[#005a57] disabled:bg-gray-300"
+              >
+                <Save className="h-4 w-4" />
+                {isSavingBranding ? "Đang lưu..." : "Lưu nhận diện"}
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-md border bg-gray-50 p-4">
+            <div className="mb-3 text-sm font-medium text-gray-700">Preview</div>
+            <div className="flex items-center gap-3 rounded-md bg-white p-3 shadow-sm">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#006B68] text-white">
+                {brandForm.logoUrl ? <img src={brandForm.logoUrl} alt={brandForm.appName} className="h-full w-full object-cover" /> : <Building2 className="h-6 w-6" />}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-gray-900">{brandForm.appName || "PMQL"}</div>
+                <div className="truncate text-xs text-gray-500">{brandForm.companyName || "PMQL"}</div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
 
       <section className="mb-6 rounded-lg border bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-3">

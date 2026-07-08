@@ -37,7 +37,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const workbook = await writeXlsxFile(sheets);
     const buffer = await workbook.toBuffer();
-    const filename = `crm-qlbh-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `pmql-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

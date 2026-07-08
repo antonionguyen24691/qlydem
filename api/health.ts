@@ -3,7 +3,7 @@ import type { ApiRequest, ApiResponse } from "./_lib/http";
 export default function handler(_req: ApiRequest, res: ApiResponse) {
   res.status(200).json({
     ok: true,
-    app: "crm-qlbh",
+    app: "pmql",
     time: new Date().toISOString(),
     supabaseConfigured: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
     googleSheetsConfigured: Boolean(

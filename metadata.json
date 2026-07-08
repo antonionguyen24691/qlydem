@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "PMQL",
+  "description": "Phần mềm quản lý bán hàng",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

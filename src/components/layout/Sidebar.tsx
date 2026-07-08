@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useUIStore } from "../../store/ui";
+import { useBrandingStore } from "../../store/branding";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -27,6 +28,7 @@ const navItems = [
 export function Sidebar() {
   const location = useLocation();
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
+  const branding = useBrandingStore((state) => state.branding);
 
   return (
     <>
@@ -45,10 +47,16 @@ export function Sidebar() {
       )}>
         <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b">
           <div className={cn("flex items-center gap-2 font-bold text-xl text-[#006B68] overflow-hidden transition-all", !isSidebarOpen && "lg:justify-center lg:w-full")}>
-            <div className="bg-[#006B68] text-white p-1.5 rounded-lg shrink-0">
-              <Store size={24} />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#006B68] text-white">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={branding.appName} className="h-full w-full object-cover" />
+              ) : (
+                <Store size={22} />
+              )}
             </div>
-            <span className={cn("whitespace-nowrap transition-opacity duration-200", !isSidebarOpen && "lg:hidden lg:opacity-0")}>VLXD ERP</span>
+            <span className={cn("truncate whitespace-nowrap transition-opacity duration-200", !isSidebarOpen && "lg:hidden lg:opacity-0")}>
+              {branding.appName}
+            </span>
           </div>
           <button 
             className="lg:hidden p-1 text-gray-500 hover:bg-gray-100 rounded-md"

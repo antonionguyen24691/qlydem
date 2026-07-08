@@ -460,3 +460,21 @@ set role = 'ADMIN',
     status = 'ACTIVE',
     full_name = excluded.full_name,
     updated_at = now();
+
+insert into public.settings (key, value)
+values (
+  'branding',
+  '{
+    "appName": "PMQL",
+    "companyName": "PMQL",
+    "appDescription": "Phần mềm quản lý bán hàng",
+    "address": "",
+    "hotline": "",
+    "taxCode": "",
+    "logoUrl": "",
+    "faviconUrl": ""
+  }'::jsonb
+)
+on conflict (key) do update
+set value = excluded.value || public.settings.value,
+    updated_at = now();
