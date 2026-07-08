@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { supabase } from "../lib/supabase";
+import { assertSupabaseConfigured, supabase } from "../lib/supabase";
 import { getAuthHeaders } from "../lib/supabase";
 
 type AuthUser = {
@@ -31,22 +31,40 @@ async function fetchProfile() {
   return body.user as AuthUser;
 }
 
+function formatAuthError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Không đăng nhập được";
+  if (message.toLowerCase().includes("invalid api key")) {
+    return "Supabase API key trên Vercel chưa hợp lệ. Hãy thay bằng anon public key và service_role key thật trong Supabase Dashboard.";
+  }
+  if (message.toLowerCase().includes("failed to fetch")) {
+    return "Không kết nối được Supabase. Hãy kiểm tra URL Supabase và cấu hình mạng.";
+  }
+  return message;
+}
+
 export const useAuthStore = create<AuthStore>((set) => ({
   user: undefined,
   isAuthenticated: false,
   isLoading: true,
   signInWithGoogle: async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    if (error) set({ loginError: error.message });
+    set({ isLoading: true, loginError: undefined });
+    try {
+      assertSupabaseConfigured();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      set({ isLoading: false, loginError: formatAuthError(error) });
+    }
   },
   signInWithPassword: async (email, password) => {
     set({ isLoading: true, loginError: undefined });
     try {
+      assertSupabaseConfigured();
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password
@@ -59,13 +77,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
         user: undefined,
         isAuthenticated: false,
         isLoading: false,
-        loginError: error instanceof Error ? error.message : "Không đăng nhập được"
+        loginError: formatAuthError(error)
       });
     }
   },
   loadSession: async () => {
     set({ isLoading: true, loginError: undefined });
     try {
+      assertSupabaseConfigured();
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
         set({ user: undefined, isAuthenticated: false, isLoading: false });
@@ -78,7 +97,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         user: undefined,
         isAuthenticated: false,
         isLoading: false,
-        loginError: error instanceof Error ? error.message : "Không xác thực được"
+        loginError: formatAuthError(error)
       });
     }
   },
