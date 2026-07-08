@@ -7,6 +7,14 @@ type CompanyInfo = {
   logoUrl?: string;
 };
 
+type PaymentSettings = {
+  enabled?: boolean;
+  bankBin?: string;
+  accountNumber?: string;
+  accountName?: string;
+  transferTemplate?: string;
+};
+
 const defaultCompany: Required<CompanyInfo> = {
   name: "CÔNG TY GẠCH MEN SANG PHÁT",
   address: "07 Lê Trọng Tấn",
@@ -36,9 +44,37 @@ function orderDate(order: Order) {
   return parsed.toLocaleDateString("vi-VN");
 }
 
-function billHtml(order: Order, company: CompanyInfo = {}) {
+async function loadPaymentSettings(): Promise<PaymentSettings> {
+  try {
+    const response = await fetch("/api/settings?key=payment");
+    const body = await response.json();
+    return body.payment ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function transferContent(payment: PaymentSettings, order: Order) {
+  return (payment.transferTemplate || "Thanh toan {orderCode}")
+    .replaceAll("{orderCode}", order.id)
+    .replaceAll("{customerName}", order.customerName);
+}
+
+function vietQrUrl(payment: PaymentSettings, order: Order) {
+  if (!payment.enabled || !payment.bankBin || !payment.accountNumber) return "";
+  const params = new URLSearchParams({
+    amount: String(Math.max(0, Math.round(order.total - order.paid || order.total))),
+    addInfo: transferContent(payment, order),
+    accountName: payment.accountName ?? ""
+  });
+  return `https://img.vietqr.io/image/${encodeURIComponent(payment.bankBin)}-${encodeURIComponent(payment.accountNumber)}-compact2.png?${params.toString()}`;
+}
+
+function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSettings = {}) {
   const info = { ...defaultCompany, ...company };
   const debt = Math.max(0, order.total - order.paid);
+  const qrUrl = vietQrUrl(payment, order);
+  const content = transferContent(payment, order);
   const rows = order.items.map((item, index) => `
     <tr>
       <td class="center">${index + 1}</td>
@@ -62,6 +98,9 @@ function billHtml(order: Order, company: CompanyInfo = {}) {
     @page { size: A4; margin: 14mm; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; color: #111827; margin: 0; font-size: 13px; }
+    .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+    .toolbar button { border: 1px solid #d1d5db; border-radius: 8px; background: #fff; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+    .toolbar .primary { background: #059669; border-color: #059669; color: white; }
     .header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
     .company { display: flex; gap: 12px; align-items: center; }
     .logo { width: 54px; height: 54px; object-fit: contain; border: 1px solid #d1d5db; border-radius: 6px; }
@@ -82,16 +121,24 @@ function billHtml(order: Order, company: CompanyInfo = {}) {
     .totals-row:last-child { border-bottom: 1px solid #111827; }
     .totals-row div { padding: 8px 10px; }
     .totals-row div:last-child { text-align: right; border-left: 1px solid #111827; font-weight: 700; }
+    .payment { display: flex; justify-content: space-between; gap: 16px; margin-top: 14px; align-items: flex-start; }
+    .payment-note { flex: 1; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; line-height: 1.6; }
+    .qr { width: 150px; border: 1px solid #d1d5db; border-radius: 8px; padding: 6px; }
     .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 42px; text-align: center; }
     .signature-title { font-weight: 700; }
     .signature-note { color: #6b7280; font-size: 12px; margin-top: 4px; }
     .signature-space { height: 72px; }
     @media print {
+      .toolbar { display: none; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
+  <div class="toolbar">
+    <button onclick="window.print()">In phiếu</button>
+    <button class="primary" onclick="window.shareBill && window.shareBill()">Chia sẻ bill</button>
+  </div>
   <div class="header">
     <div class="company">
       ${info.logoUrl ? `<img class="logo" src="${escapeHtml(info.logoUrl)}" alt="Logo" />` : ""}
@@ -136,6 +183,17 @@ function billHtml(order: Order, company: CompanyInfo = {}) {
     <div class="totals-row"><div>Còn nợ</div><div>${money(debt)}</div></div>
   </div>
 
+  ${qrUrl ? `
+  <div class="payment">
+    <div class="payment-note">
+      <strong>Thông tin thanh toán</strong><br />
+      Chủ TK: ${escapeHtml(payment.accountName)}<br />
+      Số TK: ${escapeHtml(payment.accountNumber)}<br />
+      Nội dung: ${escapeHtml(content)}
+    </div>
+    <img class="qr" src="${escapeHtml(qrUrl)}" alt="QR thanh toán" />
+  </div>` : ""}
+
   <div class="signatures">
     <div><div class="signature-title">Người lập phiếu</div><div class="signature-note">(Ký, ghi rõ họ tên)</div><div class="signature-space"></div></div>
     <div><div class="signature-title">Người nhận hàng</div><div class="signature-note">(Ký, ghi rõ họ tên)</div><div class="signature-space"></div></div>
@@ -153,10 +211,24 @@ export function printSalesOrder(order: Order, company?: CompanyInfo) {
   }
 
   popup.document.open();
-  popup.document.write(billHtml(order, company));
+  popup.document.write("<!doctype html><meta charset='utf-8'><title>Đang tạo bill...</title><body style='font-family:Arial;padding:24px'>Đang tạo bill...</body>");
   popup.document.close();
-  popup.focus();
-  popup.setTimeout(() => {
-    popup.print();
-  }, 250);
+
+  void (async () => {
+    const payment = await loadPaymentSettings();
+    popup.document.open();
+    popup.document.write(billHtml(order, company, payment));
+    popup.document.close();
+    popup.focus();
+    (popup as any).shareBill = async () => {
+      const text = `Bill ${order.id} - ${order.customerName} - Tổng ${money(order.total)} - Còn nợ ${money(Math.max(0, order.total - order.paid))}`;
+      if (popup.navigator?.share) {
+        await popup.navigator.share({ title: `Bill ${order.id}`, text });
+        return;
+      }
+      await popup.navigator?.clipboard?.writeText(text);
+      popup.alert("Đã copy nội dung bill. Có thể dán vào Zalo/Messenger/Facebook.");
+    };
+    popup.setTimeout(() => popup.print(), 250);
+  })();
 }

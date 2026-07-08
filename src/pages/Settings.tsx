@@ -1,6 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { Building2, Database, Download, Image as ImageIcon, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
+import { Building2, CreditCard, Database, Download, Image as ImageIcon, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 import { Button } from "../components/ui/Button";
@@ -49,6 +49,22 @@ type Role = {
   permissions_json: Record<string, unknown>;
 };
 
+type PaymentSettings = {
+  enabled: boolean;
+  bankBin: string;
+  accountNumber: string;
+  accountName: string;
+  transferTemplate: string;
+};
+
+const defaultPayment: PaymentSettings = {
+  enabled: false,
+  bankBin: "",
+  accountNumber: "",
+  accountName: "",
+  transferTemplate: "Thanh toan {orderCode}"
+};
+
 const emptyForm = {
   id: "",
   email: "",
@@ -82,6 +98,7 @@ function readImageFile(file?: File) {
 }
 
 export function Settings() {
+  const [activeSection, setActiveSection] = useState<"general" | "payment" | "users" | "data">("general");
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
   const branding = useBrandingStore((state) => state.branding);
@@ -96,6 +113,10 @@ export function Settings() {
   const [form, setForm] = useState(emptyForm);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [userError, setUserError] = useState("");
+  const [paymentForm, setPaymentForm] = useState<PaymentSettings>(defaultPayment);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [paymentError, setPaymentError] = useState("");
 
   const loadAdminData = async () => {
     try {
@@ -119,6 +140,7 @@ export function Settings() {
   useEffect(() => {
     loadAdminData();
     loadBranding();
+    loadPayment();
   }, []);
 
   useEffect(() => {
@@ -255,6 +277,42 @@ export function Settings() {
     }
   };
 
+  const loadPayment = async () => {
+    try {
+      const response = await fetch("/api/settings?key=payment");
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được cấu hình thanh toán");
+      setPaymentForm({ ...defaultPayment, ...(body.payment ?? {}) });
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Không tải được cấu hình thanh toán");
+    }
+  };
+
+  const savePayment = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSavingPayment(true);
+    setPaymentError("");
+    setPaymentMessage("");
+    try {
+      const response = await fetch("/api/settings?key=payment", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(paymentForm)
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được cấu hình thanh toán");
+      setPaymentForm({ ...defaultPayment, ...(body.payment ?? paymentForm) });
+      setPaymentMessage("Đã lưu cấu hình thanh toán và QR.");
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Không lưu được cấu hình thanh toán");
+    } finally {
+      setIsSavingPayment(false);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-zinc-50 overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4 shrink-0">
@@ -262,8 +320,28 @@ export function Settings() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
+        <div className="flex gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2 shadow-sm">
+          {[
+            ["general", "Cấu hình chung"],
+            ["payment", "Thanh toán QR"],
+            ["users", "Người dùng"],
+            ["data", "Dữ liệu & backup"]
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveSection(key as typeof activeSection)}
+              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+                activeSection === key ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Nhận diện App */}
-        <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "general" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
             <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
               <Building2 className="h-5 w-5" />
@@ -336,10 +414,62 @@ export function Settings() {
               </div>
             </form>
           </div>
-        </section>
+        </section>}
+
+        {activeSection === "payment" && (
+          <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
+              <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-zinc-900 text-lg">Cấu hình thanh toán QR</h2>
+                <p className="text-sm text-zinc-500">Thông tin này sẽ xuất hiện trên bill/phiếu xuất bán hàng.</p>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              {paymentError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{paymentError}</div>}
+              {paymentMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{paymentMessage}</div>}
+              <form onSubmit={savePayment} className="grid gap-4 sm:grid-cols-2">
+                <label className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={paymentForm.enabled}
+                    onChange={(event) => setPaymentForm({ ...paymentForm, enabled: event.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm font-bold text-zinc-800">Bật QR thanh toán trên bill</span>
+                </label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Mã ngân hàng VietQR/BIN</label>
+                  <Input value={paymentForm.bankBin} onChange={(event) => setPaymentForm({ ...paymentForm, bankBin: event.target.value })} placeholder="VD: 970436" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Số tài khoản</label>
+                  <Input value={paymentForm.accountNumber} onChange={(event) => setPaymentForm({ ...paymentForm, accountNumber: event.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Tên chủ tài khoản</label>
+                  <Input value={paymentForm.accountName} onChange={(event) => setPaymentForm({ ...paymentForm, accountName: event.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Nội dung chuyển khoản</label>
+                  <Input value={paymentForm.transferTemplate} onChange={(event) => setPaymentForm({ ...paymentForm, transferTemplate: event.target.value })} />
+                  <p className="text-xs text-zinc-500">Dùng biến {"{orderCode}"} và {"{customerName}"}.</p>
+                </div>
+                <div className="sm:col-span-2 flex justify-end">
+                  <Button type="submit" disabled={isSavingPayment}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSavingPayment ? "Đang lưu..." : "Lưu cấu hình thanh toán"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </section>
+        )}
 
         {/* Quản lý Nhân viên */}
-        <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "users" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
             <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
               <Users className="h-5 w-5" />
@@ -452,10 +582,10 @@ export function Settings() {
             </div>
 
           </div>
-        </section>
+        </section>}
 
         {/* Nhập/Xuất Dữ Liệu */}
-        <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "data" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
             <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
               <Database className="h-5 w-5" />
@@ -515,7 +645,7 @@ export function Settings() {
               );
             })}
           </div>
-        </section>
+        </section>}
 
       </div>
     </div>

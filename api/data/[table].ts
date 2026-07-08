@@ -184,6 +184,40 @@ async function saveProduct(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, product: data });
 }
 
+async function discontinueProduct(req: ApiRequest, res: ApiResponse) {
+  const actor = await requireAuth(req, ["ADMIN", "WAREHOUSE"]);
+  const body = getJsonBody(req);
+  const productId = optionalString(body.id ?? body.productId);
+  if (!productId) {
+    res.status(400).json({ ok: false, error: "Thiếu sản phẩm cần ngưng bán." });
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("products")
+    .update({
+      status: "INACTIVE",
+      lifecycle_status: "DISCONTINUED",
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", productId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+
+  await supabase.from("product_status_history").insert({
+    product_id: productId,
+    old_status: "ACTIVE",
+    new_status: "DISCONTINUED",
+    reason: optionalString(body.reason) ?? "Ngưng bán từ màn hàng hóa",
+    changed_by: actor.id
+  });
+
+  await bestEffortSyncTables(["products", "product_status_history"]);
+  res.status(200).json({ ok: true, product: data });
+}
+
 async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   const body = getJsonBody(req);
   const mode = toStringValue(body.mode, "IN").toUpperCase();
@@ -399,6 +433,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "products" && ["POST", "PATCH"].includes(req.method ?? "")) {
       await saveProduct(req, res);
+      return;
+    }
+
+    if (table === "products" && req.method === "DELETE") {
+      await discontinueProduct(req, res);
       return;
     }
 
