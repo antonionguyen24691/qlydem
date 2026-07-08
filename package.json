@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "audit": "npm audit",
-    "deploy:vercel": "npx --yes vercel --prod"
+    "deploy:vercel": "npx --yes vercel --prod",
+    "bootstrap:admins": "node scripts/bootstrap-admin-users.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
