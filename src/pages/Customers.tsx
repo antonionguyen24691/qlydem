@@ -1,111 +1,385 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useDataStore, Customer } from "../store/data";
-import { Search, UserPlus, Phone, MapPin, Receipt, Users } from "lucide-react";
+import { ArrowLeft, Edit3, MapPin, Phone, Receipt, Save, Search, StickyNote, UserPlus, Users } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { getAuthHeaders } from "../lib/supabase";
+
+type CustomerForm = {
+  id?: string;
+  code?: string;
+  name: string;
+  phone: string;
+  address: string;
+  oldDebt: number;
+  creditLimit: number;
+  note: string;
+  customerGroup: string;
+};
+
+const emptyForm: CustomerForm = {
+  name: "",
+  phone: "",
+  address: "",
+  oldDebt: 0,
+  creditLimit: 50000000,
+  note: "",
+  customerGroup: "RETAIL"
+};
+
+function shortCode(customer: Customer) {
+  return customer.code || customer.id;
+}
+
+function toForm(customer?: Customer): CustomerForm {
+  if (!customer) return { ...emptyForm };
+  return {
+    id: customer.id,
+    code: customer.code,
+    name: customer.name,
+    phone: customer.phone,
+    address: customer.address,
+    oldDebt: customer.oldDebt,
+    creditLimit: customer.creditLimit,
+    note: customer.note ?? "",
+    customerGroup: customer.customerGroup ?? "RETAIL"
+  };
+}
+
+function mapSavedCustomer(row: any): Customer {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name ?? "",
+    phone: row.phone ?? "",
+    address: row.address ?? "",
+    oldDebt: Number(row.current_debt ?? 0),
+    creditLimit: Number(row.credit_limit ?? 0),
+    note: row.note ?? "",
+    customerGroup: row.customer_group ?? ""
+  };
+}
 
 export function Customers() {
-  const { customers, addCustomer, orders } = useDataStore();
+  const { customers, orders, upsertCustomerLocal, loadLiveData } = useDataStore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
-    name: "", phone: "", address: "", oldDebt: 0, creditLimit: 50000000
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [form, setForm] = useState<CustomerForm>(emptyForm);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "debt" | "orders" | "notes">("overview");
+
+  const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
+
+  const filteredCustomers = customers.filter((customer) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(term) ||
+      customer.phone.includes(searchTerm) ||
+      shortCode(customer).toLowerCase().includes(term)
+    );
   });
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone.includes(searchTerm)
-  );
+  const totalDebt = customers.reduce((sum, customer) => sum + customer.oldDebt, 0);
+  const debtors = customers.filter((customer) => customer.oldDebt > 0);
 
-  const totalDebt = customers.reduce((sum, c) => sum + c.oldDebt, 0);
-  const debtors = customers.filter(c => c.oldDebt > 0);
+  const selectedOrders = useMemo(() => {
+    if (!selectedCustomer) return [];
+    return orders
+      .filter((order) => order.customerId === selectedCustomer.id || order.customerName === selectedCustomer.name)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [orders, selectedCustomer]);
 
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCustomer.name || !newCustomer.phone) {
-      alert("Vui lòng nhập tên và số điện thoại");
+  const selectedRevenue = selectedOrders.reduce((sum, order) => sum + order.total, 0);
+  const selectedPaid = selectedOrders.reduce((sum, order) => sum + order.paid, 0);
+
+  function openCreate() {
+    setForm({ ...emptyForm });
+    setIsFormOpen(true);
+  }
+
+  function openEdit(customer: Customer) {
+    setForm(toForm(customer));
+    setIsFormOpen(true);
+  }
+
+  async function saveCustomer(event: React.FormEvent) {
+    event.preventDefault();
+    if (!form.name.trim()) {
+      alert("Vui lòng nhập tên khách hàng.");
       return;
     }
-    addCustomer({
-      ...newCustomer,
-      id: `KH${String(Date.now()).slice(-4)}`,
-    } as Customer);
-    setIsAddOpen(false);
-    setNewCustomer({ name: "", phone: "", address: "", oldDebt: 0, creditLimit: 50000000 });
-    alert("Thêm khách hàng thành công!");
-  };
+
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/data/customers", {
+        method: form.id ? "PATCH" : "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được khách hàng.");
+      const saved = mapSavedCustomer(body.customer);
+      upsertCustomerLocal(saved);
+      setSelectedCustomerId(saved.id);
+      setIsFormOpen(false);
+      await loadLiveData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không lưu được khách hàng.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (selectedCustomer) {
+    return (
+      <div className="flex h-full flex-col bg-zinc-50">
+        <div className="border-b border-zinc-200 bg-white px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedCustomerId(null)}
+                className="mt-1 rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 hover:bg-zinc-50"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="min-w-0">
+                <div className="text-xs font-bold uppercase tracking-wider text-emerald-600">{shortCode(selectedCustomer)}</div>
+                <h1 className="truncate text-2xl font-bold text-zinc-900">{selectedCustomer.name}</h1>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
+                  <span className="inline-flex items-center gap-1"><Phone className="h-4 w-4" />{selectedCustomer.phone || "Chưa có SĐT"}</span>
+                  <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{selectedCustomer.address || "Chưa có địa chỉ"}</span>
+                </div>
+              </div>
+            </div>
+            <Button onClick={() => openEdit(selectedCustomer)} className="w-full lg:w-auto">
+              <Edit3 className="mr-2 h-4 w-4" />
+              Sửa khách hàng
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+          <div className="mb-5 grid gap-3 sm:grid-cols-4">
+            <SummaryCard label="Công nợ hiện tại" value={`${selectedCustomer.oldDebt.toLocaleString()} ₫`} tone="red" />
+            <SummaryCard label="Hạn mức nợ" value={`${selectedCustomer.creditLimit.toLocaleString()} ₫`} />
+            <SummaryCard label="Doanh số" value={`${selectedRevenue.toLocaleString()} ₫`} tone="green" />
+            <SummaryCard label="Đã thu" value={`${selectedPaid.toLocaleString()} ₫`} tone="green" />
+          </div>
+
+          <div className="mb-5 flex gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2">
+            {[
+              ["overview", "Tổng quan"],
+              ["debt", "Sổ công nợ"],
+              ["orders", "Lịch sử mua hàng"],
+              ["notes", "Ghi chú"]
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key as typeof activeTab)}
+                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+                  activeTab === key ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === "overview" && (
+            <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+              <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <h2 className="mb-4 text-lg font-bold text-zinc-900">Thông tin khách hàng</h2>
+                <div className="grid gap-4 text-sm sm:grid-cols-2">
+                  <Info label="Mã khách" value={shortCode(selectedCustomer)} />
+                  <Info label="Nhóm khách" value={selectedCustomer.customerGroup || "RETAIL"} />
+                  <Info label="Điện thoại" value={selectedCustomer.phone || "-"} />
+                  <Info label="Địa chỉ" value={selectedCustomer.address || "-"} />
+                </div>
+              </section>
+              <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <h2 className="mb-4 text-lg font-bold text-zinc-900">Cảnh báo nhanh</h2>
+                {selectedCustomer.oldDebt > 0 ? (
+                  <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+                    Khách còn nợ {selectedCustomer.oldDebt.toLocaleString()} ₫. Nên theo dõi lịch hẹn thanh toán và tạo nhắc nợ nếu cần.
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
+                    Khách chưa có công nợ mở.
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {activeTab === "debt" && (
+            <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <h2 className="mb-4 text-lg font-bold text-zinc-900">Sổ công nợ</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-zinc-200 text-sm">
+                  <thead className="bg-zinc-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-zinc-500">Ngày</th>
+                      <th className="px-4 py-3 text-left font-semibold text-zinc-500">Chứng từ</th>
+                      <th className="px-4 py-3 text-right font-semibold text-zinc-500">Phát sinh</th>
+                      <th className="px-4 py-3 text-right font-semibold text-zinc-500">Đã thu</th>
+                      <th className="px-4 py-3 text-right font-semibold text-zinc-500">Còn nợ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {selectedOrders.map((order) => (
+                      <tr key={order.id}>
+                        <td className="px-4 py-3">{new Date(order.date).toLocaleDateString("vi-VN")}</td>
+                        <td className="px-4 py-3 font-semibold text-emerald-700">{order.id}</td>
+                        <td className="px-4 py-3 text-right">{order.total.toLocaleString()} ₫</td>
+                        <td className="px-4 py-3 text-right text-emerald-700">{order.paid.toLocaleString()} ₫</td>
+                        <td className="px-4 py-3 text-right font-bold text-red-600">{Math.max(0, order.total - order.paid).toLocaleString()} ₫</td>
+                      </tr>
+                    ))}
+                    {selectedOrders.length === 0 && (
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">Chưa có giao dịch công nợ.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {activeTab === "orders" && (
+            <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><Receipt className="h-5 w-5 text-zinc-400" />Lịch sử mua hàng</h2>
+              <div className="grid gap-3">
+                {selectedOrders.map((order) => (
+                  <div key={order.id} className="rounded-lg border border-zinc-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-emerald-700">{order.id}</div>
+                        <div className="text-sm text-zinc-500">{new Date(order.date).toLocaleDateString("vi-VN")}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-zinc-900">{order.total.toLocaleString()} ₫</div>
+                        <div className="text-sm text-zinc-500">{order.items.length} mặt hàng</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {selectedOrders.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có đơn hàng.</div>}
+              </div>
+            </section>
+          )}
+
+          {activeTab === "notes" && (
+            <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><StickyNote className="h-5 w-5 text-zinc-400" />Ghi chú và lưu ý</h2>
+              <div className="whitespace-pre-wrap rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-sm text-zinc-700">
+                {selectedCustomer.note || "Chưa có ghi chú riêng cho khách hàng này."}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <CustomerFormDialog
+          form={form}
+          isOpen={isFormOpen}
+          isSaving={isSaving}
+          onClose={() => setIsFormOpen(false)}
+          onChange={setForm}
+          onSubmit={saveCustomer}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Khách hàng</h1>
-        <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
+        <Button onClick={openCreate} className="w-full sm:w-auto">
           <UserPlus className="h-4 w-4 mr-2" />
           Thêm khách hàng
         </Button>
       </div>
 
       <div className="p-4 sm:p-6 flex-1 overflow-hidden flex flex-col custom-scrollbar">
-        {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-sm font-medium text-zinc-500 mb-2">Tổng số khách hàng</div>
-            <div className="text-2xl font-bold text-zinc-900">{customers.length}</div>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-sm font-medium text-zinc-500 mb-2">Khách đang nợ</div>
-            <div className="text-2xl font-bold text-red-600">{debtors.length}</div>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-sm font-medium text-zinc-500 mb-2">Tổng công nợ</div>
-            <div className="text-2xl font-bold text-red-600">{totalDebt.toLocaleString()} ₫</div>
-          </div>
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <SummaryCard label="Tổng khách hàng" value={String(customers.length)} />
+          <SummaryCard label="Khách đang nợ" value={String(debtors.length)} tone="red" />
+          <SummaryCard label="Tổng công nợ" value={`${totalDebt.toLocaleString()} ₫`} tone="red" />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
-            <Input 
-              type="text" 
+            <Input
+              type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm kiếm theo tên, SĐT..."
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Tìm theo tên, SĐT, mã KH..."
               className="pl-10"
             />
           </div>
         </div>
 
-        {/* Desktop Table View */}
         <div className="hidden md:flex bg-white rounded-xl shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
           <div className="overflow-auto flex-1 custom-scrollbar">
-            <table className="min-w-full divide-y divide-zinc-200">
+            <table className="min-w-[960px] w-full table-fixed divide-y divide-zinc-200">
+              <colgroup>
+                <col className="w-[110px]" />
+                <col />
+                <col className="w-[170px]" />
+                <col className="w-[260px]" />
+                <col className="w-[130px]" />
+                <col className="w-[120px]" />
+                <col className="w-[88px]" />
+              </colgroup>
               <thead className="bg-zinc-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Mã KH</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tên Khách Hàng</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Điện thoại</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Địa chỉ</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nợ hiện tại</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Hạn mức</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Mã</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tên khách hàng</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Điện thoại</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Địa chỉ</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nợ hiện tại</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Hạn mức</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider"></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-zinc-200">
                 {filteredCustomers.map((customer) => (
-                  <tr 
-                    key={customer.id} 
+                  <tr
+                    key={customer.id}
                     className="hover:bg-zinc-50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedCustomer(customer)}
+                    onClick={() => {
+                      setSelectedCustomerId(customer.id);
+                      setActiveTab("overview");
+                    }}
                   >
-                    <td className="px-5 py-4 whitespace-nowrap text-sm font-medium text-emerald-600">{customer.id}</td>
-                    <td className="px-5 py-4 text-sm text-zinc-900 font-bold uppercase">{customer.name}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-sm text-zinc-500">{customer.phone}</td>
-                    <td className="px-5 py-4 text-sm text-zinc-500">{customer.address || "-"}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-sm font-bold text-right text-red-600">
+                    <td className="px-4 py-4 text-xs font-bold text-emerald-600 truncate" title={shortCode(customer)}>{shortCode(customer)}</td>
+                    <td className="px-4 py-4 text-sm text-zinc-900 font-bold uppercase truncate" title={customer.name}>{customer.name}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-zinc-700">{customer.phone || "-"}</td>
+                    <td className="px-4 py-4 text-sm text-zinc-500 truncate" title={customer.address}>{customer.address || "-"}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-right text-red-600">
                       {customer.oldDebt > 0 ? customer.oldDebt.toLocaleString() + " ₫" : "0"}
                     </td>
-                    <td className="px-5 py-4 whitespace-nowrap text-sm text-zinc-500 text-right">{customer.creditLimit.toLocaleString()}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-500 text-right">{customer.creditLimit.toLocaleString()}</td>
+                    <td className="px-3 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openEdit(customer);
+                        }}
+                        className="rounded-lg p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700"
+                        title="Sửa khách hàng"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -113,37 +387,31 @@ export function Customers() {
           </div>
         </div>
 
-        {/* Mobile Card View */}
         <div className="md:hidden flex-1 overflow-y-auto space-y-3 pb-20 custom-scrollbar">
           {filteredCustomers.map((customer) => (
-            <div 
+            <div
               key={customer.id}
-              onClick={() => setSelectedCustomer(customer)}
+              onClick={() => {
+                setSelectedCustomerId(customer.id);
+                setActiveTab("overview");
+              }}
               className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
             >
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-zinc-900 text-base uppercase mb-1">{customer.name}</h3>
-                  <div className="text-sm font-medium text-emerald-600">{customer.id}</div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-zinc-900 text-base uppercase mb-1 truncate">{customer.name}</h3>
+                  <div className="text-xs font-bold text-emerald-600">{shortCode(customer)}</div>
                 </div>
                 {customer.oldDebt > 0 && (
                   <div className="text-right shrink-0 ml-4 bg-red-50 px-2 py-1 rounded-lg">
-                    <div className="text-xs text-red-700 font-semibold mb-0.5">Nợ hiện tại</div>
+                    <div className="text-xs text-red-700 font-semibold mb-0.5">Nợ</div>
                     <div className="text-sm font-bold text-red-600 leading-none">{customer.oldDebt.toLocaleString()} ₫</div>
                   </div>
                 )}
               </div>
               <div className="space-y-2 mt-4 text-sm text-zinc-600">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-zinc-400 shrink-0" />
-                  {customer.phone}
-                </div>
-                {customer.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">{customer.address}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-zinc-400 shrink-0" />{customer.phone || "-"}</div>
+                {customer.address && <div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" /><span className="line-clamp-2">{customer.address}</span></div>}
               </div>
             </div>
           ))}
@@ -156,142 +424,101 @@ export function Customers() {
         </div>
       </div>
 
-      {/* Customer Detail Dialog */}
-      <Dialog 
-        isOpen={!!selectedCustomer} 
-        onClose={() => setSelectedCustomer(null)} 
-        title="Thông tin chi tiết"
-      >
-        {selectedCustomer && (
-          <div className="flex flex-col h-full">
-            <div className="space-y-6 flex-1">
-              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-zinc-500 block mb-1">Mã KH:</span>
-                    <div className="font-bold text-emerald-600">{selectedCustomer.id}</div>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block mb-1">Điện thoại:</span>
-                    <div className="font-bold text-zinc-900">{selectedCustomer.phone}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-zinc-500 block mb-1">Tên khách hàng:</span>
-                    <div className="font-bold text-zinc-900 text-lg uppercase">{selectedCustomer.name}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-zinc-500 block mb-1">Địa chỉ:</span>
-                    <div className="font-medium text-zinc-900">{selectedCustomer.address || "-"}</div>
-                  </div>
-                </div>
-              </div>
+      <CustomerFormDialog
+        form={form}
+        isOpen={isFormOpen}
+        isSaving={isSaving}
+        onClose={() => setIsFormOpen(false)}
+        onChange={setForm}
+        onSubmit={saveCustomer}
+      />
+    </div>
+  );
+}
 
-              <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 pt-6">
-                 <div className="bg-red-50 p-3 rounded-lg border border-red-100">
-                    <span className="text-red-700 text-sm block mb-1 font-semibold">Nợ hiện tại</span>
-                    <div className="font-bold text-red-600 text-xl">{selectedCustomer.oldDebt.toLocaleString()} ₫</div>
-                 </div>
-                 <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
-                    <span className="text-zinc-600 text-sm block mb-1 font-semibold">Hạn mức công nợ</span>
-                    <div className="font-bold text-zinc-900 text-xl">{selectedCustomer.creditLimit.toLocaleString()} ₫</div>
-                 </div>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-zinc-900 mb-3 flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-zinc-400" />
-                  Lịch sử mua hàng gần đây
-                </h4>
-                <div className="space-y-2">
-                  {orders.filter(o => o.customerId === selectedCustomer.id || o.customerName === selectedCustomer.name).slice(0, 5).map(order => (
-                    <div key={order.id} className="flex justify-between items-center text-sm border border-zinc-200 p-3 rounded-lg hover:bg-zinc-50 transition-colors">
-                      <div>
-                        <div className="font-bold text-emerald-600 mb-0.5">{order.id}</div>
-                        <div className="text-xs text-zinc-500 font-medium">{new Date(order.date).toLocaleDateString('vi-VN')}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-zinc-900">{order.total.toLocaleString()} ₫</div>
-                        <div className="text-xs text-emerald-600 font-medium mt-0.5">Đã thu: {order.paid.toLocaleString()} ₫</div>
-                      </div>
-                    </div>
-                  ))}
-                  {orders.filter(o => o.customerId === selectedCustomer.id || o.customerName === selectedCustomer.name).length === 0 && (
-                     <div className="text-sm text-zinc-500 text-center py-6 border border-zinc-200 border-dashed rounded-lg">Chưa có đơn hàng nào.</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-4 border-t border-zinc-100">
-               <Button onClick={() => setSelectedCustomer(null)} variant="outline" className="w-full">
-                 Đóng
-               </Button>
-            </div>
+function CustomerFormDialog({
+  form,
+  isOpen,
+  isSaving,
+  onClose,
+  onChange,
+  onSubmit
+}: {
+  form: CustomerForm;
+  isOpen: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onChange: (form: CustomerForm) => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
+  return (
+    <Dialog isOpen={isOpen} onClose={onClose} title={form.id ? "Sửa khách hàng" : "Thêm khách hàng"} className="sm:max-w-2xl">
+      <form onSubmit={onSubmit} className="flex flex-col h-full">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Mã KH</label>
+            <Input value={form.code ?? ""} onChange={(event) => onChange({ ...form, code: event.target.value })} placeholder="Tự sinh nếu bỏ trống" />
           </div>
-        )}
-      </Dialog>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nhóm khách</label>
+            <Input value={form.customerGroup} onChange={(event) => onChange({ ...form, customerGroup: event.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Tên khách hàng (*)</label>
+            <Input value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Số điện thoại</label>
+            <Input type="tel" value={form.phone} onChange={(event) => onChange({ ...form, phone: event.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Hạn mức nợ</label>
+            <Input type="number" value={form.creditLimit || ""} onChange={(event) => onChange({ ...form, creditLimit: Number(event.target.value) || 0 })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Địa chỉ</label>
+            <Input value={form.address} onChange={(event) => onChange({ ...form, address: event.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nợ hiện tại</label>
+            <Input type="number" value={form.oldDebt || ""} onChange={(event) => onChange({ ...form, oldDebt: Number(event.target.value) || 0 })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Ghi chú / lưu ý</label>
+            <textarea
+              value={form.note}
+              onChange={(event) => onChange({ ...form, note: event.target.value })}
+              rows={4}
+              className="flex w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+            />
+          </div>
+        </div>
+        <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-100">
+          <Button type="button" onClick={onClose} variant="outline" className="flex-1">Hủy</Button>
+          <Button type="submit" disabled={isSaving} className="flex-1">
+            <Save className="mr-2 h-4 w-4" />
+            {isSaving ? "Đang lưu..." : "Lưu thông tin"}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
 
-      <Dialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Thêm Khách Hàng">
-        <form onSubmit={handleAddSubmit} className="flex flex-col h-full">
-          <div className="space-y-4 flex-1">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1.5">Tên khách hàng (*)</label>
-              <Input 
-                type="text" 
-                value={newCustomer.name}
-                onChange={e => setNewCustomer({...newCustomer, name: e.target.value})}
-                required
-                placeholder="Nhập họ tên"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1.5">Số điện thoại (*)</label>
-              <Input 
-                type="tel" 
-                value={newCustomer.phone}
-                onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})}
-                required
-                placeholder="09..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1.5">Địa chỉ</label>
-              <Input 
-                type="text" 
-                value={newCustomer.address}
-                onChange={e => setNewCustomer({...newCustomer, address: e.target.value})}
-                placeholder="Số nhà, đường, quận..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nợ đầu kỳ</label>
-                <Input 
-                  type="number" 
-                  value={newCustomer.oldDebt || ""}
-                  onChange={e => setNewCustomer({...newCustomer, oldDebt: Number(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Hạn mức nợ</label>
-                <Input 
-                  type="number" 
-                  value={newCustomer.creditLimit || ""}
-                  onChange={e => setNewCustomer({...newCustomer, creditLimit: Number(e.target.value) || 0})}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-100">
-            <Button type="button" onClick={() => setIsAddOpen(false)} variant="outline" className="flex-1">
-              Hủy
-            </Button>
-            <Button type="submit" className="flex-1">
-              Lưu thông tin
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+function SummaryCard({ label, value, tone = "dark" }: { label: string; value: string; tone?: "dark" | "green" | "red" }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="text-sm font-medium text-zinc-500 mb-2">{label}</div>
+      <div className={`text-2xl font-bold ${tone === "green" ? "text-emerald-600" : tone === "red" ? "text-red-600" : "text-zinc-900"}`}>{value}</div>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">{label}</div>
+      <div className="mt-1 font-semibold text-zinc-900">{value}</div>
     </div>
   );
 }

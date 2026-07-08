@@ -77,6 +77,56 @@ function productPayload(body: Record<string, unknown>) {
   };
 }
 
+function customerPayload(body: Record<string, unknown>) {
+  const name = toStringValue(body.name).trim();
+  if (!name) {
+    const error = new Error("Thiếu tên khách hàng.");
+    error.name = "BAD_REQUEST";
+    throw error;
+  }
+
+  return {
+    code: toStringValue(body.code, createCode("KH")).trim(),
+    name,
+    short_name: optionalString(body.shortName ?? body.short_name) ?? name,
+    phone: optionalString(body.phone),
+    address: optionalString(body.address),
+    tax_code: optionalString(body.taxCode ?? body.tax_code),
+    customer_group: toStringValue(body.customerGroup ?? body.customer_group, "RETAIL"),
+    credit_limit: toNumber(body.creditLimit ?? body.credit_limit),
+    credit_days: toNumber(body.creditDays ?? body.credit_days),
+    current_debt: toNumber(body.oldDebt ?? body.currentDebt ?? body.current_debt),
+    status: toStringValue(body.status, "ACTIVE").toUpperCase(),
+    note: optionalString(body.note),
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function saveCustomer(req: ApiRequest, res: ApiResponse) {
+  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+  const body = getJsonBody(req);
+  const supabase = getSupabaseAdmin();
+  const payload = customerPayload(body);
+
+  const existingId = optionalString(body.id);
+  const query = existingId
+    ? supabase.from("customers").update(payload).eq("id", existingId).select("*").single()
+    : supabase.from("customers").upsert(payload, { onConflict: "code" }).select("*").single();
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: existingId ? "UPDATE" : "UPSERT",
+    entity_type: "customer",
+    entity_id: data.id,
+    after_json: data
+  });
+
+  await bestEffortSyncTables(["customers"]);
+  res.status(200).json({ ok: true, customer: data });
+}
+
 async function ensureWarehouse(code = "KHO-CHINH") {
   const supabase = getSupabaseAdmin();
   const normalizedCode = code.trim() || "KHO-CHINH";
@@ -349,6 +399,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "products" && ["POST", "PATCH"].includes(req.method ?? "")) {
       await saveProduct(req, res);
+      return;
+    }
+
+    if (table === "customers" && ["POST", "PATCH"].includes(req.method ?? "")) {
+      await saveCustomer(req, res);
       return;
     }
 
