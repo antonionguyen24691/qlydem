@@ -1,8 +1,8 @@
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { methodNotAllowed, sendError } from "../_lib/http";
-import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body";
-import { getSupabaseAdmin } from "../_lib/supabase";
-import { requireAuth } from "../_lib/auth";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { methodNotAllowed, sendError } from "../_lib/http.js";
+import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body.js";
+import { getSupabaseAdmin } from "../_lib/supabase.js";
+import { requireAuth } from "../_lib/auth.js";
 
 type OrderPayloadItem = {
   productId?: string;

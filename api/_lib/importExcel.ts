@@ -1,5 +1,5 @@
 import { readSheet } from "read-excel-file/node";
-import { buildHeaderMap, getRequiredKeys, normalizeHeader, type ImportEntity } from "./importTemplates";
+import { buildHeaderMap, getRequiredKeys, normalizeHeader, type ImportEntity } from "./importTemplates.js";
 
 export type ParsedImportRow = {
   rowNumber: number;

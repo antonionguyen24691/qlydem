@@ -1,7 +1,7 @@
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
-import { EXPORTABLE_TABLES, fetchTableRows, type ExportableTable } from "../_lib/supabase";
-import { requireAuth } from "../_lib/auth";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
+import { EXPORTABLE_TABLES, fetchTableRows, type ExportableTable } from "../_lib/supabase.js";
+import { requireAuth } from "../_lib/auth.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);

@@ -1,7 +1,7 @@
 import writeXlsxFile from "write-excel-file/node";
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
-import { IMPORT_TEMPLATES, isImportEntity } from "../_lib/importTemplates";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
+import { IMPORT_TEMPLATES, isImportEntity } from "../_lib/importTemplates.js";
 
 function cell(value: unknown, fontWeight?: "bold") {
   return {

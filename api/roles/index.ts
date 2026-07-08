@@ -1,8 +1,8 @@
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { methodNotAllowed, sendError } from "../_lib/http";
-import { requireAuth } from "../_lib/auth";
-import { getSupabaseAdmin } from "../_lib/supabase";
-import { getJsonBody, toStringValue } from "../_lib/body";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { methodNotAllowed, sendError } from "../_lib/http.js";
+import { requireAuth } from "../_lib/auth.js";
+import { getSupabaseAdmin } from "../_lib/supabase.js";
+import { getJsonBody, toStringValue } from "../_lib/body.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {

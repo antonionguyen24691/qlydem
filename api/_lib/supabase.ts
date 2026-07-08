@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { assertServerEnv } from "./env";
+import { assertServerEnv } from "./env.js";
 
 export const EXPORTABLE_TABLES = [
   "customers",
