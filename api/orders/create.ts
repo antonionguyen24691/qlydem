@@ -3,6 +3,7 @@ import { methodNotAllowed, sendError } from "../_lib/http.js";
 import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { requireAuth } from "../_lib/auth.js";
+import { bestEffortSyncTables } from "../_lib/googleSheets.js";
 
 type OrderPayloadItem = {
   productId?: string;
@@ -298,6 +299,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       entity_id: order.id,
       after_json: { order, items: itemRows, debt, receipt }
     });
+
+    await bestEffortSyncTables([
+      "sales_orders",
+      "sales_order_items",
+      "customers",
+      "customer_debt_ledger",
+      "order_debts",
+      "receipts",
+      "receipt_allocations",
+      "cashbook_entries",
+      "inventory_balances",
+      "inventory_transactions"
+    ]);
 
     res.status(200).json({ ok: true, order, items: itemRows, debt, receipt });
   } catch (error) {

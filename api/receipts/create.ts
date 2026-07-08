@@ -3,6 +3,7 @@ import { methodNotAllowed, sendError } from "../_lib/http.js";
 import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { requireAuth } from "../_lib/auth.js";
+import { bestEffortSyncTables } from "../_lib/googleSheets.js";
 
 type ReceiptAllocationInput = {
   orderDebtId?: string;
@@ -144,6 +145,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       entity_id: receipt.id,
       after_json: { receipt, allocations: allocationRows }
     });
+
+    await bestEffortSyncTables([
+      "receipts",
+      "receipt_allocations",
+      "customers",
+      "customer_debt_ledger",
+      "order_debts",
+      "cashbook_entries"
+    ]);
 
     res.status(200).json({ ok: true, receipt, allocations: allocationRows, unallocatedAmount: remainingToAllocate });
   } catch (error) {

@@ -49,14 +49,36 @@ Admin co the vao `Cau hinh` de them, sua, khoa user, gan role va dat mat khau da
 
 1. Tao Google Cloud service account.
 2. Bat Google Sheets API.
-3. Tao Google Sheets file moi lam reporting mirror.
-4. Share sheet cho email service account voi quyen Editor.
+3. Co the tao Google Sheets file moi bang script `npm run sheets:create`.
+4. Neu da co sheet san, share sheet cho email service account voi quyen Editor.
 5. Set env:
    - `GOOGLE_SHEETS_SPREADSHEET_ID`
    - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
    - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
+   - `GOOGLE_SHARE_EMAIL` neu muon script tao sheet tu dong share cho admin.
 
 Private key can giu dang mot dong voi `\n`, giong `.env.example`.
+
+Tao file Google Sheets backup tu service account:
+
+```powershell
+$env:GOOGLE_SHARE_EMAIL="admin@example.com"
+npm run sheets:create
+```
+
+Lenh tren tra ve `spreadsheetId`. Dua ID nay vao `GOOGLE_SHEETS_SPREADSHEET_ID` tren `.env.local` va Vercel.
+
+Dong bo Supabase -> Google Sheets bang script local:
+
+```powershell
+npm run sheets:sync
+npm run sheets:sync -- customers,products,inventory_balances
+```
+
+Khi app da cau hinh Google env, he thong co 2 co che backup Google Sheets:
+
+- Cuoi ngay: Vercel Cron goi `GET /api/sync/google-sheets` luc 23:55 gio Viet Nam.
+- Khi phat sinh giao dich: API tao don ban va lap phieu thu se best-effort sync cac bang lien quan sang Google Sheets. Neu Google Sheets chua cau hinh, giao dich van thanh cong va bo qua sync.
 
 ## 3. Vercel
 
@@ -77,6 +99,7 @@ npx --yes vercel env add SUPABASE_SERVICE_ROLE_KEY production
 npx --yes vercel env add GOOGLE_SHEETS_SPREADSHEET_ID production
 npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_EMAIL production
 npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY production
+npx --yes vercel env add CRON_SECRET production
 ```
 
 3. Deploy:
@@ -130,6 +153,13 @@ Authorization: Bearer <supabase_access_token>
 
 Neu bo `tables`, API se sync toan bo cac bang duoc cho phep.
 
+Vercel Cron goi endpoint nay bang:
+
+```http
+GET /api/sync/google-sheets
+Authorization: Bearer <CRON_SECRET>
+```
+
 Xuat XLSX:
 
 ```http
@@ -174,6 +204,14 @@ File mau `products` cung co:
 - `Ton dau ky`: tao/cap nhat ton dau ky trong `inventory_balances`.
 - `Muc ton toi thieu`: dung cho canh bao ton kho.
 
+Import truc tiep sheet `KHO HANG` tu workbook goc:
+
+```powershell
+npm run import:kho-hang
+```
+
+Lenh nay doc `NHAT KY BAN HANG.xlsx`, sheet `KHO HANG`, upsert vao `products` va tao/cap nhat ton kho `KHO-CHINH` trong `inventory_balances`. Neu sheet co ma hang trung, script dedupe theo `Mã hàng`.
+
 ## 4.1 He thong cong no theo tung don
 
 Schema hien co them cac bang:
@@ -212,8 +250,7 @@ Nen lam tiep theo thu tu nay:
 1. Tao Supabase project va chay schema.
 2. Tao Google Sheets mirror va service account.
 3. Set env local + Vercel.
-4. Import du lieu tu `NHAT KY BAN HANG.xlsx` vao Supabase.
-5. Frontend da doc `/api/data/*`; sau khi deploy can upload data that truoc khi van hanh.
-6. Viet API tao don ban co transaction: order, items, ton kho, ledger cong no.
-7. Them login/RBAC.
-8. Them in bill va Customer 360.
+4. Import du lieu tu `NHAT KY BAN HANG.xlsx` vao Supabase bang `npm run import:kho-hang` hoac man hinh upload.
+5. Tao Google Sheets mirror, set env Google, chay `npm run sheets:sync` lan dau.
+6. Kiem tra Vercel Cron va sync sau giao dich.
+7. Hoan thien tiep in bill, Customer 360 va canh bao cong no nang cao.
