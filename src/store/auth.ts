@@ -16,6 +16,7 @@ type AuthStore = {
   isLoading: boolean;
   loginError?: string;
   signInWithGoogle: () => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
   loadSession: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -42,6 +43,25 @@ export const useAuthStore = create<AuthStore>((set) => ({
       }
     });
     if (error) set({ loginError: error.message });
+  },
+  signInWithPassword: async (email, password) => {
+    set({ isLoading: true, loginError: undefined });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password
+      });
+      if (error) throw error;
+      const user = await fetchProfile();
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      set({
+        user: undefined,
+        isAuthenticated: false,
+        isLoading: false,
+        loginError: error instanceof Error ? error.message : "Không đăng nhập được"
+      });
+    }
   },
   loadSession: async () => {
     set({ isLoading: true, loginError: undefined });

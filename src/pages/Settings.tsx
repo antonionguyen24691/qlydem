@@ -54,7 +54,8 @@ const emptyForm = {
   phone: "",
   role: "SALE",
   status: "ACTIVE",
-  saleCode: ""
+  saleCode: "",
+  password: ""
 };
 
 function readImageFile(file?: File) {
@@ -163,8 +164,9 @@ export function Settings() {
       fullName: user.full_name,
       phone: user.phone ?? "",
       role: user.role,
-      status: user.status,
-      saleCode: user.sale_code ?? ""
+        status: user.status,
+        saleCode: user.sale_code ?? "",
+        password: ""
     });
   };
 
@@ -182,7 +184,8 @@ export function Settings() {
         phone: form.phone,
         role: form.role,
         status: form.status,
-        saleCode: form.saleCode
+        saleCode: form.saleCode,
+        password: form.password
       };
       const response = await fetch(form.id ? `/api/users/${form.id}` : "/api/users", {
         method: form.id ? "PATCH" : "POST",
@@ -403,6 +406,14 @@ export function Settings() {
             onChange={(event) => setForm({ ...form, saleCode: event.target.value })}
             placeholder="Mã sale"
             className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+          />
+          <input
+            type="password"
+            value={form.password}
+            onChange={(event) => setForm({ ...form, password: event.target.value })}
+            placeholder={form.id ? "Mật khẩu mới nếu cần đổi" : "Mật khẩu đăng nhập"}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
+            autoComplete="new-password"
           />
           <select
             value={form.role}
