@@ -10,13 +10,14 @@
    - `antonionguyen246@gmail.com`
    - `lanphuongngothi237@gmail.com`
 
-## 2. Bat Google Login trong Supabase
+## 2. Bat dang nhap trong Supabase
 
 1. Vao Authentication -> Providers.
 2. Bat Google.
 3. Tao Google OAuth Client trong Google Cloud Console.
 4. Dien Client ID/Secret vao Supabase.
-5. Trong Authentication -> URL Configuration:
+5. Bat Email provider de dung dang nhap email/mat khau.
+6. Trong Authentication -> URL Configuration:
    - Site URL: URL production Vercel sau khi deploy.
    - Redirect URLs:
      - `http://localhost:3000`
@@ -62,13 +63,14 @@ Google Sheets env co the de trong neu chua dung sync Sheets ngay.
 
 1. Deploy production.
 2. Mo URL Vercel.
-3. Dang nhap bang Google:
+3. Dang nhap bang Google hoac email/mat khau:
    - `antonionguyen246@gmail.com`
    - hoac `Lanphuongngothi237@gmail.com`
 4. Vao `Cau hinh`.
 5. Kiem tra muc `Quan ly user va phan quyen`.
 6. Thu them user sale:
    - Email Google cua sale.
+   - Mat khau neu muon sale dang nhap bang email/mat khau.
    - Role: `SALE`.
    - Status: `ACTIVE`.
 7. Tai file mau khach hang, nha cung cap, hang hoa.
@@ -81,10 +83,11 @@ Google Sheets env co the de trong neu chua dung sync Sheets ngay.
 - [ ] SQL schema da chay thanh cong.
 - [ ] 2 admin da co trong bang `users`.
 - [ ] Google provider da bat.
+- [ ] Email provider da bat neu dung email/mat khau.
 - [ ] Vercel env da set.
 - [ ] Production deploy thanh cong.
 - [ ] Admin dang nhap duoc.
-- [ ] Admin them/sua/khoa user duoc.
+- [ ] Admin them/sua/khoa user va dat mat khau duoc.
 - [ ] Upload khach hang/NCC/hang hoa duoc.
 - [ ] POS tao don ghi vao Supabase.
 - [ ] Thu no tao receipt va allocation.

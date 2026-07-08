@@ -3,6 +3,7 @@ import { methodNotAllowed, sendError } from "../_lib/http";
 import { requireAuth } from "../_lib/auth";
 import { getSupabaseAdmin } from "../_lib/supabase";
 import { getJsonBody, optionalString, toStringValue } from "../_lib/body";
+import { upsertAuthPassword } from "../_lib/authUsers";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
@@ -24,10 +25,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const email = toStringValue(body.email).trim().toLowerCase();
       const fullName = toStringValue(body.fullName).trim();
       const role = toStringValue(body.role, "SALE").trim().toUpperCase();
+      const password = optionalString(body.password);
       if (!email || !fullName) {
         res.status(400).json({ ok: false, error: "Thiếu email hoặc họ tên." });
         return;
       }
+
+      await upsertAuthPassword(supabase, email, password);
 
       const { data, error } = await supabase
         .from("users")

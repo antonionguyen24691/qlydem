@@ -3,6 +3,7 @@ import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
 import { requireAuth } from "../_lib/auth";
 import { getSupabaseAdmin } from "../_lib/supabase";
 import { getJsonBody, optionalString, toStringValue } from "../_lib/body";
+import { upsertAuthPassword } from "../_lib/authUsers";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
@@ -17,6 +18,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (req.method === "PATCH") {
       const body = getJsonBody(req);
+      const password = optionalString(body.password);
+      if (password) {
+        const { data: currentUser, error: currentUserError } = await supabase
+          .from("users")
+          .select("email")
+          .eq("id", id)
+          .single();
+        if (currentUserError) throw new Error(currentUserError.message);
+        await upsertAuthPassword(supabase, currentUser.email, password);
+      }
+
       const patch = {
         full_name: optionalString(body.fullName),
         phone: optionalString(body.phone),

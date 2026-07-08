@@ -43,7 +43,7 @@ Schema cung seed san 2 admin:
 - `antonionguyen246@gmail.com`
 - `lanphuongngothi237@gmail.com`
 
-Admin co the vao `Cau hinh` de them, sua, khoa user va gan role.
+Admin co the vao `Cau hinh` de them, sua, khoa user, gan role va dat mat khau dang nhap email/password.
 
 ## 2. Google Sheets
 
