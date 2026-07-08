@@ -1,4 +1,4 @@
-import type { ApiRequest } from "./http";
+import type { ApiRequest } from "./http.js";
 
 export function getJsonBody<T extends Record<string, unknown>>(req: ApiRequest): T {
   if (!req.body || typeof req.body !== "object") return {} as T;

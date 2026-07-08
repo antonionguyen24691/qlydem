@@ -1,8 +1,8 @@
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
-import { requireAuth } from "../_lib/auth";
-import { getJsonBody, toStringValue } from "../_lib/body";
-import { getSupabaseAdmin } from "../_lib/supabase";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
+import { requireAuth } from "../_lib/auth.js";
+import { getJsonBody, toStringValue } from "../_lib/body.js";
+import { getSupabaseAdmin } from "../_lib/supabase.js";
 
 type BrandingSettings = {
   appName: string;

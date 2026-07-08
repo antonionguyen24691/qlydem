@@ -1,5 +1,5 @@
-import type { ApiRequest } from "./http";
-import { getSupabaseAdmin } from "./supabase";
+import type { ApiRequest } from "./http.js";
+import { getSupabaseAdmin } from "./supabase.js";
 
 export type ApiUser = {
   id: string;

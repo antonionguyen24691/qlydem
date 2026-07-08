@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { getGooglePrivateKey } from "./env";
+import { getGooglePrivateKey } from "./env.js";
 
 export async function getSheetsClient() {
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;

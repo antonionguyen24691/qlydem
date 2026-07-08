@@ -1,10 +1,10 @@
 import type { IncomingMessage } from "node:http";
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
-import { parseImportWorkbook } from "../_lib/importExcel";
-import { isImportEntity } from "../_lib/importTemplates";
-import { getSupabaseAdmin } from "../_lib/supabase";
-import { requireAuth } from "../_lib/auth";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
+import { parseImportWorkbook } from "../_lib/importExcel.js";
+import { isImportEntity } from "../_lib/importTemplates.js";
+import { getSupabaseAdmin } from "../_lib/supabase.js";
+import { requireAuth } from "../_lib/auth.js";
 
 export const config = {
   api: {

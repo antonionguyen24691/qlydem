@@ -1,8 +1,8 @@
 import writeXlsxFile from "write-excel-file/node";
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
-import { fetchTableRows, parseTables } from "../_lib/supabase";
-import { requireAuth } from "../_lib/auth";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
+import { fetchTableRows, parseTables } from "../_lib/supabase.js";
+import { requireAuth } from "../_lib/auth.js";
 
 function cell(value: unknown, fontWeight?: "bold") {
   return {
