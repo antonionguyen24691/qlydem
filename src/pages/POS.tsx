@@ -6,6 +6,7 @@ import { getAuthHeaders } from "../lib/supabase";
 import { Search, Trash2, Plus, Minus, X, ChevronDown, Package } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { printSalesOrder } from "../lib/printBill";
 
 export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
@@ -118,7 +119,8 @@ export function POS() {
     }
 
     const paymentName = paymentMethod === "CASH" ? "Tiền mặt" : "Chuyển khoản";
-    alert(`Thanh toán thành công đơn hàng!\n\nMã HĐ: ${newOrder.id}\nKhách hàng: ${newOrder.customerName}\nTổng thanh toán: ${finalTotal.toLocaleString()} đ\nĐã thu: ${newOrder.paid.toLocaleString()} đ\nGhi nợ: ${debtAmount.toLocaleString()} đ\nPhương thức: ${paymentName}\n\nĐã lưu vào Supabase.`);
+    const shouldPrint = window.confirm(`Thanh toán thành công đơn hàng!\n\nMã HĐ: ${newOrder.id}\nKhách hàng: ${newOrder.customerName}\nTổng thanh toán: ${finalTotal.toLocaleString()} đ\nĐã thu: ${newOrder.paid.toLocaleString()} đ\nGhi nợ: ${debtAmount.toLocaleString()} đ\nPhương thức: ${paymentName}\n\nBạn có muốn in phiếu xuất/bill bán hàng ngay không?`);
+    if (shouldPrint) printSalesOrder(newOrder);
     
     clearCart();
     setSelectedCustomer(null);

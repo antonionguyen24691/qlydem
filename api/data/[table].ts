@@ -10,7 +10,7 @@ const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   customers: ["ADMIN", "ACCOUNTANT", "SALE"],
   products: ["ADMIN", "ACCOUNTANT", "SALE", "WAREHOUSE"],
   warehouses: ["ADMIN", "WAREHOUSE"],
-  inventory_balances: ["ADMIN", "WAREHOUSE"],
+  inventory_balances: ["ADMIN", "WAREHOUSE", "SALE"],
   inventory_transactions: ["ADMIN", "WAREHOUSE"],
   sales_orders: ["ADMIN", "ACCOUNTANT", "SALE"],
   sales_order_items: ["ADMIN", "ACCOUNTANT", "SALE"],
@@ -218,9 +218,125 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, transaction, stockAfter });
 }
 
+async function getAppNotifications(req: ApiRequest, res: ApiResponse) {
+  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE", "WAREHOUSE"]);
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  let reminderQuery = supabase
+    .from("debt_reminders")
+    .select("id,order_debt_id,customer_id,assigned_to,reminder_type,channel,scheduled_at,status,title,message,created_at")
+    .in("status", ["PENDING", "SCHEDULED"])
+    .lte("scheduled_at", now);
+
+  if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
+    reminderQuery = reminderQuery.or(`assigned_to.is.null,assigned_to.eq.${actor.id}`);
+  }
+
+  const [{ data: notifications, error: notificationError }, { data: reminders, error: reminderError }] = await Promise.all([
+    supabase
+      .from("notifications")
+      .select("id,type,title,body,entity_type,entity_id,read_at,created_at")
+      .or(`user_id.is.null,user_id.eq.${actor.id}`)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    reminderQuery
+      .order("scheduled_at", { ascending: true })
+      .limit(20)
+  ]);
+
+  if (notificationError) throw new Error(notificationError.message);
+  if (reminderError) throw new Error(reminderError.message);
+
+  const reminderItems = (reminders ?? []).map((item) => ({
+    id: `reminder:${item.id}`,
+    source: "debt_reminders",
+    type: item.reminder_type ?? "DEBT_DUE",
+    title: item.title ?? "Nhắc công nợ đến hạn",
+    body: item.message ?? "Có khoản công nợ cần xử lý.",
+    entityType: "debt_reminder",
+    entityId: item.id,
+    readAt: null,
+    createdAt: item.scheduled_at ?? item.created_at,
+    href: "/finance"
+  }));
+
+  const notificationItems = (notifications ?? []).map((item) => ({
+    id: item.id,
+    source: "notifications",
+    type: item.type,
+    title: item.title,
+    body: item.body,
+    entityType: item.entity_type,
+    entityId: item.entity_id,
+    readAt: item.read_at,
+    createdAt: item.created_at,
+    href: item.entity_type === "customer_debt" ? "/finance" : undefined
+  }));
+
+  const items = [...reminderItems, ...notificationItems]
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .slice(0, 30);
+
+  res.status(200).json({
+    ok: true,
+    items,
+    unreadCount: items.filter((item) => !item.readAt).length
+  });
+}
+
+async function markNotificationRead(req: ApiRequest, res: ApiResponse) {
+  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE", "WAREHOUSE"]);
+  const body = getJsonBody(req);
+  const id = optionalString(body.id);
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  if (!id) {
+    await supabase
+      .from("notifications")
+      .update({ read_at: now })
+      .or(`user_id.is.null,user_id.eq.${actor.id}`)
+      .is("read_at", null);
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  if (id.startsWith("reminder:")) {
+    const reminderId = id.replace("reminder:", "");
+    const { error } = await supabase
+      .from("debt_reminders")
+      .update({ status: "SENT", sent_at: now })
+      .eq("id", reminderId);
+    if (error) throw new Error(error.message);
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: now })
+    .eq("id", id)
+    .or(`user_id.is.null,user_id.eq.${actor.id}`);
+  if (error) throw new Error(error.message);
+  res.status(200).json({ ok: true });
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const table = getQueryValue(req.query?.table);
+    if (table === "app-notifications") {
+      if (req.method === "GET") {
+        await getAppNotifications(req, res);
+        return;
+      }
+      if (req.method === "PATCH") {
+        await markNotificationRead(req, res);
+        return;
+      }
+      return methodNotAllowed(res, ["GET", "PATCH"]);
+    }
+
     if (table === "inventory-adjustments" && req.method === "POST") {
       await adjustInventory(req, res);
       return;

@@ -13,22 +13,25 @@ import {
 import { cn } from "../../lib/utils";
 import { useUIStore } from "../../store/ui";
 import { useBrandingStore } from "../../store/branding";
+import { useAuthStore } from "../../store/auth";
+import { canManageInventory, canManageProducts, canSell, canViewCustomers, canViewFinance, isAdmin } from "../../lib/permissions";
 
 const navItems = [
-  { name: "Tổng quan", href: "/", icon: LayoutDashboard },
-  { name: "Bán hàng (POS)", href: "/pos", icon: ShoppingCart },
-  { name: "Đơn hàng", href: "/orders", icon: FileText },
-  { name: "Sản phẩm", href: "/products", icon: Package },
-  { name: "Tồn kho", href: "/inventory", icon: Store },
-  { name: "Khách hàng", href: "/customers", icon: Users },
-  { name: "Tài chính", href: "/finance", icon: BadgeDollarSign },
-  { name: "Cấu hình", href: "/settings", icon: Settings },
+  { name: "Tổng quan", href: "/", icon: LayoutDashboard, visible: () => true },
+  { name: "Bán hàng (POS)", href: "/pos", icon: ShoppingCart, visible: canSell },
+  { name: "Đơn hàng", href: "/orders", icon: FileText, visible: canSell },
+  { name: "Sản phẩm", href: "/products", icon: Package, visible: (user: any) => canManageProducts(user) || canSell(user) || canViewFinance(user) },
+  { name: "Tồn kho", href: "/inventory", icon: Store, visible: (user: any) => canManageInventory(user) || user?.role === "SALE" },
+  { name: "Khách hàng", href: "/customers", icon: Users, visible: canViewCustomers },
+  { name: "Tài chính", href: "/finance", icon: BadgeDollarSign, visible: canViewFinance },
+  { name: "Cấu hình", href: "/settings", icon: Settings, visible: isAdmin },
 ];
 
 export function Sidebar() {
   const location = useLocation();
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const branding = useBrandingStore((state) => state.branding);
+  const user = useAuthStore((state) => state.user);
 
   return (
     <>
@@ -68,7 +71,7 @@ export function Sidebar() {
         
         <div className="flex-1 overflow-y-auto py-4 overflow-x-hidden hide-scrollbar">
           <nav className="space-y-1.5 px-3">
-            {navItems.map((item) => {
+            {navItems.filter((item) => item.visible(user)).map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link

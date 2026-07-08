@@ -14,6 +14,7 @@
     "deploy:vercel": "npx --yes vercel --prod",
     "bootstrap:admins": "node scripts/bootstrap-admin-users.mjs",
     "import:kho-hang": "node scripts/import-kho-hang-from-xlsx.mjs",
+    "import:cua-hang": "node scripts/import-cua-hang-customers.mjs",
     "sheets:create": "node scripts/create-google-sheets-backup.mjs",
     "sheets:sync": "node scripts/sync-supabase-to-google-sheets.mjs"
   },

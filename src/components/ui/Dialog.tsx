@@ -1,29 +1,35 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Dialog({ isOpen, onClose, title, children }: DialogProps) {
+export function Dialog({ isOpen, onClose, title, children, className }: DialogProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/50 p-4 sm:p-6">
-      <div className="relative w-full max-w-md max-h-full bg-white rounded-lg shadow-xl flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b shrink-0">
-          <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-6 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
+      <div className={cn(
+        "relative w-full max-w-md bg-white flex flex-col shadow-2xl",
+        "h-full sm:h-auto sm:max-h-full sm:rounded-2xl overflow-hidden",
+        className
+      )}>
+        <div className="flex items-center justify-between p-4 border-b border-zinc-100 shrink-0 bg-white z-10 shadow-sm">
+          <h3 className="text-lg font-bold text-zinc-900 tracking-tight">{title}</h3>
           <button 
             onClick={onClose}
-            className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center shrink-0 transition-colors"
+            className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 rounded-lg p-2 transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 md:p-5 overflow-y-auto min-h-0">
+        <div className="p-4 sm:p-6 overflow-y-auto min-h-0 flex-1 custom-scrollbar bg-zinc-50/50">
           {children}
         </div>
       </div>
