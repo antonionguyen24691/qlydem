@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getAuthHeaders } from '../lib/supabase';
 
 export interface Customer {
   id: string;
@@ -60,7 +61,7 @@ interface DataStore {
 }
 
 async function fetchRows(table: string) {
-  const response = await fetch(`/api/data/${table}`);
+  const response = await fetch(`/api/data/${table}`, { headers: await getAuthHeaders() });
   if (!response.ok) throw new Error(`Không đọc được ${table}`);
   const body = await response.json();
   if (!body.ok) throw new Error(body.error ?? `Không đọc được ${table}`);

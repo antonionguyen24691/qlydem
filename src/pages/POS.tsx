@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { usePOSStore } from "../store/pos";
 import { useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
+import { getAuthHeaders } from "../lib/supabase";
 import { Search, Trash2, Plus, Minus, X } from "lucide-react";
 
 export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData } = useDataStore();
-  const { secret } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState(products);
@@ -71,8 +72,8 @@ export function POS() {
       }))
     };
 
-    if (!secret) {
-      alert("Chưa đăng nhập hoặc thiếu INTERNAL_API_SECRET.");
+    if (!isAuthenticated) {
+      alert("Bạn cần đăng nhập Google trước khi tạo đơn.");
       return;
     }
 
@@ -81,8 +82,8 @@ export function POS() {
       const response = await fetch("/api/orders/create", {
         method: "POST",
         headers: {
+          ...(await getAuthHeaders()),
           "content-type": "application/json",
-          "x-internal-secret": secret
         },
         body: JSON.stringify({
           customerId: selectedCustomer?.id,

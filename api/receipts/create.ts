@@ -1,7 +1,8 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { methodNotAllowed, requireInternalSecret, sendError } from "../_lib/http";
+import { methodNotAllowed, sendError } from "../_lib/http";
 import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body";
 import { getSupabaseAdmin } from "../_lib/supabase";
+import { requireAuth } from "../_lib/auth";
 
 type ReceiptAllocationInput = {
   orderDebtId?: string;
@@ -21,7 +22,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);
 
   try {
-    requireInternalSecret(req);
+    const user = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE"]);
     const body = getJsonBody<ReceiptPayload>(req);
     const customerId = optionalString(body.customerId);
     const amount = toNumber(body.amount);
@@ -46,7 +47,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         amount,
         payment_method: toStringValue(body.paymentMethod, "CASH"),
         note: optionalString(body.note),
-        created_by: optionalString(body.createdBy)
+        created_by: optionalString(body.createdBy) ?? user.id
       })
       .select("*")
       .single();
@@ -105,7 +106,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         order_id: debt.order_id,
         customer_id: customerId,
         amount: allocationAmount,
-        allocated_by: optionalString(body.createdBy)
+        allocated_by: optionalString(body.createdBy) ?? user.id
       });
     }
 
@@ -133,11 +134,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       amount,
       payment_method: toStringValue(body.paymentMethod, "CASH"),
       note: optionalString(body.note),
-      created_by: optionalString(body.createdBy)
+      created_by: optionalString(body.createdBy) ?? user.id
     });
 
     await supabase.from("audit_logs").insert({
-      actor_id: optionalString(body.createdBy),
+      actor_id: optionalString(body.createdBy) ?? user.id,
       action: "CREATE",
       entity_type: "receipt",
       entity_id: receipt.id,
