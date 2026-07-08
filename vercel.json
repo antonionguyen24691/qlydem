@@ -1,6 +1,12 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "crons": [
+    {
+      "path": "/api/sync/google-sheets",
+      "schedule": "55 16 * * *"
+    }
+  ],
   "routes": [
     {
       "src": "/api/data/([^/]+)",

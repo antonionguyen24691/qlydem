@@ -1,5 +1,14 @@
 import { google } from "googleapis";
 import { getGooglePrivateKey } from "./env.js";
+import { fetchTableRows, type ExportableTable } from "./supabase.js";
+
+export function isGoogleSheetsConfigured() {
+  return Boolean(
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+    getGooglePrivateKey() &&
+    process.env.GOOGLE_SHEETS_SPREADSHEET_ID
+  );
+}
 
 export async function getSheetsClient() {
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -48,4 +57,23 @@ export async function replaceSheetRows(sheetName: string, rows: Record<string, u
       values: values.length > 1 ? values : [["empty"]]
     }
   });
+}
+
+export async function syncTablesToGoogleSheets(tables: ExportableTable[]) {
+  const synced: Array<{ table: string; rows: number }> = [];
+  for (const table of tables) {
+    const rows = await fetchTableRows(table);
+    await replaceSheetRows(table, rows);
+    synced.push({ table, rows: rows.length });
+  }
+  return synced;
+}
+
+export async function bestEffortSyncTables(tables: ExportableTable[]) {
+  if (!isGoogleSheetsConfigured()) return;
+  try {
+    await syncTablesToGoogleSheets(tables);
+  } catch (error) {
+    console.warn("Google Sheets backup sync failed", error);
+  }
 }

@@ -45,6 +45,16 @@ POST /api/sync/google-sheets?tables=customers,products
 GET /api/export/xlsx?tables=customers,products
 ```
 
+## Import Kho Hàng Và Backup
+
+```powershell
+npm run import:kho-hang
+npm run sheets:create
+npm run sheets:sync
+```
+
+Vercel Cron đã được cấu hình để gọi `/api/sync/google-sheets` cuối ngày. Khi tạo đơn bán hoặc phiếu thu, API cũng best-effort đồng bộ các bảng liên quan sang Google Sheets nếu đã set Google service account env.
+
 Các endpoint nghiệp vụ cần đăng nhập Google và gửi bearer token:
 
 ```http
