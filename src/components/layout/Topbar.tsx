@@ -20,6 +20,7 @@ export function Topbar() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
   const notificationRef = useRef<HTMLDivElement>(null);
 
   async function loadNotifications() {
@@ -29,11 +30,16 @@ export function Topbar() {
     });
     const body = await response.json();
     if (!response.ok || !body.ok) return;
-    setNotifications(body.items ?? []);
-    setUnreadCount(body.unreadCount ?? 0);
+    const visibleItems = (body.items ?? []).filter((item: NotificationItem) => !item.readAt && !dismissedIds.has(item.id));
+    setNotifications(visibleItems);
+    setUnreadCount(visibleItems.length);
   }
 
   async function markRead(id?: string) {
+    const idsToDismiss = id ? [id] : notifications.map((item) => item.id);
+    setDismissedIds((current) => new Set([...current, ...idsToDismiss]));
+    setNotifications((current) => id ? current.filter((item) => item.id !== id) : []);
+    setUnreadCount((current) => id ? Math.max(0, current - 1) : 0);
     await fetch("/api/data/app-notifications", {
       method: "PATCH",
       headers: {
@@ -49,7 +55,7 @@ export function Topbar() {
     loadNotifications();
     const timer = window.setInterval(loadNotifications, 60000);
     return () => window.clearInterval(timer);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, dismissedIds]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -107,6 +113,7 @@ export function Topbar() {
                 <button
                   type="button"
                   onClick={() => markRead()}
+                  disabled={notifications.length === 0}
                   className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                 >
                   <CheckCheck className="h-4 w-4" />

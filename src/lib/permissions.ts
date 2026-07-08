@@ -18,6 +18,10 @@ export function canManageInventory(user?: UserLike) {
   return ["ADMIN", "WAREHOUSE"].includes(userRole(user));
 }
 
+export function canCountInventory(user?: UserLike) {
+  return ["ADMIN", "WAREHOUSE", "ACCOUNTANT"].includes(userRole(user));
+}
+
 export function canRequestStockOut(user?: UserLike) {
   return ["ADMIN", "WAREHOUSE", "SALE"].includes(userRole(user));
 }

@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useDataStore, Product } from "../store/data";
-import { ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, RefreshCw, Search, Send, PackageX, PackageSearch } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, ClipboardCheck, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { useAuthStore } from "../store/auth";
-import { canManageInventory, canRequestStockOut } from "../lib/permissions";
+import { canCountInventory, canManageInventory, canRequestStockOut, isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
 
 type InventoryMode = "IN" | "OUT" | "COUNT" | "REQUEST_EXPORT";
@@ -17,10 +17,41 @@ const MODE_LABEL: Record<InventoryMode, string> = {
   REQUEST_EXPORT: "Đề nghị xuất kho"
 };
 
+type CountRow = {
+  productId: string;
+  code: string;
+  name: string;
+  unit: string;
+  currentStock: number;
+  quantity: number;
+  note: string;
+};
+
+type ApprovalRequest = {
+  id: string;
+  status: string;
+  note?: string;
+  created_at: string;
+  items: Array<{
+    id: string;
+    old_quantity_box: number;
+    new_quantity_box: number;
+    quantity_change: number;
+    note?: string;
+    products?: {
+      code?: string;
+      product_name?: string;
+      unit?: string;
+    };
+  }>;
+};
+
 export function Inventory() {
   const { products, loadLiveData } = useDataStore();
   const user = useAuthStore((state) => state.user);
   const canAdjust = canManageInventory(user);
+  const canCount = canCountInventory(user);
+  const canApproveInventory = isAdmin(user);
   const canRequest = canRequestStockOut(user);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -30,6 +61,10 @@ export function Inventory() {
   const [note, setNote] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [infoPreview, setInfoPreview] = useState<{ title: string; content: string } | null>(null);
+  const [countRows, setCountRows] = useState<CountRow[]>([]);
+  const [isApprovalOpen, setIsApprovalOpen] = useState(false);
+  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
 
   const filteredProducts = products.filter((product) => {
     const term = searchTerm.toLowerCase();
@@ -47,15 +82,70 @@ export function Inventory() {
   }, [products]);
 
   const openAdjust = (nextMode: InventoryMode, product?: Product) => {
-    if (nextMode === "REQUEST_EXPORT" ? !canRequest : !canAdjust) return;
+    if (nextMode === "COUNT" ? !canCount : nextMode === "REQUEST_EXPORT" ? !canRequest : !canAdjust) return;
     setMode(nextMode);
     setSelectedProduct(product ?? null);
     setQuantity(product && nextMode === "COUNT" ? product.stock : 0);
     setNote("");
+    if (nextMode === "COUNT") {
+      setCountRows(products.map((item) => ({
+        productId: item.id,
+        code: item.code,
+        name: item.name,
+        unit: item.unit,
+        currentStock: item.stock,
+        quantity: item.stock,
+        note: ""
+      })));
+    }
     setIsAdjustOpen(true);
   };
 
+  const saveCountSheet = async () => {
+    const changedRows = countRows.filter((row) => Number(row.quantity) !== Number(row.currentStock));
+    if (changedRows.length === 0) {
+      alert("Chưa có dòng nào thay đổi tồn kho.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/data/inventory-count-sheet", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          warehouseCode: "KHO-CHINH",
+          note,
+          rows: changedRows.map((row) => ({
+            productId: row.productId,
+            quantity: Number(row.quantity) || 0,
+            note: row.note
+          }))
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được kiểm kê sheet.");
+      if (body.status === "PENDING_APPROVAL") {
+        alert(`Đã gửi ${body.changedRows} dòng kiểm kê chờ admin duyệt.`);
+      } else {
+        alert(`Đã lưu kiểm kê ${body.changedRows} dòng.`);
+        await loadLiveData();
+      }
+      setIsAdjustOpen(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không lưu được kiểm kê sheet.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveAdjustment = async () => {
+    if (mode === "COUNT") {
+      await saveCountSheet();
+      return;
+    }
     if (!selectedProduct) {
       alert("Vui lòng chọn sản phẩm.");
       return;
@@ -93,6 +183,43 @@ export function Inventory() {
     }
   };
 
+  const loadApprovalRequests = async () => {
+    if (!canApproveInventory) return;
+    setIsLoadingApprovals(true);
+    try {
+      const response = await fetch("/api/data/inventory-approval-requests", {
+        headers: await getAuthHeaders()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được lệnh chờ duyệt.");
+      setApprovalRequests(body.requests ?? []);
+      setIsApprovalOpen(true);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không tải được lệnh chờ duyệt.");
+    } finally {
+      setIsLoadingApprovals(false);
+    }
+  };
+
+  const reviewApproval = async (requestId: string, decision: "APPROVE" | "REJECT") => {
+    try {
+      const response = await fetch("/api/data/inventory-approval-requests", {
+        method: "PATCH",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({ id: requestId, decision })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không xử lý được lệnh.");
+      await loadApprovalRequests();
+      await loadLiveData();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không xử lý được lệnh.");
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
@@ -110,10 +237,10 @@ export function Inventory() {
           </Button>
           {canAdjust && (
             <>
-              <Button variant="outline" onClick={() => openAdjust("COUNT")} className="flex-1 sm:flex-none">
+              {canCount && <Button variant="outline" onClick={() => openAdjust("COUNT")} className="flex-1 sm:flex-none">
                 <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Kiểm kê</span>
-              </Button>
+              </Button>}
               <Button variant="outline" onClick={() => openAdjust("OUT")} className="flex-1 sm:flex-none">
                 <ArrowUpFromLine className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Xuất kho</span>
@@ -123,6 +250,18 @@ export function Inventory() {
                 <span className="hidden sm:inline">Nhập kho</span>
               </Button>
             </>
+          )}
+          {!canAdjust && canCount && (
+            <Button variant="outline" onClick={() => openAdjust("COUNT")} className="flex-1 sm:flex-none">
+              <ClipboardCheck className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Kiểm kê</span>
+            </Button>
+          )}
+          {canApproveInventory && (
+            <Button variant="outline" onClick={loadApprovalRequests} disabled={isLoadingApprovals} className="col-span-full sm:col-span-auto sm:flex-none">
+              <Check className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Duyệt lệnh</span>
+            </Button>
           )}
           {!canAdjust && canRequest && (
             <Button onClick={() => openAdjust("REQUEST_EXPORT")} className="w-full sm:w-auto">
@@ -295,6 +434,66 @@ export function Inventory() {
 
       <Dialog isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title={MODE_LABEL[mode]}>
         <div className="flex flex-col h-full">
+          {mode === "COUNT" ? (
+            <div className="flex min-h-0 flex-1 flex-col gap-4">
+              <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-amber-800">
+                {canAdjust ? "Admin/Kho lưu kiểm kê sẽ cập nhật tồn kho ngay." : "Kế toán chỉnh kiểm kê sẽ gửi lệnh chờ admin duyệt."}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Ghi chú chung</label>
+                <Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="VD: Kiểm kê cuối ngày..." />
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-zinc-200 bg-white custom-scrollbar">
+                <table className="min-w-[760px] w-full table-fixed divide-y divide-zinc-200 text-sm">
+                  <colgroup>
+                    <col className="w-[110px]" />
+                    <col />
+                    <col className="w-[120px]" />
+                    <col className="w-[140px]" />
+                    <col className="w-[180px]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-10 bg-zinc-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-bold text-zinc-500">Mã</th>
+                      <th className="px-3 py-2 text-left font-bold text-zinc-500">Hàng hóa</th>
+                      <th className="px-3 py-2 text-right font-bold text-zinc-500">Tồn hiện tại</th>
+                      <th className="px-3 py-2 text-right font-bold text-zinc-500">Tồn kiểm kê</th>
+                      <th className="px-3 py-2 text-left font-bold text-zinc-500">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {countRows.map((row, index) => (
+                      <tr key={row.productId} className={row.quantity !== row.currentStock ? "bg-amber-50/50" : ""}>
+                        <td className="px-3 py-2 font-bold text-emerald-700">{row.code}</td>
+                        <td className="px-3 py-2">
+                          <div className="line-clamp-2 break-words font-semibold text-zinc-900">{row.name}</div>
+                          <div className="text-xs text-zinc-500">{row.unit}</div>
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-zinc-600">{row.currentStock.toLocaleString()}</td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.quantity}
+                            onChange={(event) => setCountRows((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: Number(event.target.value) || 0 } : item))}
+                            className="h-9 w-full rounded-md border border-zinc-200 px-2 text-right text-[16px] font-bold outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={row.note}
+                            onChange={(event) => setCountRows((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, note: event.target.value } : item))}
+                            className="h-9 w-full rounded-md border border-zinc-200 px-2 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm"
+                            placeholder="Lý do..."
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-5 flex-1">
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1.5">Sản phẩm</label>
@@ -338,6 +537,7 @@ export function Inventory() {
               />
             </div>
           </div>
+          )}
           
           <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-100">
             <Button variant="outline" onClick={() => setIsAdjustOpen(false)} className="flex-1">Hủy</Button>
@@ -351,6 +551,53 @@ export function Inventory() {
       <Dialog isOpen={Boolean(infoPreview)} onClose={() => setInfoPreview(null)} title={infoPreview?.title ?? "Chi tiết"}>
         <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
           {infoPreview?.content}
+        </div>
+      </Dialog>
+
+      <Dialog isOpen={isApprovalOpen} onClose={() => setIsApprovalOpen(false)} title="Duyệt lệnh kiểm kê" className="sm:max-w-4xl">
+        <div className="space-y-4">
+          {approvalRequests.map((request) => (
+            <div key={request.id} className="rounded-xl border border-zinc-200 bg-white p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-bold text-zinc-900">Lệnh {request.id.slice(0, 8)}</div>
+                  <div className="text-sm text-zinc-500">{new Date(request.created_at).toLocaleString("vi-VN")} · {request.items.length} dòng</div>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-bold ${request.status === "PENDING" ? "bg-amber-50 text-amber-700" : request.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{request.status}</span>
+              </div>
+              <div className="max-h-72 overflow-auto rounded-lg border border-zinc-100 custom-scrollbar">
+                <table className="min-w-[680px] w-full text-sm">
+                  <thead className="bg-zinc-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Mã</th>
+                      <th className="px-3 py-2 text-left">Hàng hóa</th>
+                      <th className="px-3 py-2 text-right">Cũ</th>
+                      <th className="px-3 py-2 text-right">Mới</th>
+                      <th className="px-3 py-2 text-right">Lệch</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {request.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-3 py-2 font-bold text-emerald-700">{item.products?.code ?? item.product_id}</td>
+                        <td className="px-3 py-2">{item.products?.product_name ?? "-"}</td>
+                        <td className="px-3 py-2 text-right">{Number(item.old_quantity_box).toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right font-bold">{Number(item.new_quantity_box).toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right text-amber-700">{Number(item.quantity_change).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {request.status === "PENDING" && (
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => reviewApproval(request.id, "REJECT")}><X className="mr-2 h-4 w-4" />Từ chối</Button>
+                  <Button onClick={() => reviewApproval(request.id, "APPROVE")}><Check className="mr-2 h-4 w-4" />Duyệt và cập nhật kho</Button>
+                </div>
+              )}
+            </div>
+          ))}
+          {approvalRequests.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có lệnh kiểm kê nào.</div>}
         </div>
       </Dialog>
     </div>

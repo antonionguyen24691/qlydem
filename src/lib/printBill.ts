@@ -5,6 +5,7 @@ type CompanyInfo = {
   address?: string;
   phone?: string;
   logoUrl?: string;
+  taxCode?: string;
 };
 
 type PaymentSettings = {
@@ -19,7 +20,8 @@ const defaultCompany: Required<CompanyInfo> = {
   name: "CÔNG TY GẠCH MEN SANG PHÁT",
   address: "07 Lê Trọng Tấn",
   phone: "",
-  logoUrl: ""
+  logoUrl: "",
+  taxCode: ""
 };
 
 function money(value: number) {
@@ -49,6 +51,23 @@ async function loadPaymentSettings(): Promise<PaymentSettings> {
     const response = await fetch("/api/settings?key=payment");
     const body = await response.json();
     return body.payment ?? {};
+  } catch {
+    return {};
+  }
+}
+
+async function loadCompanySettings(): Promise<CompanyInfo> {
+  try {
+    const response = await fetch("/api/settings?key=branding");
+    const body = await response.json();
+    const branding = body.branding ?? {};
+    return {
+      name: branding.companyName || branding.appName,
+      address: branding.address,
+      phone: branding.hotline,
+      logoUrl: branding.logoUrl,
+      taxCode: branding.taxCode
+    };
   } catch {
     return {};
   }
@@ -146,6 +165,7 @@ function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSetti
         <div class="company-name">${escapeHtml(info.name)}</div>
         <div>${escapeHtml(info.address)}</div>
         ${info.phone ? `<div>Điện thoại: ${escapeHtml(info.phone)}</div>` : ""}
+        ${info.taxCode ? `<div>MST: ${escapeHtml(info.taxCode)}</div>` : ""}
       </div>
     </div>
     <div class="meta">
@@ -215,9 +235,9 @@ export function printSalesOrder(order: Order, company?: CompanyInfo) {
   popup.document.close();
 
   void (async () => {
-    const payment = await loadPaymentSettings();
+    const [payment, loadedCompany] = await Promise.all([loadPaymentSettings(), loadCompanySettings()]);
     popup.document.open();
-    popup.document.write(billHtml(order, company, payment));
+    popup.document.write(billHtml(order, { ...loadedCompany, ...company }, payment));
     popup.document.close();
     popup.focus();
     (popup as any).shareBill = async () => {

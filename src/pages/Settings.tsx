@@ -65,6 +65,29 @@ const defaultPayment: PaymentSettings = {
   transferTemplate: "Thanh toan {orderCode}"
 };
 
+const vietQrBanks = [
+  { bin: "970436", name: "Vietcombank" },
+  { bin: "970415", name: "VietinBank" },
+  { bin: "970418", name: "BIDV" },
+  { bin: "970405", name: "Agribank" },
+  { bin: "970407", name: "Techcombank" },
+  { bin: "970422", name: "MBBank" },
+  { bin: "970432", name: "VPBank" },
+  { bin: "970423", name: "TPBank" },
+  { bin: "970403", name: "Sacombank" },
+  { bin: "970416", name: "ACB" },
+  { bin: "970448", name: "OCB" },
+  { bin: "970441", name: "VIB" },
+  { bin: "970426", name: "MSB" },
+  { bin: "970443", name: "SHB" },
+  { bin: "970431", name: "Eximbank" },
+  { bin: "970454", name: "Viet Capital Bank" },
+  { bin: "970440", name: "SeABank" },
+  { bin: "970428", name: "Nam A Bank" },
+  { bin: "970414", name: "OceanBank" },
+  { bin: "970452", name: "KienlongBank" }
+];
+
 const emptyForm = {
   id: "",
   email: "",
@@ -442,7 +465,17 @@ export function Settings() {
                 </label>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-zinc-700">Mã ngân hàng VietQR/BIN</label>
-                  <Input value={paymentForm.bankBin} onChange={(event) => setPaymentForm({ ...paymentForm, bankBin: event.target.value })} placeholder="VD: 970436" />
+                  <select
+                    value={paymentForm.bankBin}
+                    onChange={(event) => setPaymentForm({ ...paymentForm, bankBin: event.target.value })}
+                    className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  >
+                    <option value="">-- Chọn ngân hàng --</option>
+                    {vietQrBanks.map((bank) => (
+                      <option key={bank.bin} value={bank.bin}>{bank.name} · {bank.bin}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-zinc-500">BIN đang lưu: {paymentForm.bankBin || "chưa chọn"}</p>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-zinc-700">Số tài khoản</label>

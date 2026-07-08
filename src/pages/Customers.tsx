@@ -5,6 +5,8 @@ import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
+import { printSalesOrder } from "../lib/printBill";
+import type { Order } from "../store/data";
 
 type CustomerForm = {
   id?: string;
@@ -70,6 +72,7 @@ export function Customers() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "debt" | "orders" | "notes">("overview");
   const [infoPreview, setInfoPreview] = useState<{ title: string; content: string } | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
 
@@ -258,9 +261,9 @@ export function Customers() {
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {selectedOrders.map((order) => (
-                      <tr key={order.id}>
+                      <tr key={order.id} className="cursor-pointer hover:bg-zinc-50" onClick={() => setSelectedOrder(order)}>
                         <td className="px-4 py-3">{new Date(order.date).toLocaleDateString("vi-VN")}</td>
-                        <td className="px-4 py-3 font-semibold text-emerald-700">{order.id}</td>
+                        <td className="px-4 py-3 font-semibold text-emerald-700 underline decoration-emerald-200 underline-offset-2">{order.id}</td>
                         <td className="px-4 py-3 text-right">{order.total.toLocaleString()} ₫</td>
                         <td className="px-4 py-3 text-right text-emerald-700">{order.paid.toLocaleString()} ₫</td>
                         <td className="px-4 py-3 text-right font-bold text-red-600">{Math.max(0, order.total - order.paid).toLocaleString()} ₫</td>
@@ -280,7 +283,7 @@ export function Customers() {
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><Receipt className="h-5 w-5 text-zinc-400" />Lịch sử mua hàng</h2>
               <div className="grid gap-3">
                 {selectedOrders.map((order) => (
-                  <div key={order.id} className="rounded-lg border border-zinc-200 p-4">
+                  <button key={order.id} type="button" onClick={() => setSelectedOrder(order)} className="rounded-lg border border-zinc-200 p-4 text-left hover:bg-zinc-50">
                     <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="truncate font-bold text-emerald-700">{order.id}</div>
@@ -291,7 +294,7 @@ export function Customers() {
                         <div className="text-sm text-zinc-500">{order.items.length} mặt hàng</div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
                 {selectedOrders.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có đơn hàng.</div>}
               </div>
@@ -317,6 +320,7 @@ export function Customers() {
           onSubmit={saveCustomer}
         />
         <InfoPreviewDialog preview={infoPreview} onClose={() => setInfoPreview(null)} />
+        <CustomerOrderDialog order={selectedOrder} onClose={() => setSelectedOrder(null)} />
       </div>
     );
   }
@@ -490,6 +494,7 @@ export function Customers() {
         onSubmit={saveCustomer}
       />
       <InfoPreviewDialog preview={infoPreview} onClose={() => setInfoPreview(null)} />
+      <CustomerOrderDialog order={selectedOrder} onClose={() => setSelectedOrder(null)} />
     </div>
   );
 }
@@ -601,6 +606,44 @@ function InfoPreviewDialog({
       <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
         {preview?.content}
       </div>
+    </Dialog>
+  );
+}
+
+function CustomerOrderDialog({ order, onClose }: { order: Order | null; onClose: () => void }) {
+  return (
+    <Dialog isOpen={Boolean(order)} onClose={onClose} title={`Bill ${order?.id ?? ""}`}>
+      {order && (
+        <div className="flex h-full flex-col">
+          <div className="flex-1 space-y-4">
+            <div className="rounded-xl border border-zinc-200 bg-white p-4">
+              <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">Khách hàng</div>
+              <div className="mt-1 break-words text-lg font-bold text-zinc-900">{order.customerName}</div>
+              <div className="mt-2 text-sm text-zinc-500">{new Date(order.date).toLocaleDateString("vi-VN")}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-white p-1">
+              {order.items.map((item) => (
+                <div key={`${order.id}-${item.id}-${item.name}`} className="flex justify-between gap-3 border-b border-zinc-100 p-3 text-sm last:border-b-0">
+                  <div className="min-w-0">
+                    <div className="line-clamp-2 break-words font-bold text-zinc-900">{item.name}</div>
+                    <div className="mt-1 text-zinc-500">{item.quantity.toLocaleString()} {item.unit} x {item.price.toLocaleString()}</div>
+                  </div>
+                  <div className="shrink-0 font-bold text-emerald-600">{item.total.toLocaleString()} ₫</div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl bg-zinc-900 p-4 text-white">
+              <div className="flex justify-between text-sm text-zinc-300"><span>Tổng tiền</span><span>{order.total.toLocaleString()} ₫</span></div>
+              <div className="mt-2 flex justify-between text-sm text-zinc-300"><span>Đã thu</span><span className="text-emerald-300">{order.paid.toLocaleString()} ₫</span></div>
+              <div className="mt-3 flex justify-between border-t border-zinc-700 pt-3 font-bold"><span>Còn nợ</span><span>{Math.max(0, order.total - order.paid).toLocaleString()} ₫</span></div>
+            </div>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
+            <Button variant="outline" onClick={onClose}>Đóng</Button>
+            <Button onClick={() => printSalesOrder(order)}>In lại bill</Button>
+          </div>
+        </div>
+      )}
     </Dialog>
   );
 }

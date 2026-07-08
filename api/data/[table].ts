@@ -12,6 +12,9 @@ const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   warehouses: ["ADMIN", "WAREHOUSE"],
   inventory_balances: ["ADMIN", "WAREHOUSE", "SALE"],
   inventory_transactions: ["ADMIN", "WAREHOUSE"],
+  inventory_adjustment_requests: ["ADMIN"],
+  inventory_adjustment_request_items: ["ADMIN"],
+  inventory_edit_logs: ["ADMIN", "WAREHOUSE", "ACCOUNTANT"],
   sales_orders: ["ADMIN", "ACCOUNTANT", "SALE"],
   sales_order_items: ["ADMIN", "ACCOUNTANT", "SALE"],
   receipts: ["ADMIN", "ACCOUNTANT"],
@@ -302,6 +305,300 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, transaction, stockAfter });
 }
 
+type CountRow = {
+  productId: string;
+  quantity: number;
+  note?: string | null;
+};
+
+function normalizeCountRows(input: unknown): CountRow[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((row) => {
+      const item = row as Record<string, unknown>;
+      return {
+        productId: toStringValue(item.productId ?? item.product_id).trim(),
+        quantity: Math.max(0, toNumber(item.quantity ?? item.newQuantity ?? item.new_quantity_box)),
+        note: optionalString(item.note)
+      };
+    })
+    .filter((row) => row.productId);
+}
+
+async function loadCurrentBalances(warehouseId: string, productIds: string[]) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("inventory_balances")
+    .select("id,product_id,quantity_box")
+    .eq("warehouse_id", warehouseId)
+    .in("product_id", productIds);
+  if (error) throw new Error(error.message);
+  return new Map((data ?? []).map((item: any) => [item.product_id, item]));
+}
+
+async function applyInventoryCountRows({
+  rows,
+  warehouseId,
+  actorId,
+  approverId,
+  sourceType,
+  requestId,
+  note
+}: {
+  rows: CountRow[];
+  warehouseId: string;
+  actorId: string;
+  approverId?: string;
+  sourceType: string;
+  requestId?: string;
+  note?: string | null;
+}) {
+  const supabase = getSupabaseAdmin();
+  const productIds = rows.map((row) => row.productId);
+  const currentByProduct = await loadCurrentBalances(warehouseId, productIds);
+  const now = new Date().toISOString();
+  const changedRows = rows
+    .map((row) => {
+      const current = toNumber(currentByProduct.get(row.productId)?.quantity_box);
+      const quantityChange = row.quantity - current;
+      return { ...row, current, quantityChange };
+    })
+    .filter((row) => row.quantityChange !== 0);
+
+  for (const row of changedRows) {
+    const balance = currentByProduct.get(row.productId);
+    const balancePayload = {
+      warehouse_id: warehouseId,
+      product_id: row.productId,
+      quantity_box: row.quantity,
+      quantity_piece: 0,
+      updated_at: now
+    };
+
+    if (balance?.id) {
+      const { error } = await supabase.from("inventory_balances").update(balancePayload).eq("id", balance.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("inventory_balances").insert(balancePayload);
+      if (error) throw new Error(error.message);
+    }
+
+    const { data: transaction, error: transactionError } = await supabase
+      .from("inventory_transactions")
+      .insert({
+        warehouse_id: warehouseId,
+        product_id: row.productId,
+        source_type: sourceType,
+        source_id: null,
+        quantity_change: row.quantityChange,
+        stock_after: row.quantity,
+        note: row.note ?? note ?? "Kiểm kê sheet"
+      })
+      .select("id")
+      .single();
+    if (transactionError) throw new Error(transactionError.message);
+
+    const { error: logError } = await supabase.from("inventory_edit_logs").insert({
+      product_id: row.productId,
+      warehouse_id: warehouseId,
+      old_quantity_box: row.current,
+      new_quantity_box: row.quantity,
+      quantity_change: row.quantityChange,
+      source_type: requestId ? "APPROVED_STOCK_COUNT" : "DIRECT_STOCK_COUNT",
+      source_id: requestId ?? transaction.id,
+      edited_by: actorId,
+      approved_by: approverId ?? actorId,
+      approved_at: now,
+      note: row.note ?? note
+    });
+    if (logError) throw new Error(logError.message);
+  }
+
+  return changedRows;
+}
+
+async function saveInventoryCountSheet(req: ApiRequest, res: ApiResponse) {
+  const actor = await requireAuth(req, ["ADMIN", "WAREHOUSE", "ACCOUNTANT"]);
+  const body = getJsonBody(req);
+  const rows = normalizeCountRows(body.rows);
+  if (rows.length === 0) {
+    res.status(400).json({ ok: false, error: "Chưa có dòng kiểm kê hợp lệ." });
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const warehouseId = await ensureWarehouse(toStringValue(body.warehouseCode, "KHO-CHINH"));
+  const note = optionalString(body.note);
+  const canApplyDirectly = ["ADMIN", "WAREHOUSE"].includes(actor.role);
+
+  if (canApplyDirectly) {
+    const changedRows = await applyInventoryCountRows({
+      rows,
+      warehouseId,
+      actorId: actor.id,
+      sourceType: "STOCK_COUNT_SHEET",
+      note
+    });
+    await supabase.from("audit_logs").insert({
+      actor_id: actor.id,
+      action: "STOCK_COUNT_SHEET",
+      entity_type: "inventory",
+      entity_id: "direct",
+      after_json: { changedRows: changedRows.length }
+    });
+    await bestEffortSyncTables(["inventory_balances", "inventory_transactions"]);
+    res.status(200).json({ ok: true, status: "APPLIED", changedRows: changedRows.length });
+    return;
+  }
+
+  const productIds = rows.map((row) => row.productId);
+  const currentByProduct = await loadCurrentBalances(warehouseId, productIds);
+  const { data: request, error: requestError } = await supabase
+    .from("inventory_adjustment_requests")
+    .insert({
+      request_type: "STOCK_COUNT",
+      status: "PENDING",
+      warehouse_id: warehouseId,
+      requested_by: actor.id,
+      note
+    })
+    .select("*")
+    .single();
+  if (requestError) throw new Error(requestError.message);
+
+  const itemRows = rows
+    .map((row) => {
+      const current = toNumber(currentByProduct.get(row.productId)?.quantity_box);
+      return {
+        request_id: request.id,
+        product_id: row.productId,
+        old_quantity_box: current,
+        new_quantity_box: row.quantity,
+        quantity_change: row.quantity - current,
+        note: row.note
+      };
+    })
+    .filter((row) => row.quantity_change !== 0);
+
+  if (itemRows.length === 0) {
+    await supabase.from("inventory_adjustment_requests").update({ status: "NO_CHANGE", updated_at: new Date().toISOString() }).eq("id", request.id);
+    res.status(200).json({ ok: true, status: "NO_CHANGE", requestId: request.id, changedRows: 0 });
+    return;
+  }
+
+  const { error: itemError } = await supabase.from("inventory_adjustment_request_items").insert(itemRows);
+  if (itemError) throw new Error(itemError.message);
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: "REQUEST_STOCK_COUNT_APPROVAL",
+    entity_type: "inventory_adjustment_request",
+    entity_id: request.id,
+    after_json: { changedRows: itemRows.length }
+  });
+  res.status(200).json({ ok: true, status: "PENDING_APPROVAL", requestId: request.id, changedRows: itemRows.length });
+}
+
+async function getInventoryApprovalRequests(req: ApiRequest, res: ApiResponse) {
+  await requireAuth(req, ["ADMIN"]);
+  const supabase = getSupabaseAdmin();
+  const { data: requests, error } = await supabase
+    .from("inventory_adjustment_requests")
+    .select("id,request_type,status,note,created_at,approved_at,rejected_at,requested_by,approved_by,rejected_by")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw new Error(error.message);
+
+  const requestIds = (requests ?? []).map((item: any) => item.id);
+  const { data: items, error: itemError } = requestIds.length
+    ? await supabase
+        .from("inventory_adjustment_request_items")
+        .select("id,request_id,product_id,old_quantity_box,new_quantity_box,quantity_change,note,products(code,product_name,unit)")
+        .in("request_id", requestIds)
+    : { data: [], error: null };
+  if (itemError) throw new Error(itemError.message);
+
+  res.status(200).json({
+    ok: true,
+    requests: (requests ?? []).map((request: any) => ({
+      ...request,
+      items: (items ?? []).filter((item: any) => item.request_id === request.id)
+    }))
+  });
+}
+
+async function reviewInventoryApprovalRequest(req: ApiRequest, res: ApiResponse) {
+  const actor = await requireAuth(req, ["ADMIN"]);
+  const body = getJsonBody(req);
+  const requestId = optionalString(body.id ?? body.requestId);
+  const decision = toStringValue(body.decision, "APPROVE").toUpperCase();
+  if (!requestId) {
+    res.status(400).json({ ok: false, error: "Thiếu lệnh kiểm kê cần duyệt." });
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: request, error: requestError } = await supabase
+    .from("inventory_adjustment_requests")
+    .select("*")
+    .eq("id", requestId)
+    .single();
+  if (requestError) throw new Error(requestError.message);
+  if (request.status !== "PENDING") {
+    res.status(400).json({ ok: false, error: "Lệnh này không còn ở trạng thái chờ duyệt." });
+    return;
+  }
+
+  const now = new Date().toISOString();
+  if (decision === "REJECT") {
+    const { error } = await supabase
+      .from("inventory_adjustment_requests")
+      .update({ status: "REJECTED", rejected_by: actor.id, rejected_at: now, updated_at: now })
+      .eq("id", requestId);
+    if (error) throw new Error(error.message);
+    res.status(200).json({ ok: true, status: "REJECTED" });
+    return;
+  }
+
+  const { data: items, error: itemError } = await supabase
+    .from("inventory_adjustment_request_items")
+    .select("*")
+    .eq("request_id", requestId);
+  if (itemError) throw new Error(itemError.message);
+
+  const rows = (items ?? []).map((item: any) => ({
+    productId: item.product_id,
+    quantity: toNumber(item.new_quantity_box),
+    note: item.note
+  }));
+
+  const changedRows = await applyInventoryCountRows({
+    rows,
+    warehouseId: request.warehouse_id,
+    actorId: request.requested_by,
+    approverId: actor.id,
+    sourceType: "APPROVED_STOCK_COUNT",
+    requestId,
+    note: request.note
+  });
+
+  const { error } = await supabase
+    .from("inventory_adjustment_requests")
+    .update({ status: "APPROVED", approved_by: actor.id, approved_at: now, updated_at: now })
+    .eq("id", requestId);
+  if (error) throw new Error(error.message);
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: "APPROVE_STOCK_COUNT",
+    entity_type: "inventory_adjustment_request",
+    entity_id: requestId,
+    after_json: { changedRows: changedRows.length }
+  });
+  await bestEffortSyncTables(["inventory_balances", "inventory_transactions"]);
+  res.status(200).json({ ok: true, status: "APPROVED", changedRows: changedRows.length });
+}
+
 async function getAppNotifications(req: ApiRequest, res: ApiResponse) {
   const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE", "WAREHOUSE"]);
   const supabase = getSupabaseAdmin();
@@ -382,6 +679,15 @@ async function markNotificationRead(req: ApiRequest, res: ApiResponse) {
       .update({ read_at: now })
       .or(`user_id.is.null,user_id.eq.${actor.id}`)
       .is("read_at", null);
+    let reminderQuery = supabase
+      .from("debt_reminders")
+      .update({ status: "SENT", sent_at: now })
+      .in("status", ["PENDING", "SCHEDULED"])
+      .lte("scheduled_at", now);
+    if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
+      reminderQuery = reminderQuery.or(`assigned_to.is.null,assigned_to.eq.${actor.id}`);
+    }
+    await reminderQuery;
     res.status(200).json({ ok: true });
     return;
   }
@@ -424,6 +730,23 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (table === "inventory-adjustments" && req.method === "POST") {
       await adjustInventory(req, res);
       return;
+    }
+
+    if (table === "inventory-count-sheet" && req.method === "POST") {
+      await saveInventoryCountSheet(req, res);
+      return;
+    }
+
+    if (table === "inventory-approval-requests") {
+      if (req.method === "GET") {
+        await getInventoryApprovalRequests(req, res);
+        return;
+      }
+      if (req.method === "PATCH") {
+        await reviewInventoryApprovalRequest(req, res);
+        return;
+      }
+      return methodNotAllowed(res, ["GET", "PATCH"]);
     }
 
     if (!table || !EXPORTABLE_TABLES.includes(table as ExportableTable)) {

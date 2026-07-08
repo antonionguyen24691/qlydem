@@ -24,6 +24,9 @@ export const EXPORTABLE_TABLES = [
   "customer_contacts",
   "supplier_debt_ledger",
   "inventory_transactions",
+  "inventory_adjustment_requests",
+  "inventory_adjustment_request_items",
+  "inventory_edit_logs",
   "cashbook_entries",
   "import_batches",
   "import_errors"

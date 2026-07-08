@@ -111,7 +111,7 @@ export function POS() {
       status: (debtAmount > 0) ? "Nợ" : "Đã thanh toán",
       items: cart.map(item => ({
         id: item.id,
-        name: item.name,
+        name: item.invoiceName || item.name,
         size: item.size || "",
         unit: item.unit || "",
         quantity: item.quantity,
@@ -141,7 +141,7 @@ export function POS() {
           items: cart.map((item) => ({
             productId: item.id,
             productCode: item.code,
-            productName: item.name,
+            productName: item.invoiceName || item.name,
             unit: item.unit,
             quantity: item.quantity,
             unitPrice: item.price
