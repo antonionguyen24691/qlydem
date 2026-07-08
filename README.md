@@ -1,4 +1,4 @@
-# CRM QLBH
+# PMQL
 
 Ứng dụng quản lý bán hàng vật liệu xây dựng, phát triển từ workbook nghiệp vụ `NHAT KY BAN HANG.xlsx`.
 

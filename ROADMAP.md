@@ -1,4 +1,4 @@
-# ROADMAP HOAN THIEN CRM QLBH
+# ROADMAP HOAN THIEN PMQL
 
 Ngay lap: 2026-07-07  
 Nguon nghiep vu goc: `NHAT KY BAN HANG.xlsx`  
@@ -47,7 +47,7 @@ Diem can luu y:
 
 ## 3. Muc tieu san pham
 
-Xay CRM QLBH thanh he thong ban hang noi bo dung duoc hang ngay tren desktop va mobile:
+Xay PMQL thanh he thong ban hang noi bo dung duoc hang ngay tren desktop va mobile:
 
 - Sale tao don nhanh, tim hang, chon khach, ghi no, in bill.
 - Ke toan theo doi cong no, thu tien, doi soat ngay.
@@ -163,8 +163,8 @@ Muc tieu: Bien demo thanh codebase sach, khong con loi vat, san sang phat trien.
 
 Checklist:
 
-- [ ] Doi ten app/package tu `react-example` sang `crm-qlbh`.
-- [ ] Sua README thanh huong dan rieng cho CRM QLBH, bo noi dung AI Studio mac dinh.
+- [x] Doi ten app/package sang `pmql`.
+- [x] Sua README thanh huong dan rieng cho PMQL, bo noi dung AI Studio mac dinh.
 - [ ] Sua mojibake trong `vite.config.ts` comment.
 - [ ] Chuan hoa env: `.env.example`, `.env.local`, Vercel env.
 - [ ] Them `vercel.json` neu giu Vite SPA de route fallback ve `index.html`.
@@ -507,8 +507,8 @@ Khi Google Sheets bat dau cham hoac du lieu lon:
 
 ## 12. Danh sach loi vat/tech debt can sua som
 
-- `package.json` ten app con la `react-example`.
-- `README.md` con noi dung AI Studio mac dinh.
+- `package.json` da doi ten app sang `pmql`.
+- `README.md` da doi sang huong dan PMQL.
 - `vite.config.ts` co comment bi mojibake.
 - `clean` script dung `rm -rf`, khong than thien Windows PowerShell.
 - Du lieu that da doc tu `/api/data/*`; can tiep tuc thay cac form them/sua bang API.

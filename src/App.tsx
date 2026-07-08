@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import { MainLayout } from "./components/layout/MainLayout";
 import { Dashboard } from "./pages/Dashboard";
 import { POS } from "./pages/POS";
@@ -14,8 +15,15 @@ import { Customers } from "./pages/Customers";
 import { Finance } from "./pages/Finance";
 import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
+import { useBrandingStore } from "./store/branding";
 
 export default function App() {
+  const loadBranding = useBrandingStore((state) => state.loadBranding);
+
+  useEffect(() => {
+    loadBranding();
+  }, [loadBranding]);
+
   return (
     <BrowserRouter>
       <Routes>
