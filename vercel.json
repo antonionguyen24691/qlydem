@@ -4,19 +4,19 @@
   "routes": [
     {
       "src": "/api/data/([^/]+)",
-      "dest": "/api/data/[table]"
+      "dest": "/api/data/[table]?table=$1"
     },
     {
       "src": "/api/import/([^/]+)",
-      "dest": "/api/import/[entity]"
+      "dest": "/api/import/[entity]?entity=$1"
     },
     {
       "src": "/api/templates/([^/]+)",
-      "dest": "/api/templates/[entity]"
+      "dest": "/api/templates/[entity]?entity=$1"
     },
     {
       "src": "/api/users/([^/]+)",
-      "dest": "/api/users/[id]"
+      "dest": "/api/users/[id]?id=$1"
     },
     {
       "handle": "filesystem"
