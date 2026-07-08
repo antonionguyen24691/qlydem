@@ -21,21 +21,12 @@ export function getQueryValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export function requireInternalSecret(req: ApiRequest) {
-  const expected = process.env.INTERNAL_API_SECRET;
-  if (!expected) return;
-
-  const header = req.headers?.["x-internal-secret"];
-  const provided = Array.isArray(header) ? header[0] : header;
-  if (provided !== expected) {
-    const error = new Error("Unauthorized internal operation.");
-    error.name = "UNAUTHORIZED";
-    throw error;
-  }
-}
-
 export function sendError(res: ApiResponse, error: unknown) {
   const message = error instanceof Error ? error.message : "Unknown error";
-  const code = error instanceof Error && error.name === "UNAUTHORIZED" ? 401 : 500;
+  const code = error instanceof Error && error.name === "UNAUTHORIZED"
+    ? 401
+    : error instanceof Error && error.name === "FORBIDDEN"
+      ? 403
+      : 500;
   res.status(code).json({ ok: false, error: message });
 }

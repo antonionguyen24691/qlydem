@@ -41,7 +41,7 @@ export function Topbar() {
             <User className="h-5 w-5 text-gray-500" />
           </div>
           <div className="hidden md:block text-sm">
-            <div className="font-medium text-gray-700">{user?.name ?? "Admin"}</div>
+            <div className="font-medium text-gray-700">{user?.fullName ?? "Admin"}</div>
             <div className="text-xs text-gray-500">{user?.role ?? "ADMIN"}</div>
           </div>
         </button>

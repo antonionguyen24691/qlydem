@@ -7,12 +7,17 @@ import { useAuthStore } from "../../store/auth";
 
 export function MainLayout() {
   const { loadLiveData, liveDataError, isLoadingLiveData } = useDataStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading, loadSession } = useAuthStore();
 
   useEffect(() => {
-    loadLiveData();
-  }, [loadLiveData]);
+    loadSession();
+  }, [loadSession]);
 
+  useEffect(() => {
+    if (isAuthenticated) loadLiveData();
+  }, [isAuthenticated, loadLiveData]);
+
+  if (isLoading) return <div className="flex h-screen items-center justify-center text-sm text-gray-500">Đang kiểm tra đăng nhập...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (

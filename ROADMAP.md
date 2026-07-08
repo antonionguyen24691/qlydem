@@ -21,7 +21,7 @@ Nhung app chua phai ban san xuat:
 
 - Du lieu khong con dung mock mac dinh; frontend yeu cau API/Supabase hoat dong.
 - Them khach, them san pham can duoc noi tiep thanh form API; POS va thu no da goi API that.
-- Da co login bootstrap bang `INTERNAL_API_SECRET`; chua co Firebase/Auth.js RBAC day du.
+- Da chuyen sang Supabase Google Login; user/role doc tu bang `users`.
 - Chua co backend/API, chua co secret handling, chua san sang dung truc tiep Google Sheets tu client.
 - Chua co in bill that, nut in hien moi `alert`.
 - Chua co format bill A4/A5/K80, chua co so phieu/tien no/thanh toan theo mau cong ty.
@@ -619,3 +619,4 @@ Da bo sung them nen de quan ly no va upload du lieu:
 - API `orders/create`: tao don, chi tiet don, cong no theo don, phieu thu neu co, ledger, cashbook, ton kho, audit log.
 - API `receipts/create`: thu tien, tra mot phan, tu phan bo vao cac don no cu nhat neu khong chi dinh allocation.
 - Frontend POS va Finance da goi API that; khong con fallback mock khi server loi.
+- Internal API secret da bi loai khoi UI/API nghiep vu; API dung `Authorization: Bearer <supabase_access_token>`.

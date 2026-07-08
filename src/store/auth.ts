@@ -1,58 +1,69 @@
 import { create } from "zustand";
+import { supabase } from "../lib/supabase";
+import { getAuthHeaders } from "../lib/supabase";
 
 type AuthUser = {
   id: string;
-  name: string;
+  email: string;
+  fullName: string;
   role: string;
+  status: string;
 };
 
 type AuthStore = {
-  secret: string;
   user?: AuthUser;
   isAuthenticated: boolean;
+  isLoading: boolean;
   loginError?: string;
-  setSecret: (secret: string) => void;
-  verifySecret: (secret?: string) => Promise<boolean>;
-  logout: () => void;
+  signInWithGoogle: () => Promise<void>;
+  loadSession: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
-const storedSecret = localStorage.getItem("crm.internalSecret") ?? "";
-const storedUser = localStorage.getItem("crm.user");
+async function fetchProfile() {
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) throw new Error("Chưa có phiên đăng nhập Supabase.");
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
-  secret: storedSecret,
-  user: storedUser ? JSON.parse(storedUser) : undefined,
-  isAuthenticated: Boolean(storedSecret && storedUser),
-  setSecret: (secret) => {
-    localStorage.setItem("crm.internalSecret", secret);
-    set({ secret });
+  const response = await fetch("/api/auth/me", { headers });
+  const body = await response.json();
+  if (!response.ok || !body.ok) throw new Error(body.error ?? "Không đọc được hồ sơ người dùng.");
+  return body.user as AuthUser;
+}
+
+export const useAuthStore = create<AuthStore>((set) => ({
+  user: undefined,
+  isAuthenticated: false,
+  isLoading: true,
+  signInWithGoogle: async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) set({ loginError: error.message });
   },
-  verifySecret: async (inputSecret) => {
-    const secret = inputSecret ?? get().secret;
+  loadSession: async () => {
+    set({ isLoading: true, loginError: undefined });
     try {
-      const response = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-internal-secret": secret
-        }
-      });
-      const body = await response.json();
-      if (!response.ok || !body.ok) throw new Error(body.error ?? "Secret không hợp lệ");
-      localStorage.setItem("crm.internalSecret", secret);
-      localStorage.setItem("crm.user", JSON.stringify(body.user));
-      set({ secret, user: body.user, isAuthenticated: true, loginError: undefined });
-      return true;
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        set({ user: undefined, isAuthenticated: false, isLoading: false });
+        return;
+      }
+      const user = await fetchProfile();
+      set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Không xác thực được";
-      localStorage.removeItem("crm.user");
-      set({ isAuthenticated: false, user: undefined, loginError: message });
-      return false;
+      set({
+        user: undefined,
+        isAuthenticated: false,
+        isLoading: false,
+        loginError: error instanceof Error ? error.message : "Không xác thực được"
+      });
     }
   },
-  logout: () => {
-    localStorage.removeItem("crm.user");
-    localStorage.removeItem("crm.internalSecret");
-    set({ secret: "", user: undefined, isAuthenticated: false });
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ user: undefined, isAuthenticated: false, isLoading: false });
   }
 }));

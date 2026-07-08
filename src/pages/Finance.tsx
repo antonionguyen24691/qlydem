@@ -3,10 +3,11 @@ import { useDataStore, Customer } from "../store/data";
 import { DollarSign, Wallet, FileText, Search } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { useAuthStore } from "../store/auth";
+import { getAuthHeaders } from "../lib/supabase";
 
 export function Finance() {
   const { customers, orders, loadLiveData } = useDataStore();
-  const { secret } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedCustomerForReceipt, setSelectedCustomerForReceipt] = useState("");
@@ -28,8 +29,8 @@ export function Finance() {
       alert("Vui lòng chọn khách hàng và nhập số tiền hợp lệ");
       return;
     }
-    if (!secret) {
-      alert("Chưa đăng nhập hoặc thiếu INTERNAL_API_SECRET.");
+    if (!isAuthenticated) {
+      alert("Bạn cần đăng nhập Google trước khi thu nợ.");
       return;
     }
 
@@ -38,8 +39,8 @@ export function Finance() {
       const response = await fetch("/api/receipts/create", {
         method: "POST",
         headers: {
+          ...(await getAuthHeaders()),
           "content-type": "application/json",
-          "x-internal-secret": secret
         },
         body: JSON.stringify({
           customerId: selectedCustomerForReceipt,

@@ -1,9 +1,10 @@
 import type { IncomingMessage } from "node:http";
 import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, requireInternalSecret, sendError } from "../_lib/http";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
 import { parseImportWorkbook } from "../_lib/importExcel";
 import { isImportEntity } from "../_lib/importTemplates";
 import { getSupabaseAdmin } from "../_lib/supabase";
+import { requireAuth } from "../_lib/auth";
 
 export const config = {
   api: {
@@ -137,7 +138,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);
 
   try {
-    requireInternalSecret(req);
+    const user = await requireAuth(req, ["ADMIN"]);
     const entity = getQueryValue(req.query?.entity);
     if (!isImportEntity(entity)) {
       res.status(400).json({ ok: false, error: "Import không hợp lệ. Dùng customers, suppliers hoặc products." });
@@ -155,7 +156,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const fileName = Array.isArray(filenameHeader) ? filenameHeader[0] : filenameHeader;
     const { data: batch, error: batchError } = await supabase
       .from("import_batches")
-      .insert({ entity_type: entity, file_name: fileName ?? `${entity}.xlsx`, status: "PROCESSING" })
+      .insert({ entity_type: entity, file_name: fileName ?? `${entity}.xlsx`, status: "PROCESSING", created_by: user.id })
       .select("id")
       .single();
 

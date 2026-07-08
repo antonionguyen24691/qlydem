@@ -1,7 +1,8 @@
 import writeXlsxFile from "write-excel-file/node";
 import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { getQueryValue, methodNotAllowed, requireInternalSecret, sendError } from "../_lib/http";
+import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http";
 import { fetchTableRows, parseTables } from "../_lib/supabase";
+import { requireAuth } from "../_lib/auth";
 
 function cell(value: unknown, fontWeight?: "bold") {
   return {
@@ -22,7 +23,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   try {
-    requireInternalSecret(req);
+    await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
     const tables = parseTables(getQueryValue(req.query?.tables));
     const sheets = [];
 

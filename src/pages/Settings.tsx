@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { Database, Download, KeyRound, Upload } from "lucide-react";
-import { useAuthStore } from "../store/auth";
+import { useState } from "react";
+import { Database, Download, Upload } from "lucide-react";
+import { getAuthHeaders } from "../lib/supabase";
 
 const importTargets = [
   {
@@ -30,18 +30,15 @@ type ImportResult = {
 };
 
 export function Settings() {
-  const { secret, setSecret } = useAuthStore();
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
-
-  const canUpload = useMemo(() => secret.trim().length > 0, [secret]);
 
   const downloadTemplate = (entity: string) => {
     window.open(`/api/templates/${entity}`, "_blank");
   };
 
   const uploadFile = async (entity: string, file?: File) => {
-    if (!file || !canUpload) return;
+    if (!file) return;
     setUploading(entity);
     setResults((current) => ({ ...current, [entity]: { ok: true } }));
 
@@ -49,9 +46,9 @@ export function Settings() {
       const response = await fetch(`/api/import/${entity}`, {
         method: "POST",
         headers: {
+          ...(await getAuthHeaders()),
           "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "x-file-name": file.name,
-          "x-internal-secret": secret
         },
         body: await file.arrayBuffer()
       });
@@ -79,27 +76,6 @@ export function Settings() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-lg border bg-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="rounded-md bg-[#006B68]/10 p-2 text-[#006B68]">
-            <KeyRound className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <label className="block text-sm font-medium text-gray-900">Internal API Secret</label>
-            <p className="mt-1 text-sm text-gray-500">
-              Dùng tạm cho giai đoạn bootstrap trước khi có login/RBAC hoàn chỉnh.
-            </p>
-            <input
-              type="password"
-              value={secret}
-              onChange={(event) => setSecret(event.target.value)}
-              placeholder="Nhập INTERNAL_API_SECRET"
-              className="mt-3 w-full max-w-xl rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] focus:ring-1 focus:ring-[#006B68]"
-            />
-          </div>
-        </div>
-      </div>
-
       <div className="grid gap-4 lg:grid-cols-3">
         {importTargets.map((target) => {
           const result = results[target.entity];
@@ -125,13 +101,13 @@ export function Settings() {
                   Tải file mẫu
                 </button>
 
-                <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-white ${canUpload ? "bg-[#006B68] hover:bg-[#005a57]" : "bg-gray-300"}`}>
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-[#006B68] px-3 py-2 text-sm font-medium text-white hover:bg-[#005a57]">
                   <Upload className="h-4 w-4" />
                   {uploading === target.entity ? "Đang upload..." : "Upload file"}
                   <input
                     type="file"
                     accept=".xlsx"
-                    disabled={!canUpload || uploading === target.entity}
+                    disabled={uploading === target.entity}
                     className="hidden"
                     onChange={(event) => uploadFile(target.entity, event.target.files?.[0])}
                   />

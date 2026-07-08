@@ -44,10 +44,10 @@ POST /api/sync/google-sheets?tables=customers,products
 GET /api/export/xlsx?tables=customers,products
 ```
 
-Các endpoint import/sync/export cần header:
+Các endpoint nghiệp vụ cần đăng nhập Google và gửi bearer token:
 
 ```http
-x-internal-secret: <INTERNAL_API_SECRET>
+Authorization: Bearer <supabase_access_token>
 ```
 
 ## Deploy Vercel

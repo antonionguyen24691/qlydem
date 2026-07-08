@@ -1,7 +1,8 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { methodNotAllowed, requireInternalSecret, sendError } from "../_lib/http";
+import { methodNotAllowed, sendError } from "../_lib/http";
 import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body";
 import { getSupabaseAdmin } from "../_lib/supabase";
+import { requireAuth } from "../_lib/auth";
 
 type OrderPayloadItem = {
   productId?: string;
@@ -103,7 +104,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);
 
   try {
-    requireInternalSecret(req);
+    const user = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE"]);
     const body = getJsonBody<OrderPayload>(req);
     const items = body.items ?? [];
     if (items.length === 0) {
@@ -132,7 +133,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       .insert({
         code,
         customer_id: customerId,
-        sale_id: optionalString(body.saleId),
+        sale_id: optionalString(body.saleId) ?? user.id,
         subtotal,
         discount_amount: discountAmount,
         vat_amount: vatAmount,
@@ -177,12 +178,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .insert({
           order_id: order.id,
           customer_id: customerId,
-          sale_id: optionalString(body.saleId),
+          sale_id: optionalString(body.saleId) ?? user.id,
           original_amount: totalAmount,
           paid_amount: paidAmount,
           remaining_amount: debtAmount,
           due_date: optionalString(body.dueDate),
-          assigned_to: optionalString(body.assignedTo) ?? optionalString(body.saleId),
+          assigned_to: optionalString(body.assignedTo) ?? optionalString(body.saleId) ?? user.id,
           status: debtAmount > 0 ? "OPEN" : "CLOSED",
           closed_at: debtAmount > 0 ? undefined : new Date().toISOString()
         })
@@ -234,7 +235,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           order_id: order.id,
           customer_id: customerId,
           amount: paidAmount,
-          allocated_by: optionalString(body.saleId)
+        allocated_by: optionalString(body.saleId) ?? user.id
         });
       }
 
@@ -260,7 +261,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         amount: paidAmount,
         payment_method: paymentMethod,
         note: `Thu tiền đơn ${code}`,
-        created_by: optionalString(body.saleId)
+        created_by: optionalString(body.saleId) ?? user.id
       });
     }
 
@@ -274,7 +275,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         amount: paidAmount,
         payment_method: paymentMethod,
         note: `Thu tiền khách lẻ đơn ${code}`,
-        created_by: optionalString(body.saleId)
+        created_by: optionalString(body.saleId) ?? user.id
       });
     }
 
@@ -291,7 +292,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     await applyInventoryChanges(warehouseId, order.id, code, itemRows);
 
     await supabase.from("audit_logs").insert({
-      actor_id: optionalString(body.saleId),
+      actor_id: optionalString(body.saleId) ?? user.id,
       action: "CREATE",
       entity_type: "sales_order",
       entity_id: order.id,

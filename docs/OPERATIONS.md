@@ -18,10 +18,26 @@ Tai lieu nay bien app demo thanh nen van hanh co the deploy:
 Env bat buoc:
 
 - `SUPABASE_URL`
+- `VITE_SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 Luu y: `SUPABASE_SERVICE_ROLE_KEY` chi dung o API server, khong duoc dua vao frontend.
+Key service role phai co claim `role: service_role`. Neu key dang co claim `role: anon`, hay lay lai trong Supabase Project Settings -> API.
+
+## 1.1 Google Login
+
+Trong Supabase Dashboard:
+
+1. Vao Authentication -> Providers.
+2. Bat Google provider.
+3. Dien Google OAuth Client ID/Secret.
+4. Them Site URL va Redirect URLs:
+   - Local: `http://localhost:3000`
+   - Production: URL Vercel cua app.
+
+Lan dau tien khi bang `users` con rong, Google user dau tien dang nhap se duoc auto-provision thanh `ADMIN`. Sau do cac user khac phai duoc them vao bang `users` voi role phu hop.
 
 ## 2. Google Sheets
 
@@ -48,12 +64,13 @@ npx --yes vercel link
 
 ```powershell
 npx --yes vercel env add SUPABASE_URL production
+npx --yes vercel env add VITE_SUPABASE_URL production
 npx --yes vercel env add SUPABASE_ANON_KEY production
+npx --yes vercel env add VITE_SUPABASE_ANON_KEY production
 npx --yes vercel env add SUPABASE_SERVICE_ROLE_KEY production
 npx --yes vercel env add GOOGLE_SHEETS_SPREADSHEET_ID production
 npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_EMAIL production
 npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY production
-npx --yes vercel env add INTERNAL_API_SECRET production
 ```
 
 3. Deploy:
@@ -82,7 +99,7 @@ Tao don ban that:
 
 ```http
 POST /api/orders/create
-x-internal-secret: <INTERNAL_API_SECRET>
+Authorization: Bearer <supabase_access_token>
 Content-Type: application/json
 ```
 
@@ -92,7 +109,7 @@ Lap phieu thu/phan bo tra no:
 
 ```http
 POST /api/receipts/create
-x-internal-secret: <INTERNAL_API_SECRET>
+Authorization: Bearer <supabase_access_token>
 Content-Type: application/json
 ```
 
@@ -102,7 +119,7 @@ Dong bo Supabase ve Google Sheets:
 
 ```http
 POST /api/sync/google-sheets?tables=customers,products,sales_orders
-x-internal-secret: <INTERNAL_API_SECRET>
+Authorization: Bearer <supabase_access_token>
 ```
 
 Neu bo `tables`, API se sync toan bo cac bang duoc cho phep.
@@ -111,7 +128,7 @@ Xuat XLSX:
 
 ```http
 GET /api/export/xlsx?tables=customers,products,customer_debt_ledger
-x-internal-secret: <INTERNAL_API_SECRET>
+Authorization: Bearer <supabase_access_token>
 ```
 
 Tai file mau upload:
@@ -128,7 +145,7 @@ Upload file `.xlsx`:
 POST /api/import/customers
 POST /api/import/suppliers
 POST /api/import/products
-x-internal-secret: <INTERNAL_API_SECRET>
+Authorization: Bearer <supabase_access_token>
 x-file-name: customers.xlsx
 Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 ```
