@@ -1,8 +1,8 @@
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { methodNotAllowed, sendError } from "../_lib/http";
-import { requireAuth } from "../_lib/auth";
-import { getJsonBody, toStringValue } from "../_lib/body";
-import { getSupabaseAdmin } from "../_lib/supabase";
+import type { ApiRequest, ApiResponse } from "./_lib/http";
+import { getQueryValue, methodNotAllowed, sendError } from "./_lib/http";
+import { requireAuth } from "./_lib/auth";
+import { getJsonBody, toStringValue } from "./_lib/body";
+import { getSupabaseAdmin } from "./_lib/supabase";
 
 type BrandingSettings = {
   appName: string;
@@ -41,6 +41,12 @@ function normalizeBranding(input: Record<string, unknown>): BrandingSettings {
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
+    const key = getQueryValue(req.query?.key) ?? "branding";
+    if (key !== "branding") {
+      res.status(400).json({ ok: false, error: "Unsupported settings key." });
+      return;
+    }
+
     const supabase = getSupabaseAdmin();
 
     if (req.method === "GET") {
