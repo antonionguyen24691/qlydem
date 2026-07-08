@@ -35,7 +35,7 @@ npm run audit
 ## API nền
 
 ```http
-GET /api/health
+GET /api/settings?key=branding
 GET /api/data/customers
 GET /api/templates/products
 POST /api/import/products

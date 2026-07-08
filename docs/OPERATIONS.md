@@ -87,10 +87,10 @@ npm run deploy:vercel
 
 ## 4. API da co
 
-Health:
+Kiem tra API cong khai:
 
 ```http
-GET /api/health
+GET /api/settings?key=branding
 ```
 
 Doc mot bang Supabase:
