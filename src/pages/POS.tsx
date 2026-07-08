@@ -174,9 +174,11 @@ export function POS() {
                   <button 
                     key={p.id}
                     onClick={() => addToCart(p)}
-                    className="whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all"
+                    className="flex min-w-[220px] max-w-[320px] items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all"
+                    title={`${p.name} - ${p.price.toLocaleString()}đ`}
                   >
-                    {p.name} - <span className="text-emerald-600 font-semibold">{p.price.toLocaleString()}đ</span>
+                    <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                    <span className="shrink-0 text-emerald-600 font-semibold">{p.price.toLocaleString()}đ</span>
                   </button>
                 ))}
                 {searchResults.length === 0 && (
@@ -189,16 +191,25 @@ export function POS() {
           {/* Cart Desktop */}
           <div className="hidden lg:flex bg-white rounded-xl shadow-sm ring-1 ring-zinc-200 flex-1 flex-col overflow-hidden">
             <div className="overflow-x-auto flex-1 custom-scrollbar">
-              <table className="min-w-full divide-y divide-zinc-200">
+              <table className="min-w-[760px] w-full table-fixed divide-y divide-zinc-200">
+                <colgroup>
+                  <col className="w-[118px]" />
+                  <col />
+                  <col className="w-[72px]" />
+                  <col className="w-[124px]" />
+                  <col className="w-[124px]" />
+                  <col className="w-[136px]" />
+                  <col className="w-[48px]" />
+                </colgroup>
                 <thead className="bg-zinc-50/50 sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Mã Hàng</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Tên Hàng</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">ĐVT</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase">SL</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Đơn Giá</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Thành Tiền</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase"></th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Mã</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Tên hàng</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">ĐVT</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-zinc-500 uppercase">SL</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Đơn giá</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Thành tiền</th>
+                    <th className="px-2 py-3 text-center text-xs font-semibold text-zinc-500 uppercase"></th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-zinc-100">
@@ -213,19 +224,24 @@ export function POS() {
                   ) : (
                     cart.map((item) => (
                       <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors">
-                        <td className="px-4 py-2.5 whitespace-nowrap text-sm font-medium text-zinc-500">{item.id}</td>
-                        <td className="px-4 py-2.5 text-sm font-medium text-zinc-900">{item.name}</td>
-                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-zinc-500">{item.unit}</td>
-                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-zinc-500 text-center">
+                        <td className="px-3 py-3 align-top text-xs font-semibold text-emerald-700">
+                          <span className="block truncate" title={item.code}>{item.code}</span>
+                        </td>
+                        <td className="px-3 py-3 align-top text-sm font-semibold leading-5 text-zinc-900">
+                          <div className="line-clamp-3 break-words" title={item.name}>{item.name}</div>
+                          {item.size && <div className="mt-1 text-xs font-medium text-zinc-500">{item.size}</div>}
+                        </td>
+                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500">{item.unit}</td>
+                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500 text-center">
                           <div className="flex items-center justify-center gap-1 bg-zinc-100 rounded-md p-0.5 w-fit mx-auto">
                             <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="p-1.5 rounded hover:bg-white hover:shadow-sm text-zinc-600 transition-all"><Minus size={14}/></button>
                             <span className="w-8 text-center font-semibold text-zinc-900">{item.quantity}</span>
                             <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 rounded hover:bg-white hover:shadow-sm text-zinc-600 transition-all"><Plus size={14}/></button>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-zinc-600 text-right">{item.price.toLocaleString()}đ</td>
-                        <td className="px-4 py-2.5 whitespace-nowrap text-sm font-semibold text-zinc-900 text-right">{item.total.toLocaleString()}đ</td>
-                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-center">
+                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-600 text-right">{item.price.toLocaleString()}đ</td>
+                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm font-bold text-zinc-900 text-right">{item.total.toLocaleString()}đ</td>
+                        <td className="px-2 py-3 align-top whitespace-nowrap text-sm text-center">
                           <button onClick={() => removeFromCart(item.id)} className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
                             <Trash2 size={16} />
                           </button>
@@ -252,7 +268,7 @@ export function POS() {
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <h4 className="font-semibold text-zinc-900 text-base">{item.name}</h4>
-                      <p className="text-sm text-zinc-500">{item.id} • {item.unit} • {item.price.toLocaleString()}đ/đơn vị</p>
+                      <p className="text-sm text-zinc-500">{item.code} • {item.unit} • {item.price.toLocaleString()}đ/đơn vị</p>
                     </div>
                     <button onClick={() => removeFromCart(item.id)} className="p-2 text-zinc-400 hover:text-red-600 bg-zinc-50 rounded-lg">
                       <Trash2 size={18} />
