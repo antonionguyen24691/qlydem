@@ -15,6 +15,14 @@ type BrandingSettings = {
   faviconUrl: string;
 };
 
+type PaymentSettings = {
+  enabled: boolean;
+  bankBin: string;
+  accountNumber: string;
+  accountName: string;
+  transferTemplate: string;
+};
+
 const defaultBranding: BrandingSettings = {
   appName: "PMQL",
   companyName: "PMQL",
@@ -24,6 +32,14 @@ const defaultBranding: BrandingSettings = {
   taxCode: "",
   logoUrl: "",
   faviconUrl: ""
+};
+
+const defaultPayment: PaymentSettings = {
+  enabled: false,
+  bankBin: "",
+  accountNumber: "",
+  accountName: "",
+  transferTemplate: "Thanh toan {orderCode}"
 };
 
 function normalizeBranding(input: Record<string, unknown>): BrandingSettings {
@@ -39,10 +55,20 @@ function normalizeBranding(input: Record<string, unknown>): BrandingSettings {
   };
 }
 
+function normalizePayment(input: Record<string, unknown>): PaymentSettings {
+  return {
+    enabled: Boolean(input.enabled),
+    bankBin: toStringValue(input.bankBin).trim(),
+    accountNumber: toStringValue(input.accountNumber).trim(),
+    accountName: toStringValue(input.accountName).trim(),
+    transferTemplate: toStringValue(input.transferTemplate, defaultPayment.transferTemplate).trim() || defaultPayment.transferTemplate
+  };
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const key = getQueryValue(req.query?.key) ?? "branding";
-    if (key !== "branding") {
+    if (!["branding", "payment"].includes(key)) {
       res.status(400).json({ ok: false, error: "Unsupported settings key." });
       return;
     }
@@ -53,14 +79,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         const { data, error } = await supabase
           .from("settings")
           .select("value")
-          .eq("key", "branding")
+          .eq("key", key)
           .maybeSingle();
         if (error) throw new Error(error.message);
-        res.status(200).json({ ok: true, branding: normalizeBranding((data?.value as Record<string, unknown>) ?? {}) });
+        const value = (data?.value as Record<string, unknown>) ?? {};
+        res.status(200).json({
+          ok: true,
+          branding: key === "branding" ? normalizeBranding(value) : undefined,
+          payment: key === "payment" ? normalizePayment(value) : undefined
+        });
       } catch (error) {
         res.status(200).json({
           ok: true,
-          branding: defaultBranding,
+          branding: key === "branding" ? defaultBranding : undefined,
+          payment: key === "payment" ? defaultPayment : undefined,
           warning: error instanceof Error ? error.message : "Không đọc được cấu hình Supabase."
         });
       }
@@ -70,12 +102,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") {
       const actor = await requireAuth(req, ["ADMIN"]);
       const supabase = getSupabaseAdmin();
-      const branding = normalizeBranding(getJsonBody(req));
+      const payload = key === "branding" ? normalizeBranding(getJsonBody(req)) : normalizePayment(getJsonBody(req));
       const { data, error } = await supabase
         .from("settings")
         .upsert({
-          key: "branding",
-          value: branding,
+          key,
+          value: payload,
           updated_by: actor.id,
           updated_at: new Date().toISOString()
         }, { onConflict: "key" })
@@ -87,11 +119,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         actor_id: actor.id,
         action: "UPDATE",
         entity_type: "settings",
-        entity_id: "branding",
-        after_json: data?.value ?? branding
+        entity_id: key,
+        after_json: data?.value ?? payload
       });
 
-      res.status(200).json({ ok: true, branding: normalizeBranding((data?.value as Record<string, unknown>) ?? branding) });
+      const value = (data?.value as Record<string, unknown>) ?? payload;
+      res.status(200).json({
+        ok: true,
+        branding: key === "branding" ? normalizeBranding(value) : undefined,
+        payment: key === "payment" ? normalizePayment(value) : undefined
+      });
       return;
     }
 

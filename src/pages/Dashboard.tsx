@@ -1,5 +1,6 @@
-import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Plus } from "lucide-react";
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { useDataStore } from "../store/data";
 
 function startOfDay(date: Date) {
@@ -24,6 +25,7 @@ export function Dashboard() {
   const lowStock = products.filter((product) => product.stock <= 0);
   const debtCustomers = customers.filter((customer) => customer.oldDebt > 0);
   const totalDebt = debtCustomers.reduce((sum, customer) => sum + customer.oldDebt, 0);
+  const topDebtCustomers = [...debtCustomers].sort((a, b) => b.oldDebt - a.oldDebt).slice(0, 4);
 
   const last7Days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today);
@@ -51,7 +53,7 @@ export function Dashboard() {
   const topProducts = Array.from(soldMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 6);
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div className="relative mx-auto w-full max-w-7xl p-4 pb-24 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Tổng quan</h1>
         <p className="mt-1 text-sm text-zinc-500">Số liệu thật từ Supabase theo đơn hàng, tồn kho và công nợ.</p>
@@ -59,11 +61,32 @@ export function Dashboard() {
         {liveDataError && <p className="mt-2 text-sm text-red-600">Lỗi dữ liệu: {liveDataError}</p>}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard title="Doanh thu hôm nay" value={money(todayRevenue)} icon={<DollarSign className="h-5 w-5" />} delta={revenueDelta} />
         <StatCard title="Đơn hàng hôm nay" value={String(todayOrders.length)} icon={<TrendingUp className="h-5 w-5" />} sub={`${yesterdayOrders.length} đơn hôm qua`} />
         <StatCard title="Sản phẩm hết kho" value={String(lowStock.length)} icon={<Package className="h-5 w-5" />} warning="Cần nhập/kiểm kho" />
         <StatCard title="Khách hàng nợ" value={String(debtCustomers.length)} icon={<Users className="h-5 w-5" />} sub={`Tổng nợ: ${money(totalDebt)}`} />
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-red-100">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-base font-bold text-zinc-900">Cảnh báo công nợ</h2>
+            <p className="text-sm text-zinc-500">{debtCustomers.length} khách đang nợ, tổng {money(totalDebt)}</p>
+          </div>
+          <Link to="/finance" className="inline-flex w-full items-center justify-center rounded-lg border border-red-200 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 lg:w-auto">
+            Xem sổ công nợ
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {topDebtCustomers.map((customer) => (
+            <div key={customer.id} className="rounded-lg bg-red-50 px-3 py-2 ring-1 ring-red-100">
+              <div className="truncate text-sm font-bold text-red-800">{customer.name}</div>
+              <div className="text-xs font-semibold text-red-600">{money(customer.oldDebt)}</div>
+            </div>
+          ))}
+          {topDebtCustomers.length === 0 && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">Chưa có công nợ cần cảnh báo.</div>}
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-7">
@@ -107,6 +130,14 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      <Link
+        to="/pos"
+        className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-4 ring-white transition-transform active:scale-95 hover:bg-emerald-700"
+        title="Bán hàng nhanh"
+      >
+        <Plus className="h-7 w-7" />
+      </Link>
     </div>
   );
 }
@@ -114,13 +145,13 @@ export function Dashboard() {
 function StatCard({ title, value, icon, delta, sub, warning }: { title: string; value: string; icon: ReactNode; delta?: number; sub?: string; warning?: string }) {
   const isUp = (delta ?? 0) >= 0;
   return (
-    <div className="flex h-[140px] flex-col justify-between rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/70">
+    <div className="flex min-h-[132px] flex-col justify-between rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:min-h-[140px] sm:p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-zinc-500">{title}</p>
+        <p className="text-xs font-semibold text-zinc-500 sm:text-sm">{title}</p>
         <div className="text-zinc-400">{icon}</div>
       </div>
       <div>
-        <p className="text-2xl font-semibold tracking-tight text-zinc-900">{value}</p>
+        <p className="break-words text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">{value}</p>
         {delta !== undefined ? (
           <p className={`mt-2 flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${isUp ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
             {isUp ? <ArrowUpRight className="mr-1 h-3 w-3" /> : <ArrowDownRight className="mr-1 h-3 w-3" />}
