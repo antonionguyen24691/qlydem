@@ -62,6 +62,7 @@ export function Inventory() {
   const [isSaving, setIsSaving] = useState(false);
   const [infoPreview, setInfoPreview] = useState<{ title: string; content: string } | null>(null);
   const [countRows, setCountRows] = useState<CountRow[]>([]);
+  const [isCountMode, setIsCountMode] = useState(false);
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
@@ -81,28 +82,53 @@ export function Inventory() {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
   }, [products]);
 
+  const countVisibleRows = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return countRows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => row.name.toLowerCase().includes(term) || row.code.toLowerCase().includes(term));
+  }, [countRows, searchTerm]);
+
+  const countChangedRows = useMemo(() => {
+    return countRows.filter((row) => Number(row.quantity) !== Number(row.currentStock));
+  }, [countRows]);
+
+  const startCountMode = () => {
+    if (!canCount) return;
+    setMode("COUNT");
+    setSelectedProduct(null);
+    setNote("");
+    setCountRows(products.map((item) => ({
+      productId: item.id,
+      code: item.code,
+      name: item.name,
+      unit: item.unit,
+      currentStock: item.stock,
+      quantity: item.stock,
+      note: ""
+    })));
+    setIsCountMode(true);
+  };
+
+  const updateCountRow = (index: number, patch: Partial<CountRow>) => {
+    setCountRows((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+  };
+
   const openAdjust = (nextMode: InventoryMode, product?: Product) => {
     if (nextMode === "COUNT" ? !canCount : nextMode === "REQUEST_EXPORT" ? !canRequest : !canAdjust) return;
+    if (nextMode === "COUNT") {
+      startCountMode();
+      return;
+    }
     setMode(nextMode);
     setSelectedProduct(product ?? null);
-    setQuantity(product && nextMode === "COUNT" ? product.stock : 0);
+    setQuantity(0);
     setNote("");
-    if (nextMode === "COUNT") {
-      setCountRows(products.map((item) => ({
-        productId: item.id,
-        code: item.code,
-        name: item.name,
-        unit: item.unit,
-        currentStock: item.stock,
-        quantity: item.stock,
-        note: ""
-      })));
-    }
     setIsAdjustOpen(true);
   };
 
   const saveCountSheet = async () => {
-    const changedRows = countRows.filter((row) => Number(row.quantity) !== Number(row.currentStock));
+    const changedRows = countChangedRows;
     if (changedRows.length === 0) {
       alert("Chưa có dòng nào thay đổi tồn kho.");
       return;
@@ -133,7 +159,7 @@ export function Inventory() {
         alert(`Đã lưu kiểm kê ${body.changedRows} dòng.`);
         await loadLiveData();
       }
-      setIsAdjustOpen(false);
+      setIsCountMode(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Không lưu được kiểm kê sheet.");
     } finally {
@@ -237,7 +263,7 @@ export function Inventory() {
           </Button>
           {canAdjust && (
             <>
-              {canCount && <Button variant="outline" onClick={() => openAdjust("COUNT")} className="flex-1 sm:flex-none">
+              {canCount && <Button variant={isCountMode ? "default" : "outline"} onClick={startCountMode} className="flex-1 sm:flex-none">
                 <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Kiểm kê</span>
               </Button>}
@@ -252,7 +278,7 @@ export function Inventory() {
             </>
           )}
           {!canAdjust && canCount && (
-            <Button variant="outline" onClick={() => openAdjust("COUNT")} className="flex-1 sm:flex-none">
+            <Button variant={isCountMode ? "default" : "outline"} onClick={startCountMode} className="flex-1 sm:flex-none">
               <ClipboardCheck className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Kiểm kê</span>
             </Button>
@@ -273,6 +299,101 @@ export function Inventory() {
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden p-3 sm:p-6 custom-scrollbar">
+        {isCountMode ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm font-medium text-amber-800 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+              <div>
+                {canAdjust ? "Admin/Kho lưu kiểm kê sẽ cập nhật tồn kho ngay." : "Kế toán chỉnh kiểm kê sẽ gửi lệnh chờ admin duyệt."}
+              </div>
+              <div className="mt-2 shrink-0 font-bold sm:mt-0">{countChangedRows.length} dòng thay đổi</div>
+            </div>
+
+            <div className="mb-3 grid gap-3 sm:mb-4 lg:grid-cols-[1fr_320px_220px]">
+              <Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Ghi chú chung: VD kiểm kê cuối ngày..." />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Tìm trong sheet kiểm kê..."
+                  className="pl-10"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => setIsCountMode(false)} disabled={isSaving}>
+                  <X className="mr-2 h-4 w-4" /> Hủy
+                </Button>
+                <Button onClick={saveCountSheet} disabled={isSaving || countChangedRows.length === 0}>
+                  <Check className="mr-2 h-4 w-4" /> {isSaving ? "Đang lưu..." : "Lưu"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <div className="h-full overflow-auto custom-scrollbar">
+                <table className="min-w-[860px] w-full table-fixed divide-y divide-zinc-200 text-sm">
+                  <colgroup>
+                    <col className="w-[120px]" />
+                    <col />
+                    <col className="w-[130px]" />
+                    <col className="w-[150px]" />
+                    <col className="w-[110px]" />
+                    <col className="w-[220px]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-10 bg-zinc-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-zinc-500">Mã</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-zinc-500">Hàng hóa</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn hiện tại</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn kiểm kê</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider text-zinc-500">Lệch</th>
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-zinc-500">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 bg-white">
+                    {countVisibleRows.map(({ row, index }) => {
+                      const diff = Number(row.quantity) - Number(row.currentStock);
+                      return (
+                        <tr key={row.productId} className={diff !== 0 ? "bg-amber-50/60" : "hover:bg-zinc-50"}>
+                          <td className="px-3 py-3 font-bold text-emerald-700">{row.code}</td>
+                          <td className="px-3 py-3">
+                            <div className="line-clamp-2 break-words font-semibold text-zinc-900">{row.name}</div>
+                            <div className="text-xs text-zinc-500">{row.unit}</div>
+                          </td>
+                          <td className="px-3 py-3 text-right font-semibold text-zinc-600">{row.currentStock.toLocaleString()}</td>
+                          <td className="px-3 py-3">
+                            <input
+                              type="number"
+                              min={0}
+                              value={row.quantity}
+                              onChange={(event) => updateCountRow(index, { quantity: Number(event.target.value) || 0 })}
+                              className="h-10 w-full rounded-md border border-zinc-200 px-2 text-right text-[16px] font-bold outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm"
+                            />
+                          </td>
+                          <td className={`px-3 py-3 text-right font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : "text-zinc-400"}`}>
+                            {diff > 0 ? "+" : ""}{diff.toLocaleString()}
+                          </td>
+                          <td className="px-3 py-3">
+                            <input
+                              value={row.note}
+                              onChange={(event) => updateCountRow(index, { note: event.target.value })}
+                              className="h-10 w-full rounded-md border border-zinc-200 px-2 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm"
+                              placeholder="Lý do lệch..."
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {countVisibleRows.length === 0 && (
+                  <div className="py-12 text-center text-zinc-500">Không tìm thấy hàng hóa trong sheet kiểm kê.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="mb-3 max-w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:mb-4 sm:p-3">
           <div className="grid min-w-0 gap-2 xl:grid-cols-[0.9fr_1.1fr_1.4fr] xl:gap-3">
             <div className="grid min-w-0 grid-cols-3 gap-2">
@@ -371,7 +492,7 @@ export function Inventory() {
                       <div className="inline-flex gap-2 justify-end w-full">
                         {canAdjust && <Button variant="outline" size="sm" onClick={() => openAdjust("IN", product)}>Nhập</Button>}
                         {canAdjust && <Button variant="outline" size="sm" onClick={() => openAdjust("OUT", product)}>Xuất</Button>}
-                        {canAdjust && <Button variant="outline" size="sm" onClick={() => openAdjust("COUNT", product)}>Kiểm</Button>}
+                        {canAdjust && <Button variant="outline" size="sm" onClick={startCountMode}>Kiểm</Button>}
                         {!canAdjust && canRequest && <Button variant="outline" size="sm" onClick={() => openAdjust("REQUEST_EXPORT", product)} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">Đề nghị</Button>}
                       </div>
                     </td>
@@ -418,7 +539,7 @@ export function Inventory() {
               <div className="flex gap-2 mt-3 pt-3 border-t border-zinc-100">
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("IN", product)}>Nhập</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("OUT", product)}>Xuất</Button>}
-                {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("COUNT", product)}>Kiểm</Button>}
+                {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={startCountMode}>Kiểm</Button>}
                 {!canAdjust && canRequest && <Button variant="outline" className="flex-1 h-9 px-0 text-emerald-600 border-emerald-200" onClick={() => openAdjust("REQUEST_EXPORT", product)}>Đề nghị</Button>}
               </div>
             </div>
@@ -430,6 +551,8 @@ export function Inventory() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       <Dialog isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title={MODE_LABEL[mode]}>
