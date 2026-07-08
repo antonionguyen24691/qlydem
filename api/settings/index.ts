@@ -47,21 +47,29 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
 
-    const supabase = getSupabaseAdmin();
-
     if (req.method === "GET") {
-      const { data, error } = await supabase
-        .from("settings")
-        .select("value")
-        .eq("key", "branding")
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      res.status(200).json({ ok: true, branding: normalizeBranding((data?.value as Record<string, unknown>) ?? {}) });
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data, error } = await supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "branding")
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        res.status(200).json({ ok: true, branding: normalizeBranding((data?.value as Record<string, unknown>) ?? {}) });
+      } catch (error) {
+        res.status(200).json({
+          ok: true,
+          branding: defaultBranding,
+          warning: error instanceof Error ? error.message : "Không đọc được cấu hình Supabase."
+        });
+      }
       return;
     }
 
     if (req.method === "POST") {
       const actor = await requireAuth(req, ["ADMIN"]);
+      const supabase = getSupabaseAdmin();
       const branding = normalizeBranding(getJsonBody(req));
       const { data, error } = await supabase
         .from("settings")
