@@ -68,6 +68,15 @@ npm run sheets:create
 
 Lenh tren tra ve `spreadsheetId`. Dua ID nay vao `GOOGLE_SHEETS_SPREADSHEET_ID` tren `.env.local` va Vercel.
 
+Neu muon tao bang cach thu cong trong Google Sheets/Apps Script, dung MasterScript:
+
+1. Mo Google Sheets bat ky, vao `Extensions -> Apps Script`.
+2. Copy noi dung file `scripts/google-apps-script/PMQL_MasterScript.gs` vao `Code.gs`.
+3. Chay `PMQL_createBackupSpreadsheet()` de tao file backup moi, hoac `PMQL_setupCurrentSpreadsheet()` de tao tab tren file dang mo.
+4. Copy Spreadsheet ID cua file vua tao dua vao `GOOGLE_SHEETS_SPREADSHEET_ID`.
+
+MasterScript se tao cac tab chuan: `products`, `inventory_balances`, `sales_orders`, `receipts`, `customer_debt_ledger`, `backup_log`, `dashboard`, va cac bang lien quan.
+
 Dong bo Supabase -> Google Sheets bang script local:
 
 ```powershell
