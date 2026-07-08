@@ -15,12 +15,20 @@ export interface Product {
   id: string;
   code: string;
   name: string;
+  invoiceName?: string;
+  productType?: string;
   category: string;
   size: string;
   unit: string;
   stock: number;
   price: number;
   cost: number;
+  m2PerBox?: number;
+  piecesPerBox?: number;
+  priceByM2?: number;
+  vatRate?: number;
+  status?: string;
+  lifecycleStatus?: string;
 }
 
 export interface OrderItem {
@@ -55,6 +63,7 @@ interface DataStore {
   addCustomer: (customer: Customer) => void;
   addProduct: (product: Product) => void;
   addOrder: (order: Order) => void;
+  upsertProductLocal: (product: Product) => void;
   updateCustomerDebt: (customerId: string, amountChange: number) => void;
   updateProductStock: (productId: string, quantityChange: number) => void;
   loadLiveData: () => Promise<void>;
@@ -90,12 +99,20 @@ function mapProduct(row: any, stockByProduct: Map<string, number>): Product {
     id: row.id,
     code: row.code,
     name: row.product_name ?? row.invoice_name ?? row.code,
+    invoiceName: row.invoice_name ?? "",
+    productType: row.product_type ?? "",
     category: row.category ?? row.product_type ?? "",
     size: row.size ?? "",
     unit: row.unit ?? "",
     stock: stockByProduct.get(row.id) ?? 0,
     price: money(row.sell_price_box_vat ?? row.price_by_m2),
-    cost: money(row.cost_price)
+    cost: money(row.cost_price),
+    m2PerBox: money(row.m2_per_box),
+    piecesPerBox: money(row.pieces_per_box),
+    priceByM2: money(row.price_by_m2),
+    vatRate: money(row.vat_rate),
+    status: row.status ?? "ACTIVE",
+    lifecycleStatus: row.lifecycle_status ?? "ACTIVE"
   };
 }
 
@@ -132,6 +149,14 @@ export const useDataStore = create<DataStore>((set, get) => ({
   addCustomer: (customer) => set((state) => ({ customers: [customer, ...state.customers] })),
   addProduct: (product) => set((state) => ({ products: [product, ...state.products] })),
   addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
+  upsertProductLocal: (product) => set((state) => {
+    const exists = state.products.some((item) => item.id === product.id || item.code === product.code);
+    return {
+      products: exists
+        ? state.products.map((item) => item.id === product.id || item.code === product.code ? { ...item, ...product } : item)
+        : [product, ...state.products]
+    };
+  }),
   updateCustomerDebt: (customerId, amountChange) => set((state) => ({
     customers: state.customers.map(c =>
       c.id === customerId ? { ...c, oldDebt: c.oldDebt + amountChange } : c

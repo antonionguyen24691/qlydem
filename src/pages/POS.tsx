@@ -3,7 +3,9 @@ import { usePOSStore } from "../store/pos";
 import { useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
 import { getAuthHeaders } from "../lib/supabase";
-import { Search, Trash2, Plus, Minus, X } from "lucide-react";
+import { Search, Trash2, Plus, Minus, X, ChevronDown, Package } from "lucide-react";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 
 export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
@@ -21,6 +23,7 @@ export function POS() {
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
   const [customerPaid, setCustomerPaid] = useState<string>("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
 
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
@@ -117,12 +120,12 @@ export function POS() {
     const paymentName = paymentMethod === "CASH" ? "Tiền mặt" : "Chuyển khoản";
     alert(`Thanh toán thành công đơn hàng!\n\nMã HĐ: ${newOrder.id}\nKhách hàng: ${newOrder.customerName}\nTổng thanh toán: ${finalTotal.toLocaleString()} đ\nĐã thu: ${newOrder.paid.toLocaleString()} đ\nGhi nợ: ${debtAmount.toLocaleString()} đ\nPhương thức: ${paymentName}\n\nĐã lưu vào Supabase.`);
     
-    // Reset state
     clearCart();
     setSelectedCustomer(null);
     setCustomerSearch("");
     setDiscountPercent(0);
     setCustomerPaid("");
+    setIsMobileCheckoutOpen(false);
   };
 
   const handleCancel = () => {
@@ -136,106 +139,93 @@ export function POS() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-gray-200 gap-3">
-        <h1 className="text-xl font-semibold text-gray-900">Bán hàng mới</h1>
+    <div className="flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
+        <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Bán hàng mới</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <button 
-            onClick={handleCancel}
-            className="rounded bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-          >
-            Hủy đơn
-          </button>
-          <button 
-            onClick={() => alert('Đã lưu nháp đơn hàng!')}
-            className="rounded bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-          >
-            Lưu nháp
-          </button>
-          <button 
-            onClick={() => alert('Chức năng thêm khách hàng mới đang được cập nhật')}
-            className="rounded bg-[#006B68] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#005a57]"
-          >
-            Khách mới
-          </button>
+          <Button variant="danger" size="sm" onClick={handleCancel}>Hủy đơn</Button>
+          <Button variant="outline" size="sm" onClick={() => alert('Đã lưu nháp đơn hàng!')}>Lưu nháp</Button>
+          <Button variant="primary" size="sm" onClick={() => alert('Chức năng thêm khách hàng mới đang được cập nhật')}>Khách mới</Button>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden relative">
         {/* Left/Center Area */}
-        <div className="flex flex-col flex-1 p-2 sm:p-4 lg:border-r gap-4 overflow-y-auto">
+        <div className="flex flex-col flex-1 p-2 sm:p-4 lg:border-r border-zinc-200 gap-4 overflow-y-auto custom-scrollbar">
           {/* Search */}
-          <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="bg-white rounded-xl shadow-sm ring-1 ring-zinc-200 p-3 sm:p-4 shrink-0">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+                <Search className="h-5 w-5 text-zinc-400" />
               </div>
-              <input 
+              <Input 
                 type="text" 
                 value={searchTerm}
                 onChange={handleSearch}
-                className="w-full rounded-md border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#006B68] outline-none" 
+                className="pl-10" 
                 placeholder="Tìm kiếm sản phẩm theo tên hoặc mã..." 
               />
             </div>
             {searchTerm && (
-              <div className="mt-2 flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
                 {searchResults.map(p => (
                   <button 
                     key={p.id}
                     onClick={() => addToCart(p)}
-                    className="whitespace-nowrap rounded-md border bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                    className="whitespace-nowrap rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all"
                   >
-                    {p.name} - {p.price.toLocaleString()}đ
+                    {p.name} - <span className="text-emerald-600 font-semibold">{p.price.toLocaleString()}đ</span>
                   </button>
                 ))}
                 {searchResults.length === 0 && (
-                  <div className="text-sm text-gray-500 py-2 px-1">Không tìm thấy sản phẩm phù hợp.</div>
+                  <div className="text-sm text-zinc-500 py-2 px-1">Không tìm thấy sản phẩm phù hợp.</div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Cart Table */}
-          <div className="bg-white rounded-lg shadow-sm border flex-1 flex flex-col overflow-hidden">
-            <div className="overflow-x-auto flex-1">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+          {/* Cart Desktop */}
+          <div className="hidden lg:flex bg-white rounded-xl shadow-sm ring-1 ring-zinc-200 flex-1 flex-col overflow-hidden">
+            <div className="overflow-x-auto flex-1 custom-scrollbar">
+              <table className="min-w-full divide-y divide-zinc-200">
+                <thead className="bg-zinc-50/50 sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Hàng</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên Hàng</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ĐVT</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SL</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn Giá</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thành Tiền</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Mã Hàng</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Tên Hàng</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">ĐVT</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase">SL</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Đơn Giá</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Thành Tiền</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase"></th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-zinc-100">
                   {cart.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                        Chưa có sản phẩm trong giỏ hàng. <br/> Nhập tên sản phẩm để thêm vào.
+                      <td colSpan={7} className="px-4 py-16 text-center text-zinc-500">
+                        <Package className="mx-auto h-12 w-12 text-zinc-300 mb-3" />
+                        <p className="font-medium text-zinc-900">Giỏ hàng trống</p>
+                        <p className="text-sm">Nhập tên sản phẩm để thêm vào.</p>
                       </td>
                     </tr>
                   ) : (
                     cart.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{item.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.unit}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="p-1 rounded hover:bg-gray-200 text-gray-600"><Minus size={14}/></button>
-                            <span className="w-8 text-center font-medium">{item.quantity}</span>
-                            <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 rounded hover:bg-gray-200 text-gray-600"><Plus size={14}/></button>
+                      <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm font-medium text-zinc-500">{item.id}</td>
+                        <td className="px-4 py-2.5 text-sm font-medium text-zinc-900">{item.name}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-zinc-500">{item.unit}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-zinc-500 text-center">
+                          <div className="flex items-center justify-center gap-1 bg-zinc-100 rounded-md p-0.5 w-fit mx-auto">
+                            <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="p-1.5 rounded hover:bg-white hover:shadow-sm text-zinc-600 transition-all"><Minus size={14}/></button>
+                            <span className="w-8 text-center font-semibold text-zinc-900">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 rounded hover:bg-white hover:shadow-sm text-zinc-600 transition-all"><Plus size={14}/></button>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{item.price.toLocaleString()}đ</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{item.total.toLocaleString()}đ</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                          <button onClick={() => removeFromCart(item.id)} className="text-red-500 hover:text-red-700">
-                            <Trash2 size={18} />
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-zinc-600 text-right">{item.price.toLocaleString()}đ</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm font-semibold text-zinc-900 text-right">{item.total.toLocaleString()}đ</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-center">
+                          <button onClick={() => removeFromCart(item.id)} className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>
@@ -245,146 +235,209 @@ export function POS() {
               </table>
             </div>
           </div>
+
+          {/* Cart Mobile (Card List) */}
+          <div className="lg:hidden flex flex-col gap-3 pb-8">
+            {cart.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center text-zinc-500 ring-1 ring-zinc-200">
+                <Package className="mx-auto h-12 w-12 text-zinc-300 mb-3" />
+                <p className="font-medium text-zinc-900">Giỏ hàng trống</p>
+                <p className="text-sm">Nhập tên sản phẩm để thêm vào.</p>
+              </div>
+            ) : (
+              cart.map((item) => (
+                <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-zinc-200 flex flex-col gap-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h4 className="font-semibold text-zinc-900 text-base">{item.name}</h4>
+                      <p className="text-sm text-zinc-500">{item.id} • {item.unit} • {item.price.toLocaleString()}đ/đơn vị</p>
+                    </div>
+                    <button onClick={() => removeFromCart(item.id)} className="p-2 text-zinc-400 hover:text-red-600 bg-zinc-50 rounded-lg">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-zinc-100">
+                    <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1 w-fit">
+                      <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="p-2 rounded-md hover:bg-white hover:shadow-sm text-zinc-600"><Minus size={16}/></button>
+                      <span className="w-10 text-center font-semibold text-zinc-900 text-base">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-2 rounded-md hover:bg-white hover:shadow-sm text-zinc-600"><Plus size={16}/></button>
+                    </div>
+                    <span className="font-bold text-emerald-600 text-lg">{item.total.toLocaleString()}đ</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Right Checkout Panel */}
-        <div className="w-full lg:w-96 p-4 bg-gray-50 flex flex-col lg:border-l overflow-y-auto shrink-0">
-          <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-            <h3 className="font-medium text-gray-900 mb-4">Khách hàng</h3>
-            <div className="relative">
-              {selectedCustomer ? (
-                <div className="flex items-center justify-between p-2 border rounded-md bg-blue-50 border-blue-200">
-                  <div>
-                    <div className="font-medium text-sm text-blue-900">{selectedCustomer.name}</div>
-                    <div className="text-xs text-blue-700">Nợ cũ: {selectedCustomer.oldDebt.toLocaleString()}đ</div>
-                  </div>
-                  <button onClick={() => setSelectedCustomer(null)} className="p-1 hover:bg-blue-100 rounded text-blue-600">
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <input 
-                    type="text" 
-                    value={customerSearch}
-                    onChange={(e) => {
-                      setCustomerSearch(e.target.value);
-                      setShowCustomerDropdown(true);
-                    }}
-                    onFocus={() => setShowCustomerDropdown(true)}
-                    className="w-full rounded-md border-0 py-2 pl-3 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#006B68] sm:text-sm sm:leading-6 outline-none" 
-                    placeholder="Khách lẻ (Tìm kiếm theo tên, SĐT...)" 
-                  />
-                  {showCustomerDropdown && customerSearch && (
-                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
-                      {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).map(c => (
-                        <div 
-                          key={c.id} 
-                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          onClick={() => {
-                            setSelectedCustomer(c);
-                            setCustomerSearch("");
-                            setShowCustomerDropdown(false);
-                          }}
-                        >
-                          <div className="font-medium text-sm text-gray-900">{c.name}</div>
-                          <div className="text-xs text-gray-500">{c.phone} - Hạn mức: {c.creditLimit.toLocaleString()}</div>
-                        </div>
-                      ))}
-                      {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).length === 0 && (
-                        <div className="p-3 text-sm text-gray-500 text-center">Không tìm thấy khách hàng.</div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+        {/* Mobile Checkout Toggle Bar */}
+        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200 p-3 z-30 flex justify-between items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(12px+env(safe-area-inset-bottom))]">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Tổng thanh toán ({cart.length})</span>
+            <span className="font-bold text-emerald-600 text-xl leading-none mt-1">{finalTotal.toLocaleString()} đ</span>
+          </div>
+          <Button size="lg" onClick={() => setIsMobileCheckoutOpen(true)}>
+            Thanh toán
+          </Button>
+        </div>
+
+        {/* Mobile Overlay Background */}
+        {isMobileCheckoutOpen && (
+          <div 
+            className="fixed inset-0 z-40 bg-zinc-900/60 backdrop-blur-sm lg:hidden transition-opacity"
+            onClick={() => setIsMobileCheckoutOpen(false)}
+          />
+        )}
+
+        {/* Right Checkout Panel (Bottom sheet on mobile, Sidebar on desktop) */}
+        <div className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-[0_-20px_40px_rgba(0,0,0,0.15)] lg:relative lg:w-[400px] lg:shadow-none lg:border-l lg:border-zinc-200 lg:rounded-none transition-transform duration-300 ease-out flex flex-col max-h-[90vh] lg:max-h-full ${isMobileCheckoutOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
+          
+          {/* Mobile Drag Handle */}
+          <div className="flex justify-center pt-3 pb-1 lg:hidden" onClick={() => setIsMobileCheckoutOpen(false)}>
+            <div className="w-12 h-1.5 bg-zinc-300 rounded-full"></div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border p-4 flex-1 flex flex-col">
-            <h3 className="font-medium text-gray-900 mb-4">Thanh toán</h3>
-            <div className="space-y-4 text-sm flex-1">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Tổng tiền hàng ({cart.length} món)</span>
-                <span className="font-medium">{subTotal.toLocaleString()} đ</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Chiết khấu (%)</span>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max="100" 
-                  value={discountPercent} 
-                  onChange={(e) => setDiscountPercent(Number(e.target.value) || 0)}
-                  className="w-20 text-right rounded border border-gray-300 py-1 px-2 text-sm focus:ring-1 focus:ring-[#006B68] outline-none" 
-                />
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-red-500">
-                  <span>Giảm giá</span>
-                  <span>-{discountAmount.toLocaleString()} đ</span>
-                </div>
-              )}
-              <div className="pt-3 border-t flex justify-between items-center">
-                <span className="font-medium text-gray-900 text-lg">Khách cần trả</span>
-                <span className="font-bold text-[#006B68] text-2xl">{finalTotal.toLocaleString()} đ</span>
-              </div>
-              <div className="flex justify-between items-center pt-2">
-                <span className="text-gray-500">Khách thanh toán</span>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="0" 
-                    value={customerPaid}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "");
-                      setCustomerPaid(val ? Number(val).toLocaleString() : "");
-                    }}
-                    className="w-32 text-right rounded border border-gray-300 py-1.5 px-2 font-medium focus:ring-1 focus:ring-[#006B68] outline-none pr-6" 
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">đ</span>
-                </div>
-              </div>
-              {customerPaid && (
-                <div className="flex justify-between items-center pt-1 text-gray-500">
-                  <span>Tiền thừa trả khách</span>
-                  <span className="font-medium">
-                    {Math.max(0, Number(customerPaid.replace(/\D/g, "")) - finalTotal).toLocaleString()} đ
-                  </span>
-                </div>
-              )}
-              <div className="flex gap-2 pt-2">
-                <button 
-                  onClick={() => setPaymentMethod("CASH")}
-                  className={`flex-1 rounded border py-2 text-center font-medium transition-colors ${
-                    paymentMethod === "CASH" 
-                      ? "bg-[#006B68]/10 text-[#006B68] border-[#006B68]" 
-                      : "border-gray-300 hover:bg-gray-50 text-gray-700"
-                  }`}
-                >
-                  Tiền mặt
-                </button>
-                <button 
-                  onClick={() => setPaymentMethod("TRANSFER")}
-                  className={`flex-1 rounded border py-2 text-center font-medium transition-colors ${
-                    paymentMethod === "TRANSFER" 
-                      ? "bg-[#006B68]/10 text-[#006B68] border-[#006B68]" 
-                      : "border-gray-300 hover:bg-gray-50 text-gray-700"
-                  }`}
-                >
-                  Chuyển khoản
-                </button>
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+            <div className="bg-zinc-50 rounded-xl p-4 ring-1 ring-zinc-200/60">
+              <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Khách hàng</h3>
+              <div className="relative">
+                {selectedCustomer ? (
+                  <div className="flex items-center justify-between p-3 border rounded-xl bg-white border-emerald-200 ring-1 ring-emerald-500/20 shadow-sm">
+                    <div>
+                      <div className="font-semibold text-sm text-zinc-900">{selectedCustomer.name}</div>
+                      <div className="text-xs text-zinc-500 mt-0.5">Nợ cũ: <span className="text-red-600 font-medium">{selectedCustomer.oldDebt.toLocaleString()}đ</span></div>
+                    </div>
+                    <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500">
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Input 
+                      type="text" 
+                      value={customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        setShowCustomerDropdown(true);
+                      }}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      placeholder="Khách lẻ (Tìm kiếm theo tên, SĐT...)" 
+                    />
+                    {showCustomerDropdown && customerSearch && (
+                      <div className="absolute z-10 w-full bg-white border border-zinc-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto custom-scrollbar">
+                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).map(c => (
+                          <div 
+                            key={c.id} 
+                            className="p-3 hover:bg-zinc-50 cursor-pointer border-b border-zinc-100 last:border-b-0"
+                            onClick={() => {
+                              setSelectedCustomer(c);
+                              setCustomerSearch("");
+                              setShowCustomerDropdown(false);
+                            }}
+                          >
+                            <div className="font-semibold text-sm text-zinc-900">{c.name}</div>
+                            <div className="text-xs text-zinc-500">{c.phone} - Hạn mức: {c.creditLimit.toLocaleString()}</div>
+                          </div>
+                        ))}
+                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).length === 0 && (
+                          <div className="p-3 text-sm text-zinc-500 text-center">Không tìm thấy khách hàng.</div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t space-y-3">
-              <button 
+            <div className="bg-zinc-50 rounded-xl p-4 ring-1 ring-zinc-200/60 flex-1 flex flex-col">
+              <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Thanh toán</h3>
+              <div className="space-y-4 text-sm flex-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500 font-medium">Tổng tiền hàng</span>
+                  <span className="font-semibold text-zinc-900">{subTotal.toLocaleString()} đ</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500 font-medium">Chiết khấu (%)</span>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    max="100" 
+                    value={discountPercent} 
+                    onChange={(e) => setDiscountPercent(Number(e.target.value) || 0)}
+                    className="w-24 text-right !min-h-[36px] !h-9" 
+                  />
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-red-600 font-medium bg-red-50 p-2 rounded-lg">
+                    <span>Giảm giá</span>
+                    <span>-{discountAmount.toLocaleString()} đ</span>
+                  </div>
+                )}
+                
+                <div className="pt-4 border-t border-zinc-200 border-dashed flex justify-between items-end">
+                  <span className="font-bold text-zinc-900 text-base">Khách cần trả</span>
+                  <span className="font-bold text-emerald-600 text-3xl leading-none">{finalTotal.toLocaleString()} đ</span>
+                </div>
+                
+                <div className="flex justify-between items-center pt-4">
+                  <span className="text-zinc-500 font-medium">Khách đưa</span>
+                  <div className="relative">
+                    <Input 
+                      type="text" 
+                      placeholder="0" 
+                      value={customerPaid}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setCustomerPaid(val ? Number(val).toLocaleString() : "");
+                      }}
+                      className="w-36 text-right pr-8 font-semibold text-base" 
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">đ</span>
+                  </div>
+                </div>
+                {customerPaid && (
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-zinc-500 font-medium">Tiền thừa</span>
+                    <span className="font-semibold text-zinc-900">
+                      {Math.max(0, Number(customerPaid.replace(/\D/g, "")) - finalTotal).toLocaleString()} đ
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex gap-2 pt-4">
+                  <button 
+                    onClick={() => setPaymentMethod("CASH")}
+                    className={`flex-1 rounded-xl py-3 text-center font-semibold transition-all min-h-[48px] ${
+                      paymentMethod === "CASH" 
+                        ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600 shadow-sm" 
+                        : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50"
+                    }`}
+                  >
+                    Tiền mặt
+                  </button>
+                  <button 
+                    onClick={() => setPaymentMethod("TRANSFER")}
+                    className={`flex-1 rounded-xl py-3 text-center font-semibold transition-all min-h-[48px] ${
+                      paymentMethod === "TRANSFER" 
+                        ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600 shadow-sm" 
+                        : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50"
+                    }`}
+                  >
+                    Chuyển khoản
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 pb-4 lg:pb-0">
+              <Button 
                 onClick={handleCheckout}
                 disabled={isCheckingOut}
-                className="w-full rounded bg-[#006B68] px-4 py-4 text-base font-bold text-white shadow-sm hover:bg-[#005a57] active:bg-[#004a48] transition-colors"
+                size="lg"
+                className="w-full h-14 text-lg"
               >
-                {isCheckingOut ? "Đang lưu..." : "Thanh toán (F9)"}
-              </button>
+                {isCheckingOut ? "Đang xử lý..." : "Hoàn tất thanh toán"}
+              </Button>
             </div>
           </div>
         </div>

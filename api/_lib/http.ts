@@ -27,6 +27,8 @@ export function sendError(res: ApiResponse, error: unknown) {
     ? 401
     : error instanceof Error && error.name === "FORBIDDEN"
       ? 403
-      : 500;
+      : error instanceof Error && error.name === "BAD_REQUEST"
+        ? 400
+        : 500;
   res.status(code).json({ ok: false, error: message });
 }
