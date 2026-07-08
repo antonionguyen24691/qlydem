@@ -7,7 +7,7 @@ interface UIStore {
 }
 
 export const useUIStore = create<UIStore>((set) => ({
-  isSidebarOpen: true, // Mặc định mở trên desktop
+  isSidebarOpen: typeof window === "undefined" ? true : window.innerWidth >= 1024,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
 }));

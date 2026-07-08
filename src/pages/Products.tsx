@@ -181,7 +181,7 @@ export function Products() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Danh mục hàng hóa</h1>
         {canManage && (
           <Button onClick={openCreate} className="w-full sm:w-auto">
@@ -191,8 +191,8 @@ export function Products() {
         )}
       </div>
 
-      <div className="p-4 sm:p-6 flex-1 overflow-hidden flex flex-col">
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="p-3 sm:p-6 flex-1 overflow-hidden flex flex-col">
+        <div className="flex flex-col sm:flex-row gap-3 mb-3 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
             <Input
@@ -293,25 +293,25 @@ export function Products() {
           {filteredProducts.map((product) => {
             const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
             return (
-              <div key={product.id} onClick={() => setSelectedProduct(product)} className={`bg-white p-4 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform ${inactive ? "opacity-60" : ""}`}>
-                <div className="flex justify-between items-start gap-3 mb-2">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-zinc-900 text-base line-clamp-2">{product.name}</h3>
-                    <div className="text-sm font-medium text-emerald-600 mt-0.5">{product.code}</div>
+              <div key={product.id} onClick={() => setSelectedProduct(product)} className={`bg-white p-3 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform ${inactive ? "opacity-60" : ""}`}>
+                <div className="mb-2 flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="line-clamp-2 break-words text-base font-semibold text-zinc-900">{product.name}</h3>
+                    <div className="mt-0.5 truncate text-sm font-medium text-emerald-600">{product.code}</div>
                   </div>
-                  <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  <span className={`inline-flex max-w-[104px] shrink-0 items-center truncate px-2 py-0.5 rounded-full text-xs font-medium ${
                     product.stock <= 0 ? "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10" : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/10"
                   }`}>
                     Tồn: {product.stock}
                   </span>
                 </div>
-                <div className="flex justify-between items-end mt-4">
-                  <div className="text-sm text-zinc-500">
-                    {product.category && <span className="mr-2">{product.category}</span>}
+                <div className="mt-3 flex min-w-0 justify-between gap-3">
+                  <div className="min-w-0 text-sm text-zinc-500">
+                    {product.category && <span className="mr-2 inline-block max-w-[150px] truncate align-bottom">{product.category}</span>}
                     <span className="bg-zinc-100 px-2 py-0.5 rounded text-xs">{product.unit}</span>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-zinc-900 leading-none">{product.price.toLocaleString()} đ</div>
+                  <div className="min-w-0 shrink-0 text-right">
+                    <div className="max-w-[150px] truncate text-lg font-bold leading-none text-zinc-900">{product.price.toLocaleString()} đ</div>
                     {inactive && <div className="mt-1 text-xs font-bold text-red-600">Ngưng bán</div>}
                   </div>
                 </div>
@@ -338,9 +338,9 @@ export function Products() {
             <div className="space-y-6 flex-1">
               <div className="bg-zinc-50 p-4 rounded-lg border border-zinc-200">
                 <div className="text-sm text-zinc-500 mb-1">Mã hàng</div>
-                <div className="font-bold text-emerald-600 text-lg">{selectedProduct.code}</div>
+                <div className="break-words text-lg font-bold text-emerald-600">{selectedProduct.code}</div>
                 <div className="mt-4 text-sm text-zinc-500 mb-1">Tên hàng hóa</div>
-                <div className="font-bold text-zinc-900 text-xl">{selectedProduct.name}</div>
+                <div className="break-words text-xl font-bold text-zinc-900">{selectedProduct.name}</div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <Info label="Danh mục" value={selectedProduct.category || "-"} />
@@ -353,7 +353,7 @@ export function Products() {
                 <Price label="Giá bán" value={selectedProduct.price} tone="green" />
                 <div>
                   <span className="text-zinc-500 text-sm block mb-1">Tồn kho</span>
-                  <div className={`font-bold text-xl ${selectedProduct.stock <= 0 ? "text-red-600" : "text-emerald-600"}`}>{selectedProduct.stock.toLocaleString()}</div>
+                  <div className={`truncate text-xl font-bold ${selectedProduct.stock <= 0 ? "text-red-600" : "text-emerald-600"}`}>{selectedProduct.stock.toLocaleString()}</div>
                 </div>
               </div>
             </div>
@@ -406,7 +406,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <span className="text-zinc-500 block mb-1">{label}</span>
-      <div className="font-medium text-zinc-900">{value}</div>
+      <div className="break-words font-medium text-zinc-900">{value}</div>
     </div>
   );
 }
