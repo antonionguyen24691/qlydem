@@ -9,6 +9,8 @@ export interface Customer {
   address: string;
   oldDebt: number;
   creditLimit: number;
+  note?: string;
+  customerGroup?: string;
 }
 
 export interface Product {
@@ -61,6 +63,7 @@ interface DataStore {
   isLoadingLiveData: boolean;
   liveDataError?: string;
   addCustomer: (customer: Customer) => void;
+  upsertCustomerLocal: (customer: Customer) => void;
   addProduct: (product: Product) => void;
   addOrder: (order: Order) => void;
   upsertProductLocal: (product: Product) => void;
@@ -90,7 +93,9 @@ function mapCustomer(row: any): Customer {
     phone: row.phone ?? "",
     address: row.address ?? "",
     oldDebt: money(row.current_debt ?? row.oldDebt),
-    creditLimit: money(row.credit_limit ?? row.creditLimit)
+    creditLimit: money(row.credit_limit ?? row.creditLimit),
+    note: row.note ?? "",
+    customerGroup: row.customer_group ?? ""
   };
 }
 
@@ -147,6 +152,14 @@ export const useDataStore = create<DataStore>((set, get) => ({
   isLiveData: false,
   isLoadingLiveData: false,
   addCustomer: (customer) => set((state) => ({ customers: [customer, ...state.customers] })),
+  upsertCustomerLocal: (customer) => set((state) => {
+    const exists = state.customers.some((item) => item.id === customer.id || item.code === customer.code);
+    return {
+      customers: exists
+        ? state.customers.map((item) => item.id === customer.id || item.code === customer.code ? { ...item, ...customer } : item)
+        : [customer, ...state.customers]
+    };
+  }),
   addProduct: (product) => set((state) => ({ products: [product, ...state.products] })),
   addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
   upsertProductLocal: (product) => set((state) => {

@@ -36,6 +36,8 @@ export function Inventory() {
   });
 
   const lowStock = products.filter((product) => product.stock <= 0);
+  const nearLowStock = products.filter((product) => product.stock > 0 && product.stock <= 5);
+  const inventoryWarnings = [...lowStock, ...nearLowStock].slice(0, 8);
   const totalValue = products.reduce((sum, product) => sum + product.stock * product.cost, 0);
   const inventoryByCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -131,23 +133,46 @@ export function Inventory() {
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden p-4 sm:p-6 custom-scrollbar">
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Stat label="Tổng giá trị tồn kho" value={`${totalValue.toLocaleString()} ₫`} tone="green" />
-          <Stat label="Mã hàng hết hoặc âm kho" value={String(lowStock.length)} tone="red" />
-          <Stat label="Tổng mã hàng" value={String(products.length)} tone="dark" />
-        </div>
+        <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+          <div className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr_1.4fr]">
+            <div className="grid grid-cols-3 gap-2">
+              <CompactStat label="Giá trị tồn" value={`${totalValue.toLocaleString()} ₫`} tone="green" />
+              <CompactStat label="Hết/âm" value={String(lowStock.length)} tone="red" />
+              <CompactStat label="Mã hàng" value={String(products.length)} tone="dark" />
+            </div>
 
-        <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm hidden sm:block">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider">Tồn theo danh mục</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {inventoryByCategory.map(([category, stock]) => (
-              <div key={category} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 flex flex-col justify-between">
-                <div className="text-xs font-medium text-zinc-500 mb-2 truncate">{category}</div>
-                <div className="text-xl font-bold text-zinc-900">{stock.toLocaleString()}</div>
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn theo danh mục</div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {inventoryByCategory.map(([category, stock]) => (
+                  <div key={category} className="min-w-[120px] rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
+                    <div className="truncate text-xs font-medium text-zinc-500">{category}</div>
+                    <div className="text-base font-bold text-zinc-900">{stock.toLocaleString()}</div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-xs font-bold uppercase tracking-wider text-red-700">Lưu ý tồn kho</div>
+                <div className="text-xs font-semibold text-red-600">{lowStock.length} hết/âm, {nearLowStock.length} gần hết</div>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {inventoryWarnings.map((product) => (
+                  <div key={product.id} className="min-w-[170px] rounded-md bg-white px-3 py-2 ring-1 ring-red-100">
+                    <div className="truncate text-xs font-bold text-red-700">{product.code}</div>
+                    <div className="truncate text-xs text-zinc-600">{product.name}</div>
+                    <div className={`mt-1 text-sm font-bold ${product.stock <= 0 ? "text-red-600" : "text-amber-600"}`}>
+                      {product.stock.toLocaleString()} {product.unit}
+                    </div>
+                  </div>
+                ))}
+                {inventoryWarnings.length === 0 && (
+                  <div className="rounded-md bg-white px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-100">Chưa có hàng gần hết.</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -304,14 +329,14 @@ export function Inventory() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone: "green" | "red" | "dark" }) {
+function CompactStat({ label, value, tone }: { label: string; value: string; tone: "green" | "red" | "dark" }) {
   const isGreen = tone === "green";
   const isRed = tone === "red";
   
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm flex flex-col justify-center">
-      <div className="text-sm font-medium text-zinc-500 mb-2">{label}</div>
-      <div className={`text-2xl font-bold ${
+    <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+      <div className="text-xs font-semibold text-zinc-500 mb-1 truncate">{label}</div>
+      <div className={`truncate text-lg font-bold ${
         isGreen ? "text-emerald-600" : isRed ? "text-red-600" : "text-zinc-900"
       }`}>{value}</div>
     </div>
