@@ -103,7 +103,7 @@ function customerPayload(body: Record<string, unknown>) {
 }
 
 async function saveCustomer(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE"]);
   const body = getJsonBody(req);
   const supabase = getSupabaseAdmin();
   const payload = customerPayload(body);

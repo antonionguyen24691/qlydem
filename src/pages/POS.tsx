@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePOSStore } from "../store/pos";
 import { useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
@@ -8,10 +8,13 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { printSalesOrder } from "../lib/printBill";
 
+const POS_DRAFT_KEY = "pmql-pos-draft";
+
 export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
-  const { products, customers, loadLiveData } = useDataStore();
+  const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated } = useAuthStore();
+  const draftPromptedRef = useRef(false);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState(products);
@@ -25,10 +28,51 @@ export function POS() {
   const [customerPaid, setCustomerPaid] = useState<string>("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    customerGroup: "RETAIL",
+    creditLimit: "",
+    note: ""
+  });
 
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
   const finalTotal = subTotal - discountAmount;
+
+  useEffect(() => {
+    setSearchResults(products);
+  }, [products]);
+
+  useEffect(() => {
+    if (draftPromptedRef.current || cart.length > 0) return;
+    const rawDraft = window.localStorage.getItem(POS_DRAFT_KEY);
+    if (!rawDraft) return;
+
+    draftPromptedRef.current = true;
+    try {
+      const draft = JSON.parse(rawDraft);
+      if (!Array.isArray(draft.cart) || draft.cart.length === 0) return;
+      const shouldRestore = window.confirm(`Có đơn nháp chưa thanh toán (${draft.cart.length} mặt hàng). Bạn có muốn khôi phục không?`);
+      if (!shouldRestore) return;
+
+      draft.cart.forEach((item: any) => {
+        if (item?.id && item?.name) {
+          addToCart(item, Number(item.quantity) || 1);
+        }
+      });
+      setSelectedCustomer(draft.selectedCustomer ?? null);
+      setDiscountPercent(Number(draft.discountPercent) || 0);
+      setPaymentMethod(draft.paymentMethod === "TRANSFER" ? "TRANSFER" : "CASH");
+      setCustomerPaid(draft.customerPaid ?? "");
+      window.localStorage.removeItem(POS_DRAFT_KEY);
+    } catch {
+      window.localStorage.removeItem(POS_DRAFT_KEY);
+    }
+  }, [addToCart, cart.length]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
@@ -110,6 +154,7 @@ export function POS() {
       }
       newOrder.id = body.order?.code ?? newOrder.id;
       await loadLiveData();
+      window.localStorage.removeItem(POS_DRAFT_KEY);
     } catch (error) {
       alert(`Không ghi được đơn lên server.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
       setIsCheckingOut(false);
@@ -140,14 +185,87 @@ export function POS() {
     }
   };
 
+  const handleSaveDraft = () => {
+    if (cart.length === 0) {
+      alert("Chưa có sản phẩm trong giỏ để lưu nháp.");
+      return;
+    }
+
+    window.localStorage.setItem(POS_DRAFT_KEY, JSON.stringify({
+      cart,
+      selectedCustomer,
+      discountPercent,
+      paymentMethod,
+      customerPaid,
+      savedAt: new Date().toISOString()
+    }));
+    alert("Đã lưu nháp đơn hàng trên thiết bị này.");
+  };
+
+  const handleCreateCustomer = async () => {
+    const name = newCustomer.name.trim();
+    if (!name) {
+      alert("Vui lòng nhập tên khách hàng.");
+      return;
+    }
+    if (!isAuthenticated) {
+      alert("Bạn cần đăng nhập trước khi tạo khách hàng.");
+      return;
+    }
+
+    setIsSavingCustomer(true);
+    try {
+      const response = await fetch("/api/data/customers", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          ...newCustomer,
+          name,
+          creditLimit: Number(newCustomer.creditLimit.replace(/\D/g, "")) || 0,
+          oldDebt: 0
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) {
+        throw new Error(body.error ?? "Không tạo được khách hàng.");
+      }
+
+      const row = body.customer;
+      const customer = {
+        id: row.id,
+        code: row.code,
+        name: row.name ?? name,
+        phone: row.phone ?? "",
+        address: row.address ?? "",
+        oldDebt: Number(row.current_debt ?? 0),
+        creditLimit: Number(row.credit_limit ?? 0),
+        note: row.note ?? "",
+        customerGroup: row.customer_group ?? "RETAIL"
+      };
+      upsertCustomerLocal(customer);
+      setSelectedCustomer(customer);
+      setShowCustomerDropdown(false);
+      setCustomerSearch("");
+      setShowNewCustomerModal(false);
+      setNewCustomer({ name: "", phone: "", address: "", customerGroup: "RETAIL", creditLimit: "", note: "" });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không tạo được khách hàng.");
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
         <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Bán hàng mới</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="danger" size="sm" onClick={handleCancel}>Hủy đơn</Button>
-          <Button variant="outline" size="sm" onClick={() => alert('Đã lưu nháp đơn hàng!')}>Lưu nháp</Button>
-          <Button variant="primary" size="sm" onClick={() => alert('Chức năng thêm khách hàng mới đang được cập nhật')}>Khách mới</Button>
+          <Button variant="outline" size="sm" onClick={handleSaveDraft}>Lưu nháp</Button>
+          <Button variant="primary" size="sm" onClick={() => setShowNewCustomerModal(true)}>Khách mới</Button>
         </div>
       </div>
 
@@ -460,6 +578,62 @@ export function POS() {
           </div>
         </div>
       </div>
+
+      {showNewCustomerModal && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-zinc-900/50 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-xl rounded-t-2xl bg-white shadow-2xl ring-1 ring-zinc-200 sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+              <div>
+                <h2 className="text-lg font-bold text-zinc-900">Thêm khách hàng nhanh</h2>
+                <p className="text-sm text-zinc-500">Tạo khách và chọn ngay cho đơn bán hiện tại.</p>
+              </div>
+              <button onClick={() => setShowNewCustomerModal(false)} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-sm font-semibold text-zinc-700">Tên khách hàng</span>
+                <Input value={newCustomer.name} onChange={(event) => setNewCustomer({ ...newCustomer, name: event.target.value })} autoFocus />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-sm font-semibold text-zinc-700">Điện thoại</span>
+                <Input value={newCustomer.phone} onChange={(event) => setNewCustomer({ ...newCustomer, phone: event.target.value })} />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-sm font-semibold text-zinc-700">Hạn mức nợ</span>
+                <Input
+                  value={newCustomer.creditLimit}
+                  onChange={(event) => {
+                    const value = event.target.value.replace(/\D/g, "");
+                    setNewCustomer({ ...newCustomer, creditLimit: value ? Number(value).toLocaleString() : "" });
+                  }}
+                />
+              </label>
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-sm font-semibold text-zinc-700">Địa chỉ</span>
+                <Input value={newCustomer.address} onChange={(event) => setNewCustomer({ ...newCustomer, address: event.target.value })} />
+              </label>
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-sm font-semibold text-zinc-700">Ghi chú</span>
+                <textarea
+                  value={newCustomer.note}
+                  onChange={(event) => setNewCustomer({ ...newCustomer, note: event.target.value })}
+                  className="min-h-20 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-zinc-200 p-5 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setShowNewCustomerModal(false)}>Đóng</Button>
+              <Button onClick={handleCreateCustomer} disabled={isSavingCustomer}>
+                {isSavingCustomer ? "Đang lưu..." : "Tạo và chọn khách"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
