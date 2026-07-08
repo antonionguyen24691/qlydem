@@ -38,6 +38,12 @@ Trong Supabase Dashboard:
    - Production: URL Vercel cua app.
 
 Lan dau tien khi bang `users` con rong, Google user dau tien dang nhap se duoc auto-provision thanh `ADMIN`. Sau do cac user khac phai duoc them vao bang `users` voi role phu hop.
+Schema cung seed san 2 admin:
+
+- `antonionguyen246@gmail.com`
+- `lanphuongngothi237@gmail.com`
+
+Admin co the vao `Cau hinh` de them, sua, khoa user va gan role.
 
 ## 2. Google Sheets
 
