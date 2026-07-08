@@ -61,7 +61,7 @@ export const useBrandingStore = create<BrandingStore>((set, get) => ({
     if (get().isLoadingBranding) return;
     set({ isLoadingBranding: true, brandingError: undefined });
     try {
-      const response = await fetch("/api/settings/branding");
+      const response = await fetch("/api/settings?key=branding");
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được nhận diện app");
       const branding = cleanBranding(body.branding ?? {});
@@ -78,7 +78,7 @@ export const useBrandingStore = create<BrandingStore>((set, get) => ({
   },
   saveBranding: async (branding) => {
     const payload = cleanBranding(branding);
-    const response = await fetch("/api/settings/branding", {
+    const response = await fetch("/api/settings?key=branding", {
       method: "POST",
       headers: {
         ...(await getAuthHeaders()),
