@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { useDataStore, Order } from "../store/data";
 import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -6,15 +6,42 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { printSalesOrder } from "../lib/printBill";
 
+type DateFilterMode = "single" | "range" | "week" | "month" | "year" | "all";
+type DebtFilter = "all" | "debt" | "paid";
+
+const RETAIL_CUSTOMER = "__retail__";
+
+function dateKey(value: string) {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
+function startOfWeek(date: Date) {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  result.setDate(result.getDate() + diff);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
 export function Orders() {
-  const { orders } = useDataStore();
+  const { orders, products, customers } = useDataStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [dateMode, setDateMode] = useState<DateFilterMode>("single");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedProductType, setSelectedProductType] = useState("all");
+  const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Lấy các ngày duy nhất từ orders
   const uniqueDates = useMemo(() => {
-    const dates = Array.from(new Set(orders.map(o => o.date)));
+    const dates = Array.from(new Set(orders.map(o => dateKey(o.date)).filter(Boolean)));
     dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
     return dates;
   }, [orders]);
@@ -22,15 +49,95 @@ export function Orders() {
   // Set selectedDate mặc định là ngày đầu tiên nếu chưa chọn
   const currentDate = selectedDate || (uniqueDates.length > 0 ? uniqueDates[0] : "");
 
-  const dailyOrders = useMemo(() => {
+  const productById = useMemo(() => {
+    const map = new Map<string, (typeof products)[number]>();
+    for (const product of products) {
+      map.set(product.id, product);
+      map.set(product.code, product);
+    }
+    return map;
+  }, [products]);
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort();
+  }, [products]);
+
+  const productTypes = useMemo(() => {
+    return Array.from(new Set(products.map((product) => product.productType).filter(Boolean))).sort();
+  }, [products]);
+
+  const filteredOrders = useMemo(() => {
+    const anchor = currentDate ? new Date(currentDate) : null;
+    const rangeStart = dateFrom ? new Date(dateFrom) : null;
+    const rangeEnd = dateTo ? new Date(dateTo) : null;
+    const weekStart = anchor ? startOfWeek(anchor) : null;
+    const weekEnd = weekStart ? new Date(weekStart) : null;
+    if (weekEnd) weekEnd.setDate(weekEnd.getDate() + 6);
+    const search = searchTerm.trim().toLowerCase();
+
     return orders.filter(o => {
-      const matchDate = o.date === currentDate;
-      const matchSearch = 
-        o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        o.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchDate && matchSearch;
+      const orderDateKey = dateKey(o.date);
+      const orderDate = orderDateKey ? new Date(orderDateKey) : null;
+      let matchDate = true;
+
+      if (dateMode === "single") {
+        matchDate = !currentDate || orderDateKey === currentDate;
+      } else if (dateMode === "range") {
+        matchDate = !!orderDate && (!rangeStart || orderDate >= rangeStart) && (!rangeEnd || orderDate <= rangeEnd);
+      } else if (dateMode === "week") {
+        matchDate = !!orderDate && !!weekStart && !!weekEnd && orderDate >= weekStart && orderDate <= weekEnd;
+      } else if (dateMode === "month") {
+        matchDate = !!orderDate && !!anchor && orderDate.getFullYear() === anchor.getFullYear() && orderDate.getMonth() === anchor.getMonth();
+      } else if (dateMode === "year") {
+        matchDate = !!orderDate && !!anchor && orderDate.getFullYear() === anchor.getFullYear();
+      }
+
+      const matchSearch = !search ||
+        o.id.toLowerCase().includes(search) ||
+        o.customerName.toLowerCase().includes(search);
+      const matchCustomer =
+        selectedCustomerId === "all" ||
+        (selectedCustomerId === RETAIL_CUSTOMER ? !o.customerId : o.customerId === selectedCustomerId);
+      const matchDebt =
+        debtFilter === "all" ||
+        (debtFilter === "debt" ? o.total > o.paid : o.total <= o.paid);
+      const matchCategory =
+        selectedCategory === "all" ||
+        o.items.some((item) => productById.get(item.id)?.category === selectedCategory);
+      const matchProductType =
+        selectedProductType === "all" ||
+        o.items.some((item) => productById.get(item.id)?.productType === selectedProductType);
+
+      return matchDate && matchSearch && matchCustomer && matchDebt && matchCategory && matchProductType;
     });
-  }, [currentDate, searchTerm, orders]);
+  }, [currentDate, dateFrom, dateMode, dateTo, debtFilter, orders, productById, searchTerm, selectedCategory, selectedCustomerId, selectedProductType]);
+
+  const totals = useMemo(() => {
+    return filteredOrders.reduce((acc, order) => ({
+      revenue: acc.revenue + order.total,
+      paid: acc.paid + order.paid,
+      debt: acc.debt + Math.max(order.total - order.paid, 0)
+    }), { revenue: 0, paid: 0, debt: 0 });
+  }, [filteredOrders]);
+
+  const activeFilterCount = [
+    dateMode !== "single",
+    selectedCustomerId !== "all",
+    selectedCategory !== "all",
+    selectedProductType !== "all",
+    debtFilter !== "all"
+  ].filter(Boolean).length;
+
+  function resetFilters() {
+    setDateMode("single");
+    setSelectedDate(uniqueDates[0] ?? "");
+    setDateFrom("");
+    setDateTo("");
+    setSelectedCustomerId("all");
+    setSelectedCategory("all");
+    setSelectedProductType("all");
+    setDebtFilter("all");
+  }
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
@@ -47,8 +154,9 @@ export function Orders() {
               className="pl-10 h-10 min-h-[40px] sm:h-9 sm:min-h-[36px]"
             />
           </div>
-          <Button variant="outline" className="px-3 shrink-0 h-10 min-h-[40px] sm:h-9 sm:min-h-[36px]">
+          <Button onClick={() => setIsFilterOpen(true)} variant="outline" className="px-3 shrink-0 h-10 min-h-[40px] sm:h-9 sm:min-h-[36px]">
             <Filter className="h-4 w-4" />
+            {activeFilterCount > 0 && <span className="ml-1 text-xs font-bold">{activeFilterCount}</span>}
           </Button>
         </div>
       </div>
@@ -59,7 +167,10 @@ export function Orders() {
           {uniqueDates.slice(0, 7).map((date) => (
             <button
               key={date}
-              onClick={() => setSelectedDate(date)}
+              onClick={() => {
+                setSelectedDate(date);
+                setDateMode("single");
+              }}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
                 currentDate === date 
                   ? 'bg-zinc-900 text-white shadow-md shadow-zinc-900/10' 
@@ -70,10 +181,40 @@ export function Orders() {
             </button>
           ))}
           {uniqueDates.length > 7 && (
-            <button className="px-4 py-2 rounded-full text-sm font-medium bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50 flex items-center gap-2 shrink-0">
+            <button onClick={() => setIsFilterOpen(true)} className="px-4 py-2 rounded-full text-sm font-medium bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50 flex items-center gap-2 shrink-0">
               <Filter className="w-4 h-4" /> Chọn ngày khác
             </button>
           )}
+          <button
+            onClick={() => {
+              setDateMode("week");
+              if (!selectedDate && uniqueDates[0]) setSelectedDate(uniqueDates[0]);
+            }}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
+              dateMode === "week" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/10" : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
+            }`}
+          >
+            Tuần
+          </button>
+          <button
+            onClick={() => {
+              setDateMode("month");
+              if (!selectedDate && uniqueDates[0]) setSelectedDate(uniqueDates[0]);
+            }}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
+              dateMode === "month" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/10" : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
+            }`}
+          >
+            Tháng
+          </button>
+          <button
+            onClick={() => setDateMode("all")}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
+              dateMode === "all" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/10" : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
+            }`}
+          >
+            Tất cả
+          </button>
         </div>
 
         {/* Stats */}
@@ -81,25 +222,25 @@ export function Orders() {
           <div className="min-w-0 p-2 text-center sm:p-4">
             <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Doanh thu</div>
             <div className="truncate text-sm font-bold text-zinc-900 sm:text-xl">
-              {dailyOrders.reduce((acc, o) => acc + o.total, 0).toLocaleString()} ₫
+              {totals.revenue.toLocaleString()} ₫
             </div>
           </div>
           <div className="min-w-0 p-2 text-center sm:p-4">
             <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Thực thu</div>
             <div className="truncate text-sm font-bold text-emerald-600 sm:text-xl">
-              {dailyOrders.reduce((acc, o) => acc + o.paid, 0).toLocaleString()} ₫
+              {totals.paid.toLocaleString()} ₫
             </div>
           </div>
           <div className="min-w-0 p-2 text-center sm:p-4">
             <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Công nợ</div>
             <div className="truncate text-sm font-bold text-red-600 sm:text-xl">
-              {dailyOrders.reduce((acc, o) => acc + (o.total - o.paid), 0).toLocaleString()} ₫
+              {totals.debt.toLocaleString()} ₫
             </div>
           </div>
           <div className="min-w-0 p-2 text-center sm:p-4">
             <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Số đơn</div>
             <div className="truncate text-sm font-bold text-zinc-900 sm:text-xl">
-              {dailyOrders.length}
+              {filteredOrders.length}
             </div>
           </div>
         </div>
@@ -109,6 +250,7 @@ export function Orders() {
              <ScrollText className="w-5 h-5 text-emerald-600" />
              Danh sách đơn hàng
            </h2>
+           <div className="text-sm font-medium text-zinc-500">{filteredOrders.length} đơn theo bộ lọc</div>
         </div>
 
         {/* Desktop Table View */}
@@ -126,7 +268,7 @@ export function Orders() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-zinc-200">
-                {dailyOrders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr 
                     key={order.id} 
                     className="hover:bg-zinc-50 group cursor-pointer transition-colors"
@@ -174,7 +316,7 @@ export function Orders() {
 
         {/* Mobile Card View */}
         <div className="md:hidden flex-1 overflow-y-auto space-y-3 pb-20 custom-scrollbar">
-          {dailyOrders.map((order) => (
+          {filteredOrders.map((order) => (
             <div 
               key={order.id}
               onClick={() => setSelectedOrder(order)}
@@ -220,14 +362,114 @@ export function Orders() {
               </div>
             </div>
           ))}
-          {dailyOrders.length === 0 && (
+          {filteredOrders.length === 0 && (
             <div className="text-center py-12 text-zinc-500">
               <ScrollText className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
-              <p>Chưa có đơn hàng nào trong ngày này</p>
+              <p>Không có đơn hàng khớp bộ lọc</p>
             </div>
           )}
         </div>
       </div>
+
+      <Dialog isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Bộ lọc đơn hàng" className="sm:max-w-2xl">
+        <div className="flex flex-col h-full">
+          <div className="space-y-5 flex-1">
+            <div>
+              <label className="block text-sm font-semibold text-zinc-700 mb-2">Kiểu thời gian</label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {[
+                  ["single", "Ngày"],
+                  ["range", "Nhiều ngày"],
+                  ["week", "Tuần"],
+                  ["month", "Tháng"],
+                  ["year", "Năm"],
+                  ["all", "Tất cả"]
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setDateMode(value as DateFilterMode)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+                      dateMode === value ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-white text-zinc-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {dateMode !== "all" && dateMode !== "range" && (
+              <Field label={dateMode === "year" ? "Chọn ngày trong năm" : dateMode === "month" ? "Chọn ngày trong tháng" : dateMode === "week" ? "Chọn ngày trong tuần" : "Ngày bán hàng"}>
+                <Input type="date" value={currentDate} onChange={(event) => setSelectedDate(event.target.value)} />
+              </Field>
+            )}
+
+            {dateMode === "range" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Từ ngày">
+                  <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                </Field>
+                <Field label="Đến ngày">
+                  <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                </Field>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Khách hàng">
+                <select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                  <option value="all">Tất cả khách hàng</option>
+                  <option value={RETAIL_CUSTOMER}>Khách lẻ</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>{customer.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Công nợ">
+                <select value={debtFilter} onChange={(event) => setDebtFilter(event.target.value as DebtFilter)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="debt">Có công nợ</option>
+                  <option value="paid">Đã thanh toán</option>
+                </select>
+              </Field>
+              <Field label="Danh mục hàng">
+                <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                  <option value="all">Tất cả danh mục</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Loại hàng">
+                <select value={selectedProductType} onChange={(event) => setSelectedProductType(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                  <option value="all">Tất cả loại hàng</option>
+                  {productTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Tổng theo bộ lọc</div>
+              <div className="mt-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <div><div className="text-zinc-500">Doanh thu</div><div className="font-bold text-zinc-900">{totals.revenue.toLocaleString()} ₫</div></div>
+                <div><div className="text-zinc-500">Thực thu</div><div className="font-bold text-emerald-600">{totals.paid.toLocaleString()} ₫</div></div>
+                <div><div className="text-zinc-500">Công nợ</div><div className="font-bold text-red-600">{totals.debt.toLocaleString()} ₫</div></div>
+                <div><div className="text-zinc-500">Số đơn</div><div className="font-bold text-zinc-900">{filteredOrders.length}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
+            <Button type="button" variant="outline" onClick={resetFilters}>
+              <X className="mr-2 h-4 w-4" /> Đặt lại
+            </Button>
+            <Button type="button" onClick={() => setIsFilterOpen(false)}>Áp dụng</Button>
+          </div>
+        </div>
+      </Dialog>
 
       {/* Order Detail Dialog */}
       <Dialog 
@@ -341,4 +583,13 @@ function PackageSearch(props: any) {
       <path d="M20.27 17.27 22 19" />
     </svg>
   )
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-zinc-700 mb-1">{label}</label>
+      {children}
+    </div>
+  );
 }

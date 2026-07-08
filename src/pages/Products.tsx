@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Edit3, Filter, Package, Plus, ShoppingCart, Trash2, XCircle, Search } from "lucide-react";
 import { useDataStore, Product } from "../store/data";
@@ -106,11 +106,51 @@ export function Products() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort();
+  }, [products]);
+
+  const productTypes = useMemo(() => {
+    return Array.from(new Set(products.map((product) => product.productType).filter(Boolean))).sort();
+  }, [products]);
 
   const filteredProducts = products.filter((product) => {
     const term = searchTerm.toLowerCase();
-    return product.name.toLowerCase().includes(term) || product.code.toLowerCase().includes(term);
+    const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
+    const matchSearch = product.name.toLowerCase().includes(term) || product.code.toLowerCase().includes(term);
+    const matchCategory = categoryFilter === "all" || product.category === categoryFilter;
+    const matchType = typeFilter === "all" || product.productType === typeFilter;
+    const matchStock =
+      stockFilter === "all" ||
+      (stockFilter === "in_stock" && product.stock > 0) ||
+      (stockFilter === "out_stock" && product.stock <= 0) ||
+      (stockFilter === "low_stock" && product.stock > 0 && product.stock <= 10);
+    const matchStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && !inactive) ||
+      (statusFilter === "inactive" && inactive);
+    return matchSearch && matchCategory && matchType && matchStock && matchStatus;
   });
+
+  const activeFilterCount = [
+    categoryFilter !== "all",
+    typeFilter !== "all",
+    stockFilter !== "all",
+    statusFilter !== "all"
+  ].filter(Boolean).length;
+
+  function resetProductFilters() {
+    setCategoryFilter("all");
+    setTypeFilter("all");
+    setStockFilter("all");
+    setStatusFilter("all");
+  }
 
   function openCreate() {
     setForm({ ...emptyForm });
@@ -203,10 +243,18 @@ export function Products() {
               className="pl-10"
             />
           </div>
-          <Button variant="outline" className="shrink-0 w-full sm:w-auto">
+          <Button variant="outline" className="shrink-0 w-full sm:w-auto" onClick={() => setIsFilterOpen(true)}>
             <Filter className="h-4 w-4 mr-2" />
-            Bộ lọc
+            Bộ lọc{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </Button>
+        </div>
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-zinc-500 sm:mb-4">
+          <span className="font-medium">{filteredProducts.length} hàng hóa</span>
+          {activeFilterCount > 0 && (
+            <button type="button" onClick={resetProductFilters} className="rounded-full bg-white px-3 py-1 font-semibold text-emerald-700 ring-1 ring-emerald-600/20">
+              Xóa lọc
+            </button>
+          )}
         </div>
 
         <div className="hidden md:flex bg-white rounded-xl shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
@@ -331,6 +379,58 @@ export function Products() {
           )}
         </div>
       </div>
+
+      <Dialog isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Bộ lọc hàng hóa" className="sm:max-w-2xl">
+        <div className="flex flex-col h-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+            <Field label="Danh mục">
+              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <option value="all">Tất cả danh mục</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Loại hàng">
+              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <option value="all">Tất cả loại hàng</option>
+                {productTypes.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Tồn kho">
+              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <option value="all">Tất cả tồn kho</option>
+                <option value="in_stock">Còn hàng</option>
+                <option value="low_stock">Sắp hết hàng</option>
+                <option value="out_stock">Hết hàng</option>
+              </select>
+            </Field>
+            <Field label="Trạng thái">
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="active">Đang bán</option>
+                <option value="inactive">Ngưng bán</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Kết quả</div>
+            <div className="mt-1 text-2xl font-bold text-zinc-900">{filteredProducts.length.toLocaleString()} hàng hóa</div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
+            <Button type="button" variant="outline" onClick={resetProductFilters}>
+              Đặt lại
+            </Button>
+            <Button type="button" onClick={() => setIsFilterOpen(false)}>
+              Áp dụng
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog isOpen={!!selectedProduct} onClose={() => setSelectedProduct(null)} title="Chi tiết hàng hóa">
         {selectedProduct && (
