@@ -11,6 +11,7 @@
 - Xuất dữ liệu: endpoint tải `.xlsx`.
 - Roadmap sản phẩm: `ROADMAP.md`.
 - Hướng dẫn vận hành: `docs/OPERATIONS.md`.
+- Hướng dẫn gắn Vercel: `docs/VERCEL_SETUP.md`.
 - Schema database: `supabase/schema.sql`.
 
 ## Chạy local

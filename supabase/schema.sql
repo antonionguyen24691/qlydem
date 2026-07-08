@@ -438,3 +438,25 @@ create index if not exists receipt_allocations_debt_idx on public.receipt_alloca
 create index if not exists debt_reminders_schedule_idx on public.debt_reminders(status, scheduled_at);
 create index if not exists payment_promises_customer_idx on public.payment_promises(customer_id, status, promised_date);
 create index if not exists import_batches_entity_idx on public.import_batches(entity_type, created_at desc);
+
+insert into public.roles (role, name, permissions_json)
+values
+  ('ADMIN', 'Quản trị viên', '{"all": true}'::jsonb),
+  ('ACCOUNTANT', 'Kế toán', '{"orders": ["read"], "customers": ["read"], "finance": ["read", "create", "update"], "reports": ["read"], "export": ["read"]}'::jsonb),
+  ('SALE', 'Nhân viên bán hàng', '{"orders": ["read", "create"], "customers": ["read", "create"], "products": ["read"], "finance": ["read_own"]}'::jsonb),
+  ('WAREHOUSE', 'Kho', '{"products": ["read"], "inventory": ["read", "create", "update"], "purchase": ["read", "create"]}'::jsonb),
+  ('VIEWER', 'Chỉ xem', '{"dashboard": ["read"], "reports": ["read"]}'::jsonb)
+on conflict (role) do update
+set name = excluded.name,
+    permissions_json = excluded.permissions_json,
+    updated_at = now();
+
+insert into public.users (email, full_name, role, status)
+values
+  ('antonionguyen246@gmail.com', 'Antonio Nguyen', 'ADMIN', 'ACTIVE'),
+  ('lanphuongngothi237@gmail.com', 'Lan Phuong Ngo Thi', 'ADMIN', 'ACTIVE')
+on conflict (email) do update
+set role = 'ADMIN',
+    status = 'ACTIVE',
+    full_name = excluded.full_name,
+    updated_at = now();
