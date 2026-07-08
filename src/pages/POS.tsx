@@ -262,7 +262,7 @@ export function POS() {
     <div className="flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
         <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Bán hàng mới</h1>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Button variant="danger" size="sm" onClick={handleCancel}>Hủy đơn</Button>
           <Button variant="outline" size="sm" onClick={handleSaveDraft}>Lưu nháp</Button>
           <Button variant="primary" size="sm" onClick={() => setShowNewCustomerModal(true)}>Khách mới</Button>
@@ -382,11 +382,11 @@ export function POS() {
               </div>
             ) : (
               cart.map((item) => (
-                <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-zinc-200 flex flex-col gap-3">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <h4 className="font-semibold text-zinc-900 text-base">{item.name}</h4>
-                      <p className="text-sm text-zinc-500">{item.code} • {item.unit} • {item.price.toLocaleString()}đ/đơn vị</p>
+                <div key={item.id} className="bg-white rounded-xl p-3 sm:p-4 shadow-sm ring-1 ring-zinc-200 flex flex-col gap-3">
+                  <div className="flex min-w-0 justify-between items-start gap-2">
+                    <div className="min-w-0">
+                      <h4 className="line-clamp-2 break-words text-base font-semibold text-zinc-900">{item.name}</h4>
+                      <p className="truncate text-sm text-zinc-500">{item.code} • {item.unit} • {item.price.toLocaleString()}đ/đơn vị</p>
                     </div>
                     <button onClick={() => removeFromCart(item.id)} className="p-2 text-zinc-400 hover:text-red-600 bg-zinc-50 rounded-lg">
                       <Trash2 size={18} />
@@ -398,7 +398,7 @@ export function POS() {
                       <span className="w-10 text-center font-semibold text-zinc-900 text-base">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-2 rounded-md hover:bg-white hover:shadow-sm text-zinc-600"><Plus size={16}/></button>
                     </div>
-                    <span className="font-bold text-emerald-600 text-lg">{item.total.toLocaleString()}đ</span>
+                    <span className="max-w-[150px] truncate text-lg font-bold text-emerald-600">{item.total.toLocaleString()}đ</span>
                   </div>
                 </div>
               ))
@@ -408,9 +408,9 @@ export function POS() {
 
         {/* Mobile Checkout Toggle Bar */}
         <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200 p-3 z-30 flex justify-between items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(12px+env(safe-area-inset-bottom))]">
-          <div className="flex flex-col">
+          <div className="min-w-0 flex flex-col">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Tổng thanh toán ({cart.length})</span>
-            <span className="font-bold text-emerald-600 text-xl leading-none mt-1">{finalTotal.toLocaleString()} đ</span>
+            <span className="mt-1 max-w-[190px] truncate text-xl font-bold leading-none text-emerald-600">{finalTotal.toLocaleString()} đ</span>
           </div>
           <Button size="lg" onClick={() => setIsMobileCheckoutOpen(true)}>
             Thanh toán
@@ -439,8 +439,8 @@ export function POS() {
               <div className="relative">
                 {selectedCustomer ? (
                   <div className="flex items-center justify-between p-3 border rounded-xl bg-white border-emerald-200 ring-1 ring-emerald-500/20 shadow-sm">
-                    <div>
-                      <div className="font-semibold text-sm text-zinc-900">{selectedCustomer.name}</div>
+                    <div className="min-w-0">
+                      <div className="line-clamp-2 break-words text-sm font-semibold text-zinc-900">{selectedCustomer.name}</div>
                       <div className="text-xs text-zinc-500 mt-0.5">Nợ cũ: <span className="text-red-600 font-medium">{selectedCustomer.oldDebt.toLocaleString()}đ</span></div>
                     </div>
                     <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500">
@@ -471,8 +471,8 @@ export function POS() {
                               setShowCustomerDropdown(false);
                             }}
                           >
-                            <div className="font-semibold text-sm text-zinc-900">{c.name}</div>
-                            <div className="text-xs text-zinc-500">{c.phone} - Hạn mức: {c.creditLimit.toLocaleString()}</div>
+                            <div className="line-clamp-2 break-words text-sm font-semibold text-zinc-900">{c.name}</div>
+                            <div className="truncate text-xs text-zinc-500">{c.phone} - Hạn mức: {c.creditLimit.toLocaleString()}</div>
                           </div>
                         ))}
                         {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).length === 0 && (
@@ -512,7 +512,7 @@ export function POS() {
                 
                 <div className="pt-4 border-t border-zinc-200 border-dashed flex justify-between items-end">
                   <span className="font-bold text-zinc-900 text-base">Khách cần trả</span>
-                  <span className="font-bold text-emerald-600 text-3xl leading-none">{finalTotal.toLocaleString()} đ</span>
+                  <span className="max-w-[190px] truncate text-2xl font-bold leading-none text-emerald-600 sm:text-3xl">{finalTotal.toLocaleString()} đ</span>
                 </div>
                 
                 <div className="flex justify-between items-center pt-4">

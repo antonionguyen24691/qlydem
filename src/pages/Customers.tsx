@@ -69,6 +69,7 @@ export function Customers() {
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "debt" | "orders" | "notes">("overview");
+  const [infoPreview, setInfoPreview] = useState<{ title: string; content: string } | null>(null);
 
   const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
 
@@ -138,7 +139,7 @@ export function Customers() {
   if (selectedCustomer) {
     return (
       <div className="flex h-full flex-col bg-zinc-50">
-        <div className="border-b border-zinc-200 bg-white px-4 py-4 sm:px-6">
+        <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <button
@@ -150,10 +151,33 @@ export function Customers() {
               </button>
               <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-wider text-emerald-600">{shortCode(selectedCustomer)}</div>
-                <h1 className="truncate text-2xl font-bold text-zinc-900">{selectedCustomer.name}</h1>
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
-                  <span className="inline-flex items-center gap-1"><Phone className="h-4 w-4" />{selectedCustomer.phone || "Chưa có SĐT"}</span>
-                  <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{selectedCustomer.address || "Chưa có địa chỉ"}</span>
+                <button
+                  type="button"
+                  onClick={() => setInfoPreview({ title: shortCode(selectedCustomer), content: selectedCustomer.name })}
+                  className="block w-full text-left"
+                  title={selectedCustomer.name}
+                >
+                  <h1 className="line-clamp-2 break-words text-2xl font-bold leading-tight text-zinc-900 sm:truncate sm:leading-normal">
+                    {selectedCustomer.name}
+                  </h1>
+                </button>
+                <div className="mt-1 flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
+                  <button
+                    type="button"
+                    onClick={() => setInfoPreview({ title: "Điện thoại", content: selectedCustomer.phone || "Chưa có SĐT" })}
+                    className="inline-flex min-w-0 max-w-full items-center gap-1"
+                  >
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{selectedCustomer.phone || "Chưa có SĐT"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInfoPreview({ title: "Địa chỉ", content: selectedCustomer.address || "Chưa có địa chỉ" })}
+                    className="inline-flex min-w-0 max-w-full items-center gap-1"
+                  >
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{selectedCustomer.address || "Chưa có địa chỉ"}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -164,15 +188,15 @@ export function Customers() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
-          <div className="mb-5 grid gap-3 sm:grid-cols-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar">
+          <div className="mb-3 grid grid-cols-2 gap-2 sm:mb-5 sm:grid-cols-4 sm:gap-3">
             <SummaryCard label="Công nợ hiện tại" value={`${selectedCustomer.oldDebt.toLocaleString()} ₫`} tone="red" />
             <SummaryCard label="Hạn mức nợ" value={`${selectedCustomer.creditLimit.toLocaleString()} ₫`} />
             <SummaryCard label="Doanh số" value={`${selectedRevenue.toLocaleString()} ₫`} tone="green" />
             <SummaryCard label="Đã thu" value={`${selectedPaid.toLocaleString()} ₫`} tone="green" />
           </div>
 
-          <div className="mb-5 flex gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2">
+          <div className="mb-4 flex gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2 hide-scrollbar sm:mb-5">
             {[
               ["overview", "Tổng quan"],
               ["debt", "Sổ công nợ"],
@@ -194,16 +218,16 @@ export function Customers() {
 
           {activeTab === "overview" && (
             <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
                 <h2 className="mb-4 text-lg font-bold text-zinc-900">Thông tin khách hàng</h2>
                 <div className="grid gap-4 text-sm sm:grid-cols-2">
-                  <Info label="Mã khách" value={shortCode(selectedCustomer)} />
-                  <Info label="Nhóm khách" value={selectedCustomer.customerGroup || "RETAIL"} />
-                  <Info label="Điện thoại" value={selectedCustomer.phone || "-"} />
-                  <Info label="Địa chỉ" value={selectedCustomer.address || "-"} />
+                  <Info label="Mã khách" value={shortCode(selectedCustomer)} onPreview={setInfoPreview} />
+                  <Info label="Nhóm khách" value={selectedCustomer.customerGroup || "RETAIL"} onPreview={setInfoPreview} />
+                  <Info label="Điện thoại" value={selectedCustomer.phone || "-"} onPreview={setInfoPreview} />
+                  <Info label="Địa chỉ" value={selectedCustomer.address || "-"} onPreview={setInfoPreview} />
                 </div>
               </section>
-              <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
                 <h2 className="mb-4 text-lg font-bold text-zinc-900">Cảnh báo nhanh</h2>
                 {selectedCustomer.oldDebt > 0 ? (
                   <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-700">
@@ -219,7 +243,7 @@ export function Customers() {
           )}
 
           {activeTab === "debt" && (
-            <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-4 text-lg font-bold text-zinc-900">Sổ công nợ</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-zinc-200 text-sm">
@@ -252,17 +276,17 @@ export function Customers() {
           )}
 
           {activeTab === "orders" && (
-            <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><Receipt className="h-5 w-5 text-zinc-400" />Lịch sử mua hàng</h2>
               <div className="grid gap-3">
                 {selectedOrders.map((order) => (
                   <div key={order.id} className="rounded-lg border border-zinc-200 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="font-bold text-emerald-700">{order.id}</div>
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate font-bold text-emerald-700">{order.id}</div>
                         <div className="text-sm text-zinc-500">{new Date(order.date).toLocaleDateString("vi-VN")}</div>
                       </div>
-                      <div className="text-right">
+                      <div className="shrink-0 text-right">
                         <div className="font-bold text-zinc-900">{order.total.toLocaleString()} ₫</div>
                         <div className="text-sm text-zinc-500">{order.items.length} mặt hàng</div>
                       </div>
@@ -275,7 +299,7 @@ export function Customers() {
           )}
 
           {activeTab === "notes" && (
-            <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><StickyNote className="h-5 w-5 text-zinc-400" />Ghi chú và lưu ý</h2>
               <div className="whitespace-pre-wrap rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-sm text-zinc-700">
                 {selectedCustomer.note || "Chưa có ghi chú riêng cho khách hàng này."}
@@ -292,13 +316,14 @@ export function Customers() {
           onChange={setForm}
           onSubmit={saveCustomer}
         />
+        <InfoPreviewDialog preview={infoPreview} onClose={() => setInfoPreview(null)} />
       </div>
     );
   }
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Khách hàng</h1>
         <Button onClick={openCreate} className="w-full sm:w-auto">
           <UserPlus className="h-4 w-4 mr-2" />
@@ -306,8 +331,8 @@ export function Customers() {
         </Button>
       </div>
 
-      <div className="p-4 sm:p-6 flex-1 overflow-hidden flex flex-col custom-scrollbar">
-        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="p-3 sm:p-6 flex-1 overflow-hidden flex flex-col custom-scrollbar">
+        <div className="mb-3 grid grid-cols-3 gap-2 sm:mb-5 sm:gap-3">
           <SummaryCard label="Tổng khách hàng" value={String(customers.length)} />
           <SummaryCard label="Khách đang nợ" value={String(debtors.length)} tone="red" />
           <SummaryCard label="Tổng công nợ" value={`${totalDebt.toLocaleString()} ₫`} tone="red" />
@@ -395,23 +420,55 @@ export function Customers() {
                 setSelectedCustomerId(customer.id);
                 setActiveTab("overview");
               }}
-              className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
+              className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
             >
-              <div className="flex justify-between items-start mb-3">
-                <div className="min-w-0">
-                  <h3 className="font-bold text-zinc-900 text-base uppercase mb-1 truncate">{customer.name}</h3>
-                  <div className="text-xs font-bold text-emerald-600">{shortCode(customer)}</div>
+              <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
+                <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setInfoPreview({ title: shortCode(customer), content: customer.name });
+                    }}
+                    className="block w-full text-left"
+                    title={customer.name}
+                  >
+                    <h3 className="mb-1 line-clamp-2 break-words text-base font-bold uppercase leading-tight text-zinc-900">{customer.name}</h3>
+                  </button>
+                  <div className="truncate text-xs font-bold text-emerald-600">{shortCode(customer)}</div>
                 </div>
                 {customer.oldDebt > 0 && (
-                  <div className="text-right shrink-0 ml-4 bg-red-50 px-2 py-1 rounded-lg">
+                  <div className="max-w-[120px] shrink-0 rounded-lg bg-red-50 px-2 py-1 text-right">
                     <div className="text-xs text-red-700 font-semibold mb-0.5">Nợ</div>
-                    <div className="text-sm font-bold text-red-600 leading-none">{customer.oldDebt.toLocaleString()} ₫</div>
+                    <div className="truncate text-sm font-bold leading-none text-red-600">{customer.oldDebt.toLocaleString()} ₫</div>
                   </div>
                 )}
               </div>
               <div className="space-y-2 mt-4 text-sm text-zinc-600">
-                <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-zinc-400 shrink-0" />{customer.phone || "-"}</div>
-                {customer.address && <div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" /><span className="line-clamp-2">{customer.address}</span></div>}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setInfoPreview({ title: "Điện thoại", content: customer.phone || "-" });
+                  }}
+                  className="flex min-w-0 max-w-full items-center gap-2"
+                >
+                  <Phone className="w-4 h-4 text-zinc-400 shrink-0" />
+                  <span className="truncate">{customer.phone || "-"}</span>
+                </button>
+                {customer.address && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setInfoPreview({ title: "Địa chỉ", content: customer.address });
+                    }}
+                    className="flex min-w-0 max-w-full items-start gap-2 text-left"
+                  >
+                    <MapPin className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2 break-words">{customer.address}</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -432,6 +489,7 @@ export function Customers() {
         onChange={setForm}
         onSubmit={saveCustomer}
       />
+      <InfoPreviewDialog preview={infoPreview} onClose={() => setInfoPreview(null)} />
     </div>
   );
 }
@@ -507,18 +565,42 @@ function CustomerFormDialog({
 
 function SummaryCard({ label, value, tone = "dark" }: { label: string; value: string; tone?: "dark" | "green" | "red" }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="text-sm font-medium text-zinc-500 mb-2">{label}</div>
-      <div className={`text-2xl font-bold ${tone === "green" ? "text-emerald-600" : tone === "red" ? "text-red-600" : "text-zinc-900"}`}>{value}</div>
+    <div className="min-w-0 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:p-4">
+      <div className="mb-1 line-clamp-2 min-h-[28px] text-[11px] font-medium leading-tight text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-sm">{label}</div>
+      <div className={`truncate text-lg font-bold sm:text-2xl ${tone === "green" ? "text-emerald-600" : tone === "red" ? "text-red-600" : "text-zinc-900"}`}>{value}</div>
     </div>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  onPreview
+}: {
+  label: string;
+  value: string;
+  onPreview: (preview: { title: string; content: string }) => void;
+}) {
   return (
-    <div>
+    <button type="button" onClick={() => onPreview({ title: label, content: value })} className="min-w-0 text-left">
       <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">{label}</div>
-      <div className="mt-1 font-semibold text-zinc-900">{value}</div>
-    </div>
+      <div className="mt-1 line-clamp-2 break-words font-semibold text-zinc-900">{value}</div>
+    </button>
+  );
+}
+
+function InfoPreviewDialog({
+  preview,
+  onClose
+}: {
+  preview: { title: string; content: string } | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog isOpen={Boolean(preview)} onClose={onClose} title={preview?.title ?? "Chi tiết"}>
+      <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
+        {preview?.content}
+      </div>
+    </Dialog>
   );
 }

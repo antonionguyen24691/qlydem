@@ -21,7 +21,7 @@ export function Dialog({ isOpen, onClose, title, children, className }: DialogPr
         className
       )}>
         <div className="flex items-center justify-between p-4 border-b border-zinc-100 shrink-0 bg-white z-10 shadow-sm">
-          <h3 className="text-lg font-bold text-zinc-900 tracking-tight">{title}</h3>
+          <h3 className="min-w-0 truncate pr-3 text-lg font-bold tracking-tight text-zinc-900">{title}</h3>
           <button 
             onClick={onClose}
             className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 rounded-lg p-2 transition-colors active:scale-95"

@@ -29,6 +29,7 @@ export function Inventory() {
   const [quantity, setQuantity] = useState<number>(0);
   const [note, setNote] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [infoPreview, setInfoPreview] = useState<{ title: string; content: string } | null>(null);
 
   const filteredProducts = products.filter((product) => {
     const term = searchTerm.toLowerCase();
@@ -94,12 +95,12 @@ export function Inventory() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
-      <div className="flex flex-col gap-4 border-b border-zinc-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-900">Quản lý tồn kho</h1>
           <p className="text-sm text-zinc-500 hidden sm:block mt-1">Nhập, xuất, kiểm kê và đề nghị xuất kho.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={`grid gap-2 sm:flex sm:flex-wrap ${canAdjust ? "grid-cols-4" : "grid-cols-1"}`}>
           <Button variant="outline" onClick={() => loadLiveData()} size="sm" className="hidden sm:flex">
             <RefreshCw className="h-4 w-4 mr-2" />
             Tải lại
@@ -132,18 +133,18 @@ export function Inventory() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden p-4 sm:p-6 custom-scrollbar">
-        <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-          <div className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr_1.4fr]">
-            <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-1 flex-col overflow-hidden p-3 sm:p-6 custom-scrollbar">
+        <div className="mb-3 max-w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:mb-4 sm:p-3">
+          <div className="grid min-w-0 gap-2 xl:grid-cols-[0.9fr_1.1fr_1.4fr] xl:gap-3">
+            <div className="grid min-w-0 grid-cols-3 gap-2">
               <CompactStat label="Giá trị tồn" value={`${totalValue.toLocaleString()} ₫`} tone="green" />
               <CompactStat label="Hết/âm" value={String(lowStock.length)} tone="red" />
               <CompactStat label="Mã hàng" value={String(products.length)} tone="dark" />
             </div>
 
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+            <div className="min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3">
               <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn theo danh mục</div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar">
                 {inventoryByCategory.map(([category, stock]) => (
                   <div key={category} className="min-w-[120px] rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
                     <div className="truncate text-xs font-medium text-zinc-500">{category}</div>
@@ -153,20 +154,25 @@ export function Inventory() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+            <div className="min-w-0 rounded-lg border border-red-100 bg-red-50 p-2 sm:p-3">
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-xs font-bold uppercase tracking-wider text-red-700">Lưu ý tồn kho</div>
-                <div className="text-xs font-semibold text-red-600">{lowStock.length} hết/âm, {nearLowStock.length} gần hết</div>
+                <div className="ml-2 shrink-0 text-xs font-semibold text-red-600">{lowStock.length} hết/âm, {nearLowStock.length} gần hết</div>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar">
                 {inventoryWarnings.map((product) => (
-                  <div key={product.id} className="min-w-[170px] rounded-md bg-white px-3 py-2 ring-1 ring-red-100">
+                  <button
+                    type="button"
+                    key={product.id}
+                    onClick={() => setInfoPreview({ title: product.code, content: `${product.name}\nTồn: ${product.stock.toLocaleString()} ${product.unit}` })}
+                    className="min-w-[150px] max-w-[150px] rounded-md bg-white px-3 py-2 text-left ring-1 ring-red-100 sm:min-w-[170px] sm:max-w-none"
+                  >
                     <div className="truncate text-xs font-bold text-red-700">{product.code}</div>
                     <div className="truncate text-xs text-zinc-600">{product.name}</div>
                     <div className={`mt-1 text-sm font-bold ${product.stock <= 0 ? "text-red-600" : "text-amber-600"}`}>
                       {product.stock.toLocaleString()} {product.unit}
                     </div>
-                  </div>
+                  </button>
                 ))}
                 {inventoryWarnings.length === 0 && (
                   <div className="rounded-md bg-white px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-100">Chưa có hàng gần hết.</div>
@@ -176,7 +182,7 @@ export function Inventory() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-bold text-zinc-900 text-lg hidden sm:block">Chi tiết tồn kho</h2>
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
@@ -240,21 +246,37 @@ export function Inventory() {
         {/* Mobile Card View */}
         <div className="md:hidden flex-1 overflow-y-auto space-y-3 pb-20 custom-scrollbar">
           {filteredProducts.map((product) => (
-            <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-zinc-900 text-base leading-tight mb-1">{product.name}</h3>
+            <div key={product.id} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200">
+              <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
+                <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setInfoPreview({ title: product.code, content: product.name })}
+                    className="block w-full text-left"
+                    title={product.name}
+                  >
+                    <h3 className="line-clamp-2 break-words text-base font-semibold leading-tight text-zinc-900">{product.name}</h3>
+                  </button>
                   <div className="text-sm font-medium text-emerald-600">{product.code}</div>
+                  {product.name.length > 34 && (
+                    <button
+                      type="button"
+                      onClick={() => setInfoPreview({ title: product.code, content: product.name })}
+                      className="mt-1 text-xs font-semibold text-zinc-500 underline decoration-zinc-300"
+                    >
+                      Xem đầy đủ
+                    </button>
+                  )}
                 </div>
-                <div className="text-right shrink-0 ml-4">
-                  <div className={`text-xl font-bold leading-none mb-1 ${product.stock <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {product.stock}
+                <div className="max-w-[92px] shrink-0 text-right">
+                  <div className={`mb-1 truncate text-xl font-bold leading-none ${product.stock <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {product.stock.toLocaleString()}
                   </div>
-                  <div className="text-xs text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded inline-block">{product.unit}</div>
+                  <div className="inline-block max-w-full truncate rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">{product.unit}</div>
                 </div>
               </div>
               
-              <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
+              <div className="flex gap-2 mt-3 pt-3 border-t border-zinc-100">
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("IN", product)}>Nhập</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("OUT", product)}>Xuất</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("COUNT", product)}>Kiểm</Button>}
@@ -325,6 +347,12 @@ export function Inventory() {
           </div>
         </div>
       </Dialog>
+
+      <Dialog isOpen={Boolean(infoPreview)} onClose={() => setInfoPreview(null)} title={infoPreview?.title ?? "Chi tiết"}>
+        <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
+          {infoPreview?.content}
+        </div>
+      </Dialog>
     </div>
   );
 }
@@ -334,8 +362,8 @@ function CompactStat({ label, value, tone }: { label: string; value: string; ton
   const isRed = tone === "red";
   
   return (
-    <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-      <div className="text-xs font-semibold text-zinc-500 mb-1 truncate">{label}</div>
+    <div className="min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3">
+      <div className="mb-1 truncate text-[11px] font-semibold text-zinc-500 sm:text-xs">{label}</div>
       <div className={`truncate text-lg font-bold ${
         isGreen ? "text-emerald-600" : isRed ? "text-red-600" : "text-zinc-900"
       }`}>{value}</div>

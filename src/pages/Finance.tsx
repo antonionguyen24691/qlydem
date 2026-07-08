@@ -82,7 +82,7 @@ export function Finance() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Tài chính & Công nợ</h1>
         <Button onClick={() => setIsReceiptOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
@@ -90,24 +90,24 @@ export function Finance() {
         </Button>
       </div>
 
-      <div className="p-4 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-6">
+      <div className="p-3 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-4 sm:space-y-6">
         {/* Top KPI Cards (Bento Style) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="w-4 h-4"/> Quỹ tiền mặt</div>
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><DollarSign className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Quỹ tiền mặt</span></div>
             <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{totalCashIn.toLocaleString()} ₫</div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-1.5"><Wallet className="w-4 h-4"/> Tiền gửi NH</div>
-            <div className="text-lg sm:text-xl font-bold text-zinc-400 mt-1 truncate">Theo phiếu CK</div>
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Tiền gửi NH</span></div>
+            <div className="text-base sm:text-xl font-bold text-zinc-400 mt-1 truncate">Theo phiếu CK</div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-1.5"><FileText className="w-4 h-4"/> Phải thu</div>
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải thu</span></div>
             <div className="text-lg sm:text-2xl font-bold text-red-600 truncate">{totalReceivables.toLocaleString()} ₫</div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
-            <div className="text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wider flex items-center gap-1.5"><FileText className="w-4 h-4"/> Phải trả</div>
-            <div className="text-lg sm:text-xl font-bold text-zinc-400 mt-1 truncate">Chờ nhập NCC</div>
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải trả</span></div>
+            <div className="text-base sm:text-xl font-bold text-zinc-400 mt-1 truncate">Chờ nhập NCC</div>
           </div>
         </div>
 
@@ -128,17 +128,17 @@ export function Finance() {
                   onClick={() => setSelectedCustomer(customer)}
                   className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-zinc-100 bg-zinc-50 hover:border-zinc-300 cursor-pointer transition-colors active:scale-[0.98]"
                 >
-                  <div className="flex items-start gap-3 mb-2 sm:mb-0">
+                  <div className="mb-2 flex min-w-0 items-start gap-3 sm:mb-0">
                     <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
                       <UserCircle className="w-6 h-6 text-zinc-400" />
                     </div>
-                    <div>
-                      <div className="font-bold text-zinc-900 uppercase">{customer.name}</div>
+                    <div className="min-w-0">
+                      <div className="line-clamp-2 break-words font-bold uppercase text-zinc-900">{customer.name}</div>
                       <div className="text-xs text-zinc-500 mt-0.5">{customerOrders.length} đơn hàng còn nợ</div>
                     </div>
                   </div>
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-0 border-zinc-200 pt-2 sm:pt-0">
-                    <div className="font-bold text-red-600 text-base">{customer.oldDebt.toLocaleString()} ₫</div>
+                  <div className="flex min-w-0 sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-0 border-zinc-200 pt-2 sm:pt-0">
+                    <div className="max-w-full truncate font-bold text-red-600 text-base">{customer.oldDebt.toLocaleString()} ₫</div>
                     <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mt-1 ${priority === 'Vượt hạn mức' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
                       {priority}
                     </div>
@@ -241,19 +241,19 @@ export function Finance() {
           </div>
 
           {/* Mobile Card View */}
-          <div className="md:hidden flex-1 overflow-y-auto space-y-3 p-4 custom-scrollbar">
+          <div className="md:hidden flex-1 overflow-y-auto space-y-3 p-3 sm:p-4 custom-scrollbar">
             {filteredCustomers.map((customer) => (
-              <div 
+              <div
                 key={customer.id}
                 onClick={() => setSelectedCustomer(customer)}
-                className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm active:scale-[0.98] transition-transform"
+                className="bg-white p-3 sm:p-4 rounded-xl border border-zinc-200 shadow-sm active:scale-[0.98] transition-transform"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-zinc-900 text-base uppercase mb-1">{customer.name}</h3>
-                    <div className="text-sm font-medium text-zinc-500">{customer.phone}</div>
+                <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
+                  <div className="min-w-0">
+                    <h3 className="mb-1 line-clamp-2 break-words text-base font-bold uppercase text-zinc-900">{customer.name}</h3>
+                    <div className="truncate text-sm font-medium text-zinc-500">{customer.phone}</div>
                   </div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                     customer.oldDebt > customer.creditLimit 
                       ? 'bg-red-50 text-red-700' 
                       : customer.oldDebt > 0 
@@ -265,13 +265,13 @@ export function Finance() {
                 </div>
                 
                 <div className="flex justify-between items-end mt-4 pt-4 border-t border-zinc-100">
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-medium text-zinc-400 mb-0.5">Nợ hiện tại</div>
-                    <div className="text-lg font-bold text-red-600 leading-none">{customer.oldDebt.toLocaleString()} ₫</div>
+                    <div className="truncate text-lg font-bold text-red-600 leading-none">{customer.oldDebt.toLocaleString()} ₫</div>
                   </div>
-                  <div className="text-right">
+                  <div className="min-w-0 text-right">
                     <div className="text-xs font-medium text-zinc-400 mb-0.5">Hạn mức</div>
-                    <div className="text-sm font-semibold text-zinc-700">{customer.creditLimit.toLocaleString()} ₫</div>
+                    <div className="truncate text-sm font-semibold text-zinc-700">{customer.creditLimit.toLocaleString()} ₫</div>
                   </div>
                 </div>
               </div>
@@ -296,19 +296,19 @@ export function Finance() {
             <div className="space-y-6 flex-1">
               <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200">
                 <div className="text-sm text-zinc-500 mb-1">Khách hàng:</div>
-                <div className="font-bold text-zinc-900 text-xl uppercase mb-3">{selectedCustomer.name}</div>
+                <div className="mb-3 break-words text-xl font-bold uppercase text-zinc-900">{selectedCustomer.name}</div>
                 <div className="flex flex-col gap-2 text-sm">
-                  <div className="flex justify-between">
+                  <div className="grid grid-cols-[80px_1fr] gap-3">
                     <span className="text-zinc-500">Mã KH:</span>
-                    <span className="font-medium text-zinc-900">{selectedCustomer.id}</span>
+                    <span className="break-words text-right font-medium text-zinc-900">{selectedCustomer.id}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="grid grid-cols-[80px_1fr] gap-3">
                     <span className="text-zinc-500">SĐT:</span>
-                    <span className="font-medium text-zinc-900">{selectedCustomer.phone}</span>
+                    <span className="break-words text-right font-medium text-zinc-900">{selectedCustomer.phone}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="grid grid-cols-[80px_1fr] gap-3">
                     <span className="text-zinc-500">Địa chỉ:</span>
-                    <span className="font-medium text-zinc-900">{selectedCustomer.address || "-"}</span>
+                    <span className="break-words text-right font-medium text-zinc-900">{selectedCustomer.address || "-"}</span>
                   </div>
                 </div>
               </div>

@@ -34,7 +34,7 @@ export function Orders() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <h1 className="text-xl font-bold text-zinc-900 uppercase text-center sm:text-left">Nhật ký bán hàng</h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none sm:w-64">
@@ -53,9 +53,9 @@ export function Orders() {
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 flex-1 overflow-hidden flex flex-col">
+      <div className="p-3 sm:p-6 flex-1 overflow-hidden flex flex-col">
         {/* Date Navigator */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+        <div className="flex items-center gap-2 mb-3 sm:mb-6 overflow-x-auto pb-2 hide-scrollbar">
           {uniqueDates.slice(0, 7).map((date) => (
             <button
               key={date}
@@ -77,28 +77,28 @@ export function Orders() {
         </div>
 
         {/* Stats */}
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm mb-6 flex divide-x divide-zinc-100 overflow-x-auto custom-scrollbar">
-          <div className="p-4 flex-1 text-center min-w-[120px]">
-            <div className="text-xs font-semibold text-zinc-500 mb-1 uppercase tracking-wider">Doanh thu</div>
-            <div className="text-xl font-bold text-zinc-900">
+        <div className="mb-3 grid grid-cols-4 divide-x divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm sm:mb-6">
+          <div className="min-w-0 p-2 text-center sm:p-4">
+            <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Doanh thu</div>
+            <div className="truncate text-sm font-bold text-zinc-900 sm:text-xl">
               {dailyOrders.reduce((acc, o) => acc + o.total, 0).toLocaleString()} ₫
             </div>
           </div>
-          <div className="p-4 flex-1 text-center min-w-[120px]">
-            <div className="text-xs font-semibold text-zinc-500 mb-1 uppercase tracking-wider">Thực thu</div>
-            <div className="text-xl font-bold text-emerald-600">
+          <div className="min-w-0 p-2 text-center sm:p-4">
+            <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Thực thu</div>
+            <div className="truncate text-sm font-bold text-emerald-600 sm:text-xl">
               {dailyOrders.reduce((acc, o) => acc + o.paid, 0).toLocaleString()} ₫
             </div>
           </div>
-          <div className="p-4 flex-1 text-center min-w-[120px]">
-            <div className="text-xs font-semibold text-zinc-500 mb-1 uppercase tracking-wider">Công nợ</div>
-            <div className="text-xl font-bold text-red-600">
+          <div className="min-w-0 p-2 text-center sm:p-4">
+            <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Công nợ</div>
+            <div className="truncate text-sm font-bold text-red-600 sm:text-xl">
               {dailyOrders.reduce((acc, o) => acc + (o.total - o.paid), 0).toLocaleString()} ₫
             </div>
           </div>
-          <div className="p-4 flex-1 text-center min-w-[90px]">
-            <div className="text-xs font-semibold text-zinc-500 mb-1 uppercase tracking-wider">Số đơn</div>
-            <div className="text-xl font-bold text-zinc-900">
+          <div className="min-w-0 p-2 text-center sm:p-4">
+            <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Số đơn</div>
+            <div className="truncate text-sm font-bold text-zinc-900 sm:text-xl">
               {dailyOrders.length}
             </div>
           </div>
@@ -178,19 +178,19 @@ export function Orders() {
             <div 
               key={order.id}
               onClick={() => setSelectedOrder(order)}
-              className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
+              className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
             >
-              <div className="flex justify-between items-start mb-3 border-b border-zinc-100 pb-3">
-                <div>
-                  <div className="font-bold text-emerald-600 flex items-center gap-2">
+              <div className="mb-3 flex min-w-0 items-start justify-between gap-3 border-b border-zinc-100 pb-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 truncate font-bold text-emerald-600">
                     <Receipt className="w-4 h-4" />
-                    {order.id}
+                    <span className="truncate">{order.id}</span>
                   </div>
                   <div className="text-xs text-zinc-500 font-medium mt-1">
                     {new Date(order.date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}
                   </div>
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                   order.status === 'Đã thanh toán' 
                     ? 'bg-emerald-50 text-emerald-700' 
                     : 'bg-red-50 text-red-700'
@@ -200,13 +200,13 @@ export function Orders() {
               </div>
               
               <div className="mb-3">
-                <div className="text-sm font-semibold text-zinc-900">{order.customerName}</div>
+                <div className="line-clamp-2 break-words text-sm font-semibold text-zinc-900">{order.customerName}</div>
               </div>
 
               <div className="flex justify-between items-end">
                 <div>
                   <div className="text-xs text-zinc-500 mb-0.5">Tổng thanh toán</div>
-                  <div className="font-bold text-zinc-900 text-lg">{order.total.toLocaleString()} ₫</div>
+                  <div className="max-w-[220px] truncate text-lg font-bold text-zinc-900">{order.total.toLocaleString()} ₫</div>
                 </div>
                 <button 
                   onClick={(e) => {
