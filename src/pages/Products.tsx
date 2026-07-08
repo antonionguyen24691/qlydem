@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useDataStore, Product } from "../store/data";
-import { Search, Plus, Filter } from "lucide-react";
+import { Search, Plus, Filter, Package } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 
 export function Products() {
   const { products, addProduct } = useDataStore();
@@ -33,69 +35,67 @@ export function Products() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b gap-4">
-        <h1 className="text-xl font-bold text-gray-900 text-center sm:text-left">Danh mục hàng hóa</h1>
-        <button 
-          onClick={() => setIsAddOpen(true)}
-          className="flex items-center justify-center gap-2 rounded bg-[#006B68] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#005a57] w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4" />
+    <div className="flex h-full flex-col bg-zinc-50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4">
+        <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Danh mục hàng hóa</h1>
+        <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
           Thêm hàng hóa
-        </button>
+        </Button>
       </div>
 
-      <div className="p-6 flex-1 overflow-hidden flex flex-col">
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input 
+      <div className="p-4 sm:p-6 flex-1 overflow-hidden flex flex-col">
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+            <Input 
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm kiếm theo mã, tên hàng..."
-              className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-[#006B68] outline-none"
+              className="pl-10"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 border rounded-md bg-white text-gray-700 hover:bg-gray-50">
-            <Filter className="h-4 w-4" />
-            Lọc
-          </button>
+          <Button variant="outline" className="shrink-0 w-full sm:w-auto">
+            <Filter className="h-4 w-4 mr-2" />
+            Bộ lọc
+          </Button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border flex-1 overflow-hidden flex flex-col">
-          <div className="overflow-auto flex-1">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0">
+        {/* Desktop Table View */}
+        <div className="hidden md:flex bg-white rounded-xl shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
+          <div className="overflow-auto flex-1 custom-scrollbar">
+            <table className="min-w-full divide-y divide-zinc-200">
+              <thead className="bg-zinc-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã hàng</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên hàng hóa</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Danh mục</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ĐVT</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Giá vốn</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Giá bán</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tồn kho</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Mã hàng</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tên hàng hóa</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Danh mục</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">ĐVT</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Giá vốn</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Giá bán</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tồn kho</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-zinc-200">
                 {filteredProducts.map((product) => (
                   <tr 
                     key={product.id} 
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
                     onClick={() => setSelectedProduct(product)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#006B68]">{product.code}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-emerald-600">{product.code}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-900 font-medium">
                       {product.name}
-                      <div className="text-xs text-gray-500">{product.size}</div>
+                      {product.size && <div className="text-xs text-zinc-500 font-normal mt-0.5">{product.size}</div>}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{product.unit}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{product.cost.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">{product.price.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.stock < 100 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-zinc-500">{product.category}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-zinc-500 text-center">{product.unit}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-zinc-500 text-right">{product.cost.toLocaleString()}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-zinc-900 text-right">{product.price.toLocaleString()}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        product.stock < 100 ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/10'
                       }`}>
                         {product.stock}
                       </span>
@@ -106,155 +106,186 @@ export function Products() {
             </table>
           </div>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden flex-1 overflow-y-auto space-y-3 custom-scrollbar pb-20">
+          {filteredProducts.map((product) => (
+            <div 
+              key={product.id}
+              onClick={() => setSelectedProduct(product)}
+              className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-semibold text-zinc-900 text-base">{product.name}</h3>
+                  <div className="text-sm font-medium text-emerald-600 mt-0.5">{product.code}</div>
+                </div>
+                <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  product.stock < 100 ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/10'
+                }`}>
+                  Tồn: {product.stock}
+                </span>
+              </div>
+              <div className="flex justify-between items-end mt-4">
+                <div className="text-sm text-zinc-500">
+                  {product.category && <span className="mr-2">{product.category}</span>}
+                  <span className="bg-zinc-100 px-2 py-0.5 rounded text-xs">{product.unit}</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-zinc-500 line-through mb-0.5">Vốn: {product.cost.toLocaleString()}</div>
+                  <div className="text-lg font-bold text-zinc-900 leading-none">{product.price.toLocaleString()} đ</div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-12 text-zinc-500">
+              <Package className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
+              <p>Không tìm thấy sản phẩm nào</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Product Detail Dialog */}
       <Dialog 
         isOpen={!!selectedProduct} 
         onClose={() => setSelectedProduct(null)} 
-        title="Thông tin chi tiết hàng hóa"
+        title="Chi tiết hàng hóa"
       >
         {selectedProduct && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Mã hàng:</span>
-                <div className="font-medium text-[#006B68]">{selectedProduct.code}</div>
+          <div className="flex flex-col h-full">
+            <div className="space-y-6 flex-1">
+              <div className="bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+                <div className="text-sm text-zinc-500 mb-1">Mã hàng</div>
+                <div className="font-bold text-emerald-600 text-lg">{selectedProduct.code}</div>
+                
+                <div className="mt-4 text-sm text-zinc-500 mb-1">Tên hàng hóa</div>
+                <div className="font-bold text-zinc-900 text-xl">{selectedProduct.name}</div>
               </div>
-              <div>
-                <span className="text-gray-500">Tên hàng hóa:</span>
-                <div className="font-medium text-gray-900">{selectedProduct.name}</div>
-              </div>
-              <div>
-                <span className="text-gray-500">Danh mục:</span>
-                <div className="font-medium text-gray-900">{selectedProduct.category}</div>
-              </div>
-              <div>
-                <span className="text-gray-500">Đơn vị tính:</span>
-                <div className="font-medium text-gray-900">{selectedProduct.unit}</div>
-              </div>
-              <div>
-                <span className="text-gray-500">Quy cách/Kích thước:</span>
-                <div className="font-medium text-gray-900">{selectedProduct.size || "-"}</div>
-              </div>
-              <div>
-                <span className="text-gray-500">Tồn kho hiện tại:</span>
-                <div className={`font-bold ${selectedProduct.stock < 100 ? 'text-red-600' : 'text-green-600'}`}>
-                  {selectedProduct.stock} {selectedProduct.unit}
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-zinc-500 block mb-1">Danh mục</span>
+                  <div className="font-medium text-zinc-900">{selectedProduct.category || "-"}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block mb-1">Đơn vị tính</span>
+                  <div className="font-medium text-zinc-900 bg-zinc-100 px-2 py-1 rounded inline-block">{selectedProduct.unit}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block mb-1">Quy cách</span>
+                  <div className="font-medium text-zinc-900">{selectedProduct.size || "-"}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block mb-1">Tồn kho hiện tại</span>
+                  <div className={`font-bold text-lg ${selectedProduct.stock < 100 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {selectedProduct.stock}
+                  </div>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-zinc-200 pt-6">
+                 <div>
+                    <span className="text-zinc-500 text-sm block mb-1">Giá vốn</span>
+                    <div className="font-bold text-zinc-900 text-xl">{selectedProduct.cost.toLocaleString()} đ</div>
+                 </div>
+                 <div>
+                    <span className="text-zinc-500 text-sm block mb-1">Giá bán lẻ</span>
+                    <div className="font-bold text-emerald-600 text-2xl">{selectedProduct.price.toLocaleString()} đ</div>
+                 </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 border-t border-b py-4">
-               <div>
-                  <span className="text-gray-500 text-sm">Giá vốn</span>
-                  <div className="font-bold text-gray-900 text-lg">{selectedProduct.cost.toLocaleString()} đ</div>
-               </div>
-               <div>
-                  <span className="text-gray-500 text-sm">Giá bán lẻ</span>
-                  <div className="font-bold text-[#006B68] text-lg">{selectedProduct.price.toLocaleString()} đ</div>
-               </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-               <button 
-                onClick={() => setSelectedProduct(null)}
-                className="px-4 py-2 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Đóng
-              </button>
+            <div className="mt-8">
+               <Button onClick={() => setSelectedProduct(null)} variant="outline" className="w-full">
+                 Đóng
+               </Button>
             </div>
           </div>
         )}
       </Dialog>
 
       <Dialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Thêm Hàng Hóa Mới">
-        <form onSubmit={handleAddSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleAddSubmit} className="flex flex-col h-full">
+          <div className="space-y-4 flex-1">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Mã hàng (*)</label>
+                <Input 
+                  type="text" 
+                  value={newProduct.code}
+                  onChange={e => setNewProduct({...newProduct, code: e.target.value})}
+                  required
+                  placeholder="VD: SP001"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Danh mục</label>
+                <Input 
+                  type="text" 
+                  value={newProduct.category}
+                  onChange={e => setNewProduct({...newProduct, category: e.target.value})}
+                  placeholder="Điện thoại, Ốp lưng..."
+                />
+              </div>
+            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mã hàng (*)</label>
-              <input 
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Tên hàng hóa (*)</label>
+              <Input 
                 type="text" 
-                value={newProduct.code}
-                onChange={e => setNewProduct({...newProduct, code: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
+                value={newProduct.name}
+                onChange={e => setNewProduct({...newProduct, name: e.target.value})}
                 required
+                placeholder="Nhập tên sản phẩm"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục</label>
-              <input 
-                type="text" 
-                value={newProduct.category}
-                onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Đơn vị tính</label>
+                <Input 
+                  type="text" 
+                  value={newProduct.unit}
+                  onChange={e => setNewProduct({...newProduct, unit: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Quy cách</label>
+                <Input 
+                  type="text" 
+                  value={newProduct.size}
+                  onChange={e => setNewProduct({...newProduct, size: e.target.value})}
+                  placeholder="Đen, Trắng, 128GB..."
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tên hàng hóa (*)</label>
-            <input 
-              type="text" 
-              value={newProduct.name}
-              onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-              className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị tính</label>
-              <input 
-                type="text" 
-                value={newProduct.unit}
-                onChange={e => setNewProduct({...newProduct, unit: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quy cách/Kích thước</label>
-              <input 
-                type="text" 
-                value={newProduct.size}
-                onChange={e => setNewProduct({...newProduct, size: e.target.value})}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Giá vốn</label>
-              <input 
-                type="number" 
-                value={newProduct.cost}
-                onChange={e => setNewProduct({...newProduct, cost: Number(e.target.value)})}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Giá bán</label>
-              <input 
-                type="number" 
-                value={newProduct.price}
-                onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-[#006B68] outline-none text-sm"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Giá vốn</label>
+                <Input 
+                  type="number" 
+                  value={newProduct.cost}
+                  onChange={e => setNewProduct({...newProduct, cost: Number(e.target.value)})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Giá bán</label>
+                <Input 
+                  type="number" 
+                  value={newProduct.price}
+                  onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t mt-6">
-            <button 
-              type="button" 
-              onClick={() => setIsAddOpen(false)}
-              className="px-4 py-2 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+          
+          <div className="grid grid-cols-2 gap-3 mt-8 pt-4 border-t border-zinc-100">
+            <Button type="button" onClick={() => setIsAddOpen(false)} variant="outline" className="w-full">
               Hủy
-            </button>
-            <button 
-              type="submit"
-              className="px-4 py-2 bg-[#006B68] text-white rounded-md text-sm font-medium hover:bg-[#005a57]"
-            >
+            </Button>
+            <Button type="submit" className="w-full">
               Lưu hàng hóa
-            </button>
+            </Button>
           </div>
         </form>
       </Dialog>

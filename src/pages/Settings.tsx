@@ -1,24 +1,26 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { Building2, Database, Download, Image, Save, Upload, UserPlus, Users } from "lucide-react";
+import { Building2, Database, Download, Image as ImageIcon, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 
 const importTargets = [
   {
     entity: "customers",
     title: "Khách hàng",
-    description: "Upload danh sách khách hàng, hạn mức nợ, nợ đầu kỳ và thông tin liên hệ."
+    description: "Upload danh sách khách hàng, công nợ."
   },
   {
     entity: "suppliers",
     title: "Nhà cung cấp",
-    description: "Upload nhà cung cấp, điều khoản thanh toán và công nợ phải trả đầu kỳ."
+    description: "Upload nhà cung cấp, công nợ."
   },
   {
     entity: "products",
     title: "Hàng hóa",
-    description: "Upload mã hàng, nguyên liệu, bán thành phẩm, thành phẩm, hàng hóa, giá và trạng thái."
+    description: "Upload danh sách hàng hóa và giá."
   }
 ] as const;
 
@@ -69,7 +71,7 @@ function readImageFile(file?: File) {
       return;
     }
     if (file.size > 500 * 1024) {
-      reject(new Error("Ảnh nên nhỏ hơn 500KB để favicon/logo tải nhanh trên mobile."));
+      reject(new Error("Ảnh nên nhỏ hơn 500KB để tải nhanh."));
       return;
     }
     const reader = new FileReader();
@@ -254,294 +256,267 @@ export function Settings() {
   };
 
   return (
-    <div className="min-h-full bg-gray-50 p-4 sm:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Cấu hình hệ thống</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Cấu hình nhận diện, phân quyền, dữ liệu khởi tạo và các kết nối vận hành.
-        </p>
+    <div className="flex h-full flex-col bg-zinc-50 overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4 shrink-0">
+        <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Cài đặt hệ thống</h1>
       </div>
 
-      <section className="mb-6 rounded-lg border bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-md bg-[#006B68]/10 p-2 text-[#006B68]">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Nhận diện app</h2>
-            <p className="text-sm text-gray-500">Tên app, thông tin đơn vị, logo và favicon dùng cho web/mobile.</p>
-          </div>
-        </div>
-
-        {brandingError && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{brandingError}</div>}
-        {brandingMessage && <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{brandingMessage}</div>}
-
-        <form onSubmit={saveBranding} className="grid gap-4 lg:grid-cols-[1fr_240px]">
-          <div className="grid gap-3 md:grid-cols-2">
-            <input
-              value={brandForm.appName}
-              onChange={(event) => updateBrandField("appName", event.target.value)}
-              placeholder="Tên app"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-              required
-            />
-            <input
-              value={brandForm.companyName}
-              onChange={(event) => updateBrandField("companyName", event.target.value)}
-              placeholder="Tên công ty/đơn vị"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-              required
-            />
-            <input
-              value={brandForm.appDescription}
-              onChange={(event) => updateBrandField("appDescription", event.target.value)}
-              placeholder="Mô tả ngắn"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
-            />
-            <input
-              value={brandForm.address}
-              onChange={(event) => updateBrandField("address", event.target.value)}
-              placeholder="Địa chỉ"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
-            />
-            <input
-              value={brandForm.hotline}
-              onChange={(event) => updateBrandField("hotline", event.target.value)}
-              placeholder="Hotline"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-            />
-            <input
-              value={brandForm.taxCode}
-              onChange={(event) => updateBrandField("taxCode", event.target.value)}
-              placeholder="Mã số thuế"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-            />
-            <input
-              value={brandForm.logoUrl}
-              onChange={(event) => updateBrandField("logoUrl", event.target.value)}
-              placeholder="Logo URL hoặc data URL"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-            />
-            <input
-              value={brandForm.faviconUrl}
-              onChange={(event) => updateBrandField("faviconUrl", event.target.value)}
-              placeholder="Favicon URL hoặc data URL"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-            />
-            <div className="flex flex-wrap gap-2 md:col-span-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <Image className="h-4 w-4" />
-                Upload logo
-                <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("logoUrl", event)} />
-              </label>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <Image className="h-4 w-4" />
-                Upload favicon
-                <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("faviconUrl", event)} />
-              </label>
-              <button
-                type="submit"
-                disabled={isSavingBranding}
-                className="inline-flex items-center gap-2 rounded-md bg-[#006B68] px-3 py-2 text-sm font-medium text-white hover:bg-[#005a57] disabled:bg-gray-300"
-              >
-                <Save className="h-4 w-4" />
-                {isSavingBranding ? "Đang lưu..." : "Lưu nhận diện"}
-              </button>
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
+        {/* Nhận diện App */}
+        <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
+            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-zinc-900 text-lg">Thông tin doanh nghiệp</h2>
+              <p className="text-sm text-zinc-500">Tên, logo và thông tin liên hệ của cửa hàng</p>
             </div>
           </div>
+          
+          <div className="p-4 sm:p-6">
+            {brandingError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{brandingError}</div>}
+            {brandingMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{brandingMessage}</div>}
 
-          <div className="rounded-md border bg-gray-50 p-4">
-            <div className="mb-3 text-sm font-medium text-gray-700">Preview</div>
-            <div className="flex items-center gap-3 rounded-md bg-white p-3 shadow-sm">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#006B68] text-white">
-                {brandForm.logoUrl ? <img src={brandForm.logoUrl} alt={brandForm.appName} className="h-full w-full object-cover" /> : <Building2 className="h-6 w-6" />}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate font-semibold text-gray-900">{brandForm.appName || "PMQL"}</div>
-                <div className="truncate text-xs text-gray-500">{brandForm.companyName || "PMQL"}</div>
-              </div>
-            </div>
-          </div>
-        </form>
-      </section>
-
-      <section className="mb-6 rounded-lg border bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-md bg-[#006B68]/10 p-2 text-[#006B68]">
-            <Users className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Quản lý user và phân quyền</h2>
-            <p className="text-sm text-gray-500">Thêm email Google, gán role, khóa/mở tài khoản và mã sale.</p>
-          </div>
-        </div>
-
-        {userError && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{userError}</div>}
-
-        <form onSubmit={saveUser} className="mb-5 grid gap-3 md:grid-cols-6">
-          <input
-            type="email"
-            value={form.email}
-            onChange={(event) => setForm({ ...form, email: event.target.value })}
-            disabled={Boolean(form.id)}
-            placeholder="Email Google"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
-            required
-          />
-          <input
-            value={form.fullName}
-            onChange={(event) => setForm({ ...form, fullName: event.target.value })}
-            placeholder="Họ tên"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
-            required
-          />
-          <input
-            value={form.phone}
-            onChange={(event) => setForm({ ...form, phone: event.target.value })}
-            placeholder="SĐT"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-          />
-          <input
-            value={form.saleCode}
-            onChange={(event) => setForm({ ...form, saleCode: event.target.value })}
-            placeholder="Mã sale"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-          />
-          <input
-            type="password"
-            value={form.password}
-            onChange={(event) => setForm({ ...form, password: event.target.value })}
-            placeholder={form.id ? "Mật khẩu mới nếu cần đổi" : "Mật khẩu đăng nhập"}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68] md:col-span-2"
-            autoComplete="new-password"
-          />
-          <select
-            value={form.role}
-            onChange={(event) => setForm({ ...form, role: event.target.value })}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-          >
-            {roles.map((role) => (
-              <option key={role.role} value={role.role}>{role.name}</option>
-            ))}
-          </select>
-          <select
-            value={form.status}
-            onChange={(event) => setForm({ ...form, status: event.target.value })}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
-          >
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="INACTIVE">INACTIVE</option>
-          </select>
-          <div className="flex gap-2 md:col-span-2">
-            <button
-              type="submit"
-              disabled={isSavingUser}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-[#006B68] px-3 py-2 text-sm font-medium text-white hover:bg-[#005a57] disabled:bg-gray-300"
-            >
-              {form.id ? <Save className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-              {isSavingUser ? "Đang lưu..." : form.id ? "Cập nhật user" : "Thêm user"}
-            </button>
-            {form.id && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-            )}
-          </div>
-        </form>
-
-        <div className="overflow-x-auto rounded-md border">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">Email</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">Họ tên</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">Role</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">Trạng thái</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-500">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-3 py-2">{user.email}</td>
-                  <td className="px-3 py-2">{user.full_name}</td>
-                  <td className="px-3 py-2">{user.role}</td>
-                  <td className="px-3 py-2">{user.status}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => editUser(user)} className="mr-2 text-[#006B68] hover:underline">Sửa</button>
-                    <button onClick={() => deactivateUser(user)} className="text-red-600 hover:underline">Khóa</button>
-                  </td>
-                </tr>
-              ))}
-              {users.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-gray-500">Chưa có user nào.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {importTargets.map((target) => {
-          const result = results[target.entity];
-          return (
-            <section key={target.entity} className="rounded-lg border bg-white p-4 shadow-sm">
-              <div className="mb-4 flex items-start gap-3">
-                <div className="rounded-md bg-gray-100 p-2 text-gray-700">
-                  <Database className="h-5 w-5" />
+            <form onSubmit={saveBranding} className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Tên ứng dụng</label>
+                  <Input value={brandForm.appName} onChange={e => updateBrandField("appName", e.target.value)} required />
                 </div>
-                <div>
-                  <h2 className="font-semibold text-gray-900">{target.title}</h2>
-                  <p className="mt-1 text-sm text-gray-500">{target.description}</p>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Tên công ty/Cửa hàng</label>
+                  <Input value={brandForm.companyName} onChange={e => updateBrandField("companyName", e.target.value)} required />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-sm font-semibold text-zinc-700">Địa chỉ</label>
+                  <Input value={brandForm.address} onChange={e => updateBrandField("address", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Hotline</label>
+                  <Input value={brandForm.hotline} onChange={e => updateBrandField("hotline", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Mã số thuế</label>
+                  <Input value={brandForm.taxCode} onChange={e => updateBrandField("taxCode", e.target.value)} />
+                </div>
+                
+                <div className="sm:col-span-2 pt-4 flex flex-wrap gap-3">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
+                    <ImageIcon className="h-4 w-4 text-zinc-400" />
+                    Upload Logo
+                    <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("logoUrl", event)} />
+                  </label>
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
+                    <ImageIcon className="h-4 w-4 text-zinc-400" />
+                    Upload Favicon
+                    <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("faviconUrl", event)} />
+                  </label>
+                  <div className="flex-1 min-w-[200px] flex justify-end">
+                    <Button type="submit" disabled={isSavingBranding} className="w-full sm:w-auto">
+                      <Save className="h-4 w-4 mr-2" />
+                      {isSavingBranding ? "Đang lưu..." : "Lưu thay đổi"}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => downloadTemplate(target.entity)}
-                  className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  <Download className="h-4 w-4" />
-                  Tải file mẫu
-                </button>
-
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-[#006B68] px-3 py-2 text-sm font-medium text-white hover:bg-[#005a57]">
-                  <Upload className="h-4 w-4" />
-                  {uploading === target.entity ? "Đang upload..." : "Upload file"}
-                  <input
-                    type="file"
-                    accept=".xlsx"
-                    disabled={uploading === target.entity}
-                    className="hidden"
-                    onChange={(event) => uploadFile(target.entity, event.target.files?.[0])}
-                  />
-                </label>
+              {/* Preview Box */}
+              <div className="bg-zinc-50 rounded-xl p-5 border border-zinc-200 h-fit">
+                <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Xem trước</div>
+                <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-zinc-100">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-emerald-600 text-white shadow-inner">
+                    {brandForm.logoUrl ? <img src={brandForm.logoUrl} alt={brandForm.appName} className="h-full w-full object-cover" /> : <Building2 className="h-7 w-7" />}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-bold text-zinc-900 text-lg">{brandForm.appName || "PMQL"}</div>
+                    <div className="truncate text-sm text-zinc-500 font-medium">{brandForm.companyName || "Tên công ty"}</div>
+                  </div>
+                </div>
               </div>
+            </form>
+          </div>
+        </section>
 
-              {result && (
-                <div className={`mt-4 rounded-md p-3 text-sm ${result.ok ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
-                  {result.error ? (
-                    <div>{result.error}</div>
-                  ) : (
+        {/* Quản lý Nhân viên */}
+        <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
+            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-zinc-900 text-lg">Phân quyền & Nhân viên</h2>
+              <p className="text-sm text-zinc-500">Quản lý tài khoản truy cập hệ thống</p>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            {userError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{userError}</div>}
+
+            <form onSubmit={saveUser} className="bg-zinc-50 rounded-xl p-4 sm:p-5 border border-zinc-200 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Email (*)</label>
+                  <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} disabled={!!form.id} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Họ tên (*)</label>
+                  <Input value={form.fullName} onChange={e => setForm({...form, fullName: e.target.value})} required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Vai trò</label>
+                  <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    {roles.map((r) => <option key={r.role} value={r.role}>{r.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Trạng thái</label>
+                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <option value="ACTIVE">Đang hoạt động</option>
+                    <option value="INACTIVE">Khóa</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-zinc-700">Mật khẩu mới</label>
+                  <Input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder={form.id ? "(Bỏ trống nếu không đổi)" : "Bắt buộc nếu login mật khẩu"} autoComplete="new-password" />
+                </div>
+              </div>
+              
+              <div className="mt-5 flex gap-3 justify-end border-t border-zinc-200 pt-5">
+                {form.id && <Button type="button" variant="outline" onClick={resetForm}>Hủy</Button>}
+                <Button type="submit" disabled={isSavingUser}>
+                  {form.id ? <Save className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+                  {isSavingUser ? "Đang lưu..." : form.id ? "Cập nhật nhân viên" : "Thêm nhân viên"}
+                </Button>
+              </div>
+            </form>
+
+            {/* Desktop Table */}
+            <div className="hidden sm:block overflow-x-auto rounded-xl border border-zinc-200 shadow-sm">
+              <table className="min-w-full divide-y divide-zinc-200">
+                <thead className="bg-zinc-50">
+                  <tr>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Nhân viên</th>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Email</th>
+                    <th className="px-5 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Vai trò</th>
+                    <th className="px-5 py-3 text-center text-xs font-bold text-zinc-500 uppercase tracking-wider">Trạng thái</th>
+                    <th className="px-5 py-3 text-right text-xs font-bold text-zinc-500 uppercase tracking-wider">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-zinc-200">
+                  {users.map((user) => (
+                    <tr key={user.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-5 py-4 whitespace-nowrap font-bold text-zinc-900">{user.full_name}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-sm text-zinc-500">{user.email}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">{user.role}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                          user.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                        }`}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-right text-sm">
+                        <button onClick={() => editUser(user)} className="text-emerald-600 hover:text-emerald-800 font-semibold p-2 rounded hover:bg-emerald-50 mr-1"><Edit className="w-4 h-4"/></button>
+                        <button onClick={() => deactivateUser(user)} className="text-red-600 hover:text-red-800 font-semibold p-2 rounded hover:bg-red-50"><Trash2 className="w-4 h-4"/></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-zinc-500">Chưa có nhân viên nào.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-3">
+              {users.map(user => (
+                <div key={user.id} className="bg-white border border-zinc-200 p-4 rounded-xl shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div>Batch: {result.batchId ?? "-"}</div>
-                      <div>Tổng dòng: {result.totalRows ?? 0}</div>
-                      <div>Thành công: {result.successRows ?? 0}</div>
-                      <div>Lỗi: {result.failedRows ?? 0}</div>
+                      <div className="font-bold text-zinc-900">{user.full_name}</div>
+                      <div className="text-sm text-zinc-500 mt-0.5">{user.email}</div>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      user.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                    }`}>
+                      {user.status}
+                    </span>
+                  </div>
+                  <div className="text-sm font-semibold text-emerald-600 mb-4">{user.role}</div>
+                  <div className="flex gap-2 border-t border-zinc-100 pt-3">
+                    <Button variant="outline" className="flex-1" onClick={() => editUser(user)}><Edit className="w-4 h-4 mr-2"/> Sửa</Button>
+                    <Button variant="outline" className="flex-1 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50" onClick={() => deactivateUser(user)}><Trash2 className="w-4 h-4 mr-2"/> Xóa</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+        {/* Nhập/Xuất Dữ Liệu */}
+        <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
+            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+              <Database className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-zinc-900 text-lg">Dữ liệu & Tích hợp</h2>
+              <p className="text-sm text-zinc-500">Nhập dữ liệu hàng loạt từ Excel</p>
+            </div>
+          </div>
+          
+          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {importTargets.map((target) => {
+              const result = results[target.entity];
+              return (
+                <div key={target.entity} className="rounded-xl border border-zinc-200 bg-white p-5 hover:border-emerald-300 transition-colors shadow-sm flex flex-col h-full">
+                  <div className="font-bold text-zinc-900 mb-1 text-base">{target.title}</div>
+                  <p className="text-sm text-zinc-500 mb-5 flex-1">{target.description}</p>
+
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadTemplate(target.entity)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                    >
+                      <Download className="h-4 w-4" />
+                      Tải mẫu Excel
+                    </button>
+
+                    <label className="w-full inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-[0.98]">
+                      <Upload className="h-4 w-4" />
+                      {uploading === target.entity ? "Đang tải lên..." : "Upload File"}
+                      <input
+                        type="file"
+                        accept=".xlsx"
+                        disabled={uploading === target.entity}
+                        className="hidden"
+                        onChange={(event) => uploadFile(target.entity, event.target.files?.[0])}
+                      />
+                    </label>
+                  </div>
+
+                  {result && (
+                    <div className={`mt-4 rounded-lg p-3 text-sm font-medium border ${result.ok ? "bg-emerald-50 text-emerald-800 border-emerald-100" : "bg-red-50 text-red-800 border-red-100"}`}>
+                      {result.error ? (
+                        <div>{result.error}</div>
+                      ) : (
+                        <div className="space-y-1">
+                          <div className="text-emerald-700 font-bold mb-2">Thành công!</div>
+                          <div className="flex justify-between"><span>Tổng dòng:</span> <span>{result.totalRows ?? 0}</span></div>
+                          <div className="flex justify-between"><span>Lưu thành công:</span> <span className="text-emerald-600 font-bold">{result.successRows ?? 0}</span></div>
+                          <div className="flex justify-between"><span>Lỗi:</span> <span className="text-red-600 font-bold">{result.failedRows ?? 0}</span></div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </section>
-          );
-        })}
+              );
+            })}
+          </div>
+        </section>
+
       </div>
     </div>
   );

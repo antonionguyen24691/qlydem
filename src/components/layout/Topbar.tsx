@@ -1,10 +1,65 @@
-import { Bell, Search, User, Menu } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bell, Search, User, Menu, CheckCheck } from "lucide-react";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
+import { getAuthHeaders } from "../../lib/supabase";
+
+type NotificationItem = {
+  id: string;
+  title: string;
+  body?: string;
+  type?: string;
+  readAt?: string | null;
+  createdAt?: string;
+  href?: string;
+};
 
 export function Topbar() {
   const { toggleSidebar } = useUIStore();
-  const { user, logout } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  async function loadNotifications() {
+    if (!isAuthenticated) return;
+    const response = await fetch("/api/data/app-notifications", {
+      headers: await getAuthHeaders()
+    });
+    const body = await response.json();
+    if (!response.ok || !body.ok) return;
+    setNotifications(body.items ?? []);
+    setUnreadCount(body.unreadCount ?? 0);
+  }
+
+  async function markRead(id?: string) {
+    await fetch("/api/data/app-notifications", {
+      method: "PATCH",
+      headers: {
+        ...(await getAuthHeaders()),
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ id })
+    });
+    await loadNotifications();
+  }
+
+  useEffect(() => {
+    loadNotifications();
+    const timer = window.setInterval(loadNotifications, 60000);
+    return () => window.clearInterval(timer);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!notificationRef.current?.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    }
+    window.addEventListener("mousedown", onPointerDown);
+    return () => window.removeEventListener("mousedown", onPointerDown);
+  }, []);
   
   return (
     <header className="flex h-16 items-center justify-between border-b bg-white px-4 shrink-0">
@@ -27,10 +82,68 @@ export function Topbar() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <button className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#006B68] rounded-md">
-          <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-          <Bell className="h-5 w-5" />
-        </button>
+        <div className="relative" ref={notificationRef}>
+          <button
+            type="button"
+            onClick={() => setIsNotificationsOpen((value) => !value)}
+            className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#006B68] rounded-md"
+            title="Thông báo"
+          >
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+            <Bell className="h-5 w-5" />
+          </button>
+
+          {isNotificationsOpen && (
+            <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+                <div>
+                  <div className="font-bold text-zinc-900">Thông báo</div>
+                  <div className="text-xs text-zinc-500">{unreadCount} việc cần xử lý</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => markRead()}
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  Đã đọc
+                </button>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto">
+                {notifications.map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={async () => {
+                      await markRead(item.id);
+                      setIsNotificationsOpen(false);
+                      if (item.href) window.location.href = item.href;
+                    }}
+                    className="block w-full border-b border-zinc-100 px-4 py-3 text-left last:border-b-0 hover:bg-zinc-50"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-1 h-2 w-2 rounded-full ${item.readAt ? "bg-zinc-300" : "bg-red-500"}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-zinc-900">{item.title}</div>
+                        {item.body && <div className="mt-1 line-clamp-2 text-sm text-zinc-500">{item.body}</div>}
+                        {item.createdAt && (
+                          <div className="mt-2 text-xs text-zinc-400">{new Date(item.createdAt).toLocaleString("vi-VN")}</div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+                {notifications.length === 0 && (
+                  <div className="px-4 py-8 text-center text-sm text-zinc-500">Chưa có thông báo mới.</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={logout}

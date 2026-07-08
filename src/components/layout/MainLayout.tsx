@@ -17,20 +17,20 @@ export function MainLayout() {
     if (isAuthenticated) loadLiveData();
   }, [isAuthenticated, loadLiveData]);
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center text-sm text-gray-500">Đang kiểm tra đăng nhập...</div>;
+  if (isLoading) return <div className="flex h-screen items-center justify-center text-sm text-zinc-500 bg-zinc-50">Đang kiểm tra đăng nhập...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 relative">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 relative selection:bg-emerald-100 selection:text-emerald-900">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <Topbar />
         {(liveDataError || isLoadingLiveData) && (
-          <div className={`border-b px-4 py-2 text-sm ${liveDataError ? "border-red-200 bg-red-50 text-red-700" : "border-blue-200 bg-blue-50 text-blue-700"}`}>
+          <div className={`border-b px-4 py-2 text-sm ${liveDataError ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
             {liveDataError ? `Chưa kết nối được dữ liệu thật: ${liveDataError}` : "Đang tải dữ liệu thật từ Supabase..."}
           </div>
         )}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
           <Outlet />
         </main>
       </div>

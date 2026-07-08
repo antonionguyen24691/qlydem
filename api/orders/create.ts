@@ -193,6 +193,32 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
       if (debtError) throw new Error(debtError.message);
       debt = debtRow;
+
+      if (debtAmount > 0) {
+        const scheduledAt = optionalString(body.dueDate) ?? new Date().toISOString();
+        const title = `Nhắc công nợ ${code}`;
+        const message = `Khách hàng còn nợ ${debtAmount.toLocaleString("vi-VN")} đ từ đơn ${code}.`;
+        await supabase.from("debt_reminders").insert({
+          order_debt_id: debtRow.id,
+          customer_id: customerId,
+          assigned_to: optionalString(body.assignedTo) ?? optionalString(body.saleId) ?? user.id,
+          reminder_type: "DEBT_DUE",
+          channel: "APP",
+          scheduled_at: scheduledAt,
+          status: "PENDING",
+          title,
+          message,
+          created_by: user.id
+        });
+        await supabase.from("notifications").insert({
+          user_id: optionalString(body.assignedTo) ?? optionalString(body.saleId) ?? user.id,
+          type: "DEBT_DUE",
+          title,
+          body: message,
+          entity_type: "customer_debt",
+          entity_id: debtRow.id
+        });
+      }
     }
 
     let balanceAfter = customerId ? await getCustomerDebt(customerId) : 0;
@@ -309,6 +335,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       "receipts",
       "receipt_allocations",
       "cashbook_entries",
+      "debt_reminders",
       "inventory_balances",
       "inventory_transactions"
     ]);
