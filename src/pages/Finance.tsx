@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDataStore, Customer } from "../store/data";
 import { Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -6,6 +6,18 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { useAuthStore } from "../store/auth";
 import { getAuthHeaders } from "../lib/supabase";
+
+type ReceiptRow = {
+  id: string;
+  code: string;
+  customer_id: string;
+  amount: number;
+  payment_method: string;
+  receipt_date: string;
+  note?: string;
+};
+
+type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
 
 export function Finance() {
   const { customers, orders, loadLiveData } = useDataStore();
@@ -16,10 +28,42 @@ export function Finance() {
   const [receiptAmount, setReceiptAmount] = useState<number | ''>('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSavingReceipt, setIsSavingReceipt] = useState(false);
+  const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [agingFilter, setAgingFilter] = useState<AgingFilter>("all");
+
+  const loadFinanceRows = async () => {
+    try {
+      const response = await fetch("/api/data/receipts", { headers: await getAuthHeaders() });
+      const body = await response.json();
+      if (response.ok && body.ok) setReceipts(body.rows ?? []);
+    } catch {
+      setReceipts([]);
+    }
+  };
+
+  useEffect(() => {
+    loadFinanceRows();
+  }, []);
 
   const totalReceivables = customers.reduce((acc, c) => acc + c.oldDebt, 0);
   const totalCashIn = orders.reduce((acc, order) => acc + order.paid, 0);
   const openDebtOrders = orders.filter((order) => order.total > order.paid);
+  const transferCashIn = receipts
+    .filter((receipt) => receipt.payment_method === "TRANSFER")
+    .reduce((sum, receipt) => sum + Number(receipt.amount ?? 0), 0);
+  const cashReceipts = receipts
+    .filter((receipt) => receipt.payment_method !== "TRANSFER")
+    .reduce((sum, receipt) => sum + Number(receipt.amount ?? 0), 0);
+  const debtAgeByCustomer = useMemo(() => {
+    const map = new Map<string, number>();
+    const today = new Date();
+    for (const order of openDebtOrders) {
+      if (!order.customerId) continue;
+      const age = Math.max(0, Math.floor((today.getTime() - new Date(order.date).getTime()) / 86400000));
+      map.set(order.customerId, Math.max(map.get(order.customerId) ?? 0, age));
+    }
+    return map;
+  }, [openDebtOrders]);
   const debtReminders = customers
     .filter((customer) => customer.oldDebt > 0)
     .sort((a, b) => b.oldDebt - a.oldDebt)
@@ -30,10 +74,19 @@ export function Finance() {
       priority: customer.oldDebt > customer.creditLimit && customer.creditLimit > 0 ? "Vượt hạn mức" : "Cần nhắc"
     }));
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone.includes(searchTerm)
-  );
+  const filteredCustomers = customers.filter(c => {
+    const age = debtAgeByCustomer.get(c.id) ?? 0;
+    const matchAging =
+      agingFilter === "all" ||
+      (agingFilter === "0-7" && c.oldDebt > 0 && age <= 7) ||
+      (agingFilter === "8-15" && age >= 8 && age <= 15) ||
+      (agingFilter === "16-30" && age >= 16 && age <= 30) ||
+      (agingFilter === "30+" && age > 30);
+    return matchAging && (
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.phone.includes(searchTerm)
+    );
+  });
 
   const handleReceiptSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +120,7 @@ export function Finance() {
         throw new Error(body.error ?? "Không lưu được phiếu thu");
       }
       await loadLiveData();
+      await loadFinanceRows();
     } catch (error) {
       alert(`Không ghi được phiếu thu lên server.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
       setIsSavingReceipt(false);
@@ -95,11 +149,11 @@ export function Finance() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><DollarSign className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Quỹ tiền mặt</span></div>
-            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{totalCashIn.toLocaleString()} ₫</div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{cashReceipts.toLocaleString()} ₫</div>
           </div>
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Tiền gửi NH</span></div>
-            <div className="text-base sm:text-xl font-bold text-zinc-400 mt-1 truncate">Theo phiếu CK</div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{transferCashIn.toLocaleString()} ₫</div>
           </div>
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải thu</span></div>
@@ -108,6 +162,74 @@ export function Finance() {
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải trả</span></div>
             <div className="text-base sm:text-xl font-bold text-zinc-400 mt-1 truncate">Chờ nhập NCC</div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="font-bold text-zinc-900">Tuổi nợ</h2>
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+                {[
+                  ["all", "Tất cả"],
+                  ["0-7", "0-7 ngày"],
+                  ["8-15", "8-15"],
+                  ["16-30", "16-30"],
+                  ["30+", ">30"]
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setAgingFilter(key as AgingFilter)}
+                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-bold ${
+                      agingFilter === key ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                ["0-7", customers.filter((c) => c.oldDebt > 0 && (debtAgeByCustomer.get(c.id) ?? 0) <= 7).length],
+                ["8-15", customers.filter((c) => (debtAgeByCustomer.get(c.id) ?? 0) >= 8 && (debtAgeByCustomer.get(c.id) ?? 0) <= 15).length],
+                ["16-30", customers.filter((c) => (debtAgeByCustomer.get(c.id) ?? 0) >= 16 && (debtAgeByCustomer.get(c.id) ?? 0) <= 30).length],
+                [">30", customers.filter((c) => (debtAgeByCustomer.get(c.id) ?? 0) > 30).length]
+              ].map(([label, count]) => (
+                <div key={label} className="rounded-lg bg-zinc-50 p-3">
+                  <div className="text-xs font-bold text-zinc-500">{label}</div>
+                  <div className="mt-1 text-xl font-black text-zinc-900">{count}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold text-zinc-900">Phiếu thu gần nhất</h2>
+              <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{receipts.length}</span>
+            </div>
+            <div className="max-h-52 space-y-2 overflow-y-auto custom-scrollbar">
+              {receipts.slice(0, 6).map((receipt) => {
+                const customer = customers.find((item) => item.id === receipt.customer_id);
+                return (
+                  <div key={receipt.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-bold text-emerald-700">{receipt.code}</div>
+                        <div className="truncate text-xs text-zinc-500">{customer?.name ?? receipt.customer_id}</div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="font-bold text-zinc-900">{Number(receipt.amount ?? 0).toLocaleString()} ₫</div>
+                        <div className="text-xs text-zinc-500">{receipt.payment_method}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {receipts.length === 0 && <div className="py-8 text-center text-sm text-zinc-500">Chưa có phiếu thu.</div>}
+            </div>
           </div>
         </div>
 

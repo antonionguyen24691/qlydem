@@ -1,6 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { Building2, CreditCard, Database, Download, Image as ImageIcon, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
+import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 import { Button } from "../components/ui/Button";
@@ -55,6 +55,21 @@ type PaymentSettings = {
   accountNumber: string;
   accountName: string;
   transferTemplate: string;
+};
+
+type ReadinessTable = {
+  table: string;
+  ok: boolean;
+  count: number;
+  latencyMs: number;
+  error?: string;
+};
+
+type ReadinessResult = {
+  ready: boolean;
+  checkedAt: string;
+  missingTables: string[];
+  tables: ReadinessTable[];
 };
 
 const defaultPayment: PaymentSettings = {
@@ -121,7 +136,7 @@ function readImageFile(file?: File) {
 }
 
 export function Settings() {
-  const [activeSection, setActiveSection] = useState<"general" | "payment" | "users" | "data">("general");
+  const [activeSection, setActiveSection] = useState<"general" | "payment" | "users" | "data" | "operations">("general");
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
   const branding = useBrandingStore((state) => state.branding);
@@ -140,6 +155,13 @@ export function Settings() {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
+  const [readiness, setReadiness] = useState<ReadinessResult | null>(null);
+  const [operationsMessage, setOperationsMessage] = useState("");
+  const [operationsError, setOperationsError] = useState("");
+  const [isLoadingOperations, setIsLoadingOperations] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [supplierRows, setSupplierRows] = useState<any[]>([]);
+  const [purchaseRows, setPurchaseRows] = useState<any[]>([]);
 
   const loadAdminData = async () => {
     try {
@@ -336,6 +358,53 @@ export function Settings() {
     }
   };
 
+  const loadOperations = async () => {
+    setIsLoadingOperations(true);
+    setOperationsError("");
+    try {
+      const headers = await getAuthHeaders();
+      const [readinessResponse, auditResponse, supplierResponse, purchaseResponse] = await Promise.all([
+        fetch("/api/operations/readiness", { headers }),
+        fetch("/api/data/audit_logs", { headers }),
+        fetch("/api/data/suppliers", { headers }),
+        fetch("/api/data/purchase_orders", { headers })
+      ]);
+      const readinessBody = await readinessResponse.json();
+      const auditBody = await auditResponse.json();
+      const supplierBody = await supplierResponse.json();
+      const purchaseBody = await purchaseResponse.json();
+      if (!readinessResponse.ok || !readinessBody.ok) throw new Error(readinessBody.error ?? "Không kiểm tra được trạng thái vận hành.");
+      if (!auditResponse.ok || !auditBody.ok) throw new Error(auditBody.error ?? "Không đọc được audit logs.");
+      setReadiness(readinessBody);
+      setAuditLogs((auditBody.rows ?? []).slice(0, 12));
+      setSupplierRows((supplierBody.rows ?? []).slice(0, 8));
+      setPurchaseRows((purchaseBody.rows ?? []).slice(0, 8));
+    } catch (error) {
+      setOperationsError(error instanceof Error ? error.message : "Không tải được dữ liệu vận hành.");
+    } finally {
+      setIsLoadingOperations(false);
+    }
+  };
+
+  const generateNotifications = async () => {
+    setIsLoadingOperations(true);
+    setOperationsError("");
+    setOperationsMessage("");
+    try {
+      const response = await fetch("/api/operations/notifications", {
+        method: "POST",
+        headers: await getAuthHeaders()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tạo được thông báo.");
+      setOperationsMessage(`Đã tạo ${body.created ?? 0} thông báo vận hành.`);
+    } catch (error) {
+      setOperationsError(error instanceof Error ? error.message : "Không tạo được thông báo.");
+    } finally {
+      setIsLoadingOperations(false);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-zinc-50 overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4 shrink-0">
@@ -348,7 +417,8 @@ export function Settings() {
             ["general", "Cấu hình chung"],
             ["payment", "Thanh toán QR"],
             ["users", "Người dùng"],
-            ["data", "Dữ liệu & backup"]
+            ["data", "Dữ liệu & backup"],
+            ["operations", "Vận hành"]
           ].map(([key, label]) => (
             <button
               key={key}
@@ -680,6 +750,127 @@ export function Settings() {
           </div>
         </section>}
 
+        {activeSection === "operations" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-50/50 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+                <Activity className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-zinc-900 text-lg">Trung tâm vận hành</h2>
+                <p className="text-sm text-zinc-500">Kiểm tra migration, thông báo, audit và các bảng chưa có màn riêng.</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" variant="outline" onClick={loadOperations} disabled={isLoadingOperations}>
+                <Activity className="mr-2 h-4 w-4" />
+                {isLoadingOperations ? "Đang kiểm tra..." : "Kiểm tra"}
+              </Button>
+              <Button type="button" onClick={generateNotifications} disabled={isLoadingOperations}>
+                <Bell className="mr-2 h-4 w-4" />
+                Tạo nhắc việc
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-5">
+            {operationsError && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{operationsError}</div>}
+            {operationsMessage && <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{operationsMessage}</div>}
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <div className="text-sm font-bold text-zinc-500">Database readiness</div>
+                <div className={`mt-2 text-2xl font-black ${readiness?.ready ? "text-emerald-600" : "text-red-600"}`}>
+                  {!readiness ? "Chưa kiểm tra" : readiness.ready ? "Sẵn sàng" : "Thiếu bảng"}
+                </div>
+                <div className="mt-1 text-sm text-zinc-500">
+                  {readiness ? `${readiness.tables.filter((item) => item.ok).length}/${readiness.tables.length} bảng OK` : "Bấm Kiểm tra để đối chiếu production schema."}
+                </div>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <div className="text-sm font-bold text-zinc-500">Audit gần nhất</div>
+                <div className="mt-2 text-2xl font-black text-zinc-900">{auditLogs.length}</div>
+                <div className="mt-1 text-sm text-zinc-500">Dùng để truy vết thao tác quan trọng.</div>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <div className="text-sm font-bold text-zinc-500">NCC / Đơn nhập</div>
+                <div className="mt-2 text-2xl font-black text-zinc-900">{supplierRows.length} / {purchaseRows.length}</div>
+                <div className="mt-1 text-sm text-zinc-500">Dữ liệu đã có bảng, chờ màn quản lý sâu.</div>
+              </div>
+            </div>
+
+            {readiness && (
+              <div className="rounded-xl border border-zinc-200 overflow-hidden">
+                <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 font-bold text-zinc-900">Bảng production</div>
+                <div className="max-h-80 overflow-auto custom-scrollbar">
+                  <table className="min-w-[720px] w-full text-sm">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="text-left text-xs uppercase tracking-wider text-zinc-500">
+                        <th className="px-4 py-2">Bảng</th>
+                        <th className="px-4 py-2">Trạng thái</th>
+                        <th className="px-4 py-2 text-right">Dòng</th>
+                        <th className="px-4 py-2 text-right">ms</th>
+                        <th className="px-4 py-2">Lỗi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {readiness.tables.map((table) => (
+                        <tr key={table.table}>
+                          <td className="px-4 py-2 font-bold text-zinc-900">{table.table}</td>
+                          <td className="px-4 py-2">
+                            <span className={`rounded-full px-2 py-1 text-xs font-bold ${table.ok ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                              {table.ok ? "OK" : "Lỗi"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-right font-semibold">{table.count.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-right text-zinc-500">{table.latencyMs}</td>
+                          <td className="px-4 py-2 text-red-600">{table.error ?? ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              <MiniOpsList title="Audit log" rows={auditLogs} primaryKey="action" secondaryKey="entity_type" dateKey="created_at" />
+              <MiniOpsList title="Nhà cung cấp" rows={supplierRows} primaryKey="name" secondaryKey="phone" dateKey="created_at" />
+              <MiniOpsList title="Đơn nhập" rows={purchaseRows} primaryKey="code" secondaryKey="status" dateKey="purchase_date" />
+            </div>
+          </div>
+        </section>}
+
+      </div>
+    </div>
+  );
+}
+
+function MiniOpsList({
+  title,
+  rows,
+  primaryKey,
+  secondaryKey,
+  dateKey
+}: {
+  title: string;
+  rows: any[];
+  primaryKey: string;
+  secondaryKey: string;
+  dateKey: string;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 font-bold text-zinc-900">{title}</div>
+      <div className="divide-y divide-zinc-100">
+        {rows.map((row, index) => (
+          <div key={row.id ?? index} className="p-4">
+            <div className="line-clamp-1 font-bold text-zinc-900">{String(row[primaryKey] ?? row.code ?? row.id ?? "-")}</div>
+            <div className="mt-1 line-clamp-1 text-sm text-zinc-500">{String(row[secondaryKey] ?? "")}</div>
+            <div className="mt-2 text-xs font-medium text-zinc-400">{row[dateKey] ? new Date(row[dateKey]).toLocaleString("vi-VN") : ""}</div>
+          </div>
+        ))}
+        {rows.length === 0 && <div className="p-6 text-center text-sm text-zinc-500">Chưa có dữ liệu.</div>}
       </div>
     </div>
   );

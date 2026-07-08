@@ -95,7 +95,7 @@ function mapSavedProduct(row: any, currentStock = 0): Product {
 }
 
 export function Products() {
-  const { products, upsertProductLocal, loadLiveData } = useDataStore();
+  const { products, orders, upsertProductLocal, loadLiveData } = useDataStore();
   const addToCart = usePOSStore((state) => state.addToCart);
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
@@ -144,6 +144,22 @@ export function Products() {
     stockFilter !== "all",
     statusFilter !== "all"
   ].filter(Boolean).length;
+
+  const selectedProductStats = useMemo(() => {
+    if (!selectedProduct) return null;
+    const matchedOrders = orders
+      .map((order) => ({
+        order,
+        items: order.items.filter((item) => item.id === selectedProduct.id || item.id === selectedProduct.code || item.name === selectedProduct.name)
+      }))
+      .filter((entry) => entry.items.length > 0);
+    const quantity = matchedOrders.reduce((sum, entry) => sum + entry.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+    const revenue = matchedOrders.reduce((sum, entry) => sum + entry.items.reduce((itemSum, item) => itemSum + item.total, 0), 0);
+    const latest = matchedOrders
+      .map((entry) => entry.order)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    return { orderCount: matchedOrders.length, quantity, revenue, latest };
+  }, [orders, selectedProduct]);
 
   function resetProductFilters() {
     setCategoryFilter("all");
@@ -456,6 +472,17 @@ export function Products() {
                   <div className={`truncate text-xl font-bold ${selectedProduct.stock <= 0 ? "text-red-600" : "text-emerald-600"}`}>{selectedProduct.stock.toLocaleString()}</div>
                 </div>
               </div>
+              {selectedProductStats && (
+                <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                  <div className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-500">Bán hàng</div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <MiniStat label="Số đơn" value={selectedProductStats.orderCount.toLocaleString()} />
+                    <MiniStat label="SL đã bán" value={selectedProductStats.quantity.toLocaleString()} />
+                    <MiniStat label="Doanh số" value={`${selectedProductStats.revenue.toLocaleString()} đ`} />
+                    <MiniStat label="Lần gần nhất" value={selectedProductStats.latest ? new Date(selectedProductStats.latest.date).toLocaleDateString("vi-VN") : "-"} />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="mt-8 grid grid-cols-2 gap-3">
               {canManage && <Button onClick={() => { openEdit(selectedProduct); setSelectedProduct(null); }}>Sửa</Button>}
@@ -516,6 +543,15 @@ function Price({ label, value, tone = "dark" }: { label: string; value: number; 
     <div>
       <span className="text-zinc-500 text-sm block mb-1">{label}</span>
       <div className={`font-bold text-xl ${tone === "green" ? "text-emerald-600" : "text-zinc-900"}`}>{value.toLocaleString()} đ</div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-zinc-50 p-3">
+      <div className="truncate text-xs font-bold text-zinc-500">{label}</div>
+      <div className="mt-1 truncate text-base font-black text-zinc-900">{value}</div>
     </div>
   );
 }
