@@ -21,6 +21,14 @@
       "dest": "/api/templates/[entity]?entity=$1"
     },
     {
+      "src": "/api/export/([^/]+)",
+      "dest": "/api/export/[kind]?kind=$1"
+    },
+    {
+      "src": "/api/operations/([^/]+)",
+      "dest": "/api/operations/[action]?action=$1"
+    },
+    {
       "src": "/api/users/([^/]+)",
       "dest": "/api/users/[id]?id=$1"
     },
