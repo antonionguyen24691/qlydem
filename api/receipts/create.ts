@@ -70,7 +70,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .from("order_debts")
         .select("id,order_id,remaining_amount,paid_amount")
         .eq("customer_id", customerId)
-        .eq("status", "OPEN")
+        .in("status", ["OPEN", "PARTIAL"])
         .order("due_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true });
       if (error) throw new Error(error.message);
@@ -96,7 +96,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .update({
           paid_amount: nextPaid,
           remaining_amount: nextRemaining,
-          status: nextRemaining > 0 ? "OPEN" : "CLOSED",
+          status: nextRemaining > 0 ? "PARTIAL" : "CLOSED",
           closed_at: nextRemaining > 0 ? undefined : new Date().toISOString()
         })
         .eq("id", debt.id);

@@ -44,6 +44,7 @@ export interface OrderItem {
 }
 
 export interface Order {
+  dbId?: string;
   id: string;
   date: string;
   customerName: string;
@@ -134,6 +135,7 @@ function mapOrder(row: any, items: any[], customers: Customer[]): Order {
   }));
 
   return {
+    dbId: row.id,
     id: row.code ?? row.id,
     date: String(row.order_date ?? row.created_at ?? "").slice(0, 10),
     customerName: customer?.name ?? "Khách lẻ",

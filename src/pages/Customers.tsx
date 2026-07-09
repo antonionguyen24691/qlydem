@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDataStore, Customer } from "../store/data";
 import { ArrowLeft, Edit3, MapPin, Phone, Receipt, Save, Search, StickyNote, UserPlus, Users } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -18,6 +18,28 @@ type CustomerForm = {
   creditLimit: number;
   note: string;
   customerGroup: string;
+};
+
+type DebtLedgerRow = {
+  id: string;
+  customer_id: string;
+  order_id?: string | null;
+  source_type: string;
+  source_id?: string | null;
+  debit: number;
+  credit: number;
+  balance_after: number;
+  created_at: string;
+  note?: string | null;
+};
+
+type ReceiptRow = {
+  id: string;
+  code: string;
+  amount: number;
+  receipt_date?: string;
+  payment_method?: string;
+  note?: string | null;
 };
 
 const emptyForm: CustomerForm = {
@@ -73,8 +95,69 @@ export function Customers() {
   const [activeTab, setActiveTab] = useState<"overview" | "debt" | "orders" | "notes">("overview");
   const [infoPreview, setInfoPreview] = useState<{ title: string; content: string } | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [debtLedgerRows, setDebtLedgerRows] = useState<DebtLedgerRow[]>([]);
+  const [receiptRows, setReceiptRows] = useState<ReceiptRow[]>([]);
 
   const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
+
+  useEffect(() => {
+    if (!selectedCustomerId) {
+      setDebtLedgerRows([]);
+      setReceiptRows([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [ledgerResponse, receiptResponse] = await Promise.all([
+          fetch("/api/data/customer_debt_ledger", { headers: await getAuthHeaders() }),
+          fetch("/api/data/receipts", { headers: await getAuthHeaders() })
+        ]);
+        const [ledgerBody, receiptBody] = await Promise.all([
+          ledgerResponse.json(),
+          receiptResponse.json()
+        ]);
+        if (cancelled) return;
+        if (ledgerResponse.ok && ledgerBody.ok) {
+          setDebtLedgerRows((ledgerBody.rows ?? []).filter((row: any) => row.customer_id === selectedCustomerId).map((row: any) => ({
+            id: row.id,
+            customer_id: row.customer_id,
+            order_id: row.order_id,
+            source_type: row.source_type,
+            source_id: row.source_id,
+            debit: Number(row.debit ?? 0),
+            credit: Number(row.credit ?? 0),
+            balance_after: Number(row.balance_after ?? 0),
+            created_at: row.created_at,
+            note: row.note
+          })));
+        } else {
+          setDebtLedgerRows([]);
+        }
+        if (receiptResponse.ok && receiptBody.ok) {
+          setReceiptRows((receiptBody.rows ?? []).filter((row: any) => row.customer_id === selectedCustomerId).map((row: any) => ({
+            id: row.id,
+            code: row.code,
+            amount: Number(row.amount ?? 0),
+            receipt_date: row.receipt_date,
+            payment_method: row.payment_method,
+            note: row.note
+          })));
+        } else {
+          setReceiptRows([]);
+        }
+      } catch {
+        if (!cancelled) {
+          setDebtLedgerRows([]);
+          setReceiptRows([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCustomerId]);
 
   const filteredCustomers = customers.filter((customer) => {
     const term = searchTerm.toLowerCase();
@@ -96,7 +179,52 @@ export function Customers() {
   }, [orders, selectedCustomer]);
 
   const selectedRevenue = selectedOrders.reduce((sum, order) => sum + order.total, 0);
-  const selectedPaid = selectedOrders.reduce((sum, order) => sum + order.paid, 0);
+  const selectedPaid = debtLedgerRows.length > 0
+    ? debtLedgerRows.reduce((sum, row) => sum + row.credit, 0)
+    : selectedOrders.reduce((sum, order) => sum + order.paid, 0);
+
+  const debtLedgerDisplayRows = useMemo(() => {
+    if (debtLedgerRows.length > 0) {
+      return [...debtLedgerRows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    return selectedOrders.map((order) => ({
+      id: order.id,
+      customer_id: selectedCustomer?.id ?? "",
+      order_id: order.id,
+      source_type: "INVOICE",
+      source_id: order.id,
+      debit: order.total,
+      credit: order.paid,
+      balance_after: Math.max(0, order.total - order.paid),
+      created_at: order.date,
+      note: ""
+    } as DebtLedgerRow));
+  }, [debtLedgerRows, selectedCustomer?.id, selectedOrders]);
+
+  const receiptById = useMemo(() => new Map(receiptRows.map((receipt) => [receipt.id, receipt])), [receiptRows]);
+  const orderByCodeOrId = useMemo(() => {
+    const map = new Map<string, Order>();
+    for (const order of selectedOrders) {
+      map.set(order.id, order);
+      if (order.dbId) map.set(order.dbId, order);
+    }
+    return map;
+  }, [selectedOrders]);
+
+  function ledgerDocument(row: DebtLedgerRow) {
+    if (row.source_type === "RECEIPT") {
+      const receipt = row.source_id ? receiptById.get(row.source_id) : undefined;
+      return receipt?.code ?? `PT-${String(row.source_id ?? row.id).slice(0, 8)}`;
+    }
+    const order = (row.order_id ? orderByCodeOrId.get(row.order_id) : undefined) ?? (row.source_id ? orderByCodeOrId.get(row.source_id) : undefined);
+    return order?.id ?? `HD-${String(row.source_id ?? row.order_id ?? row.id).slice(0, 8)}`;
+  }
+
+  function ledgerTypeLabel(row: DebtLedgerRow) {
+    if (row.source_type === "RECEIPT") return "Thu tiền";
+    if (row.source_type === "INVOICE") return "Bán hàng";
+    return row.source_type;
+  }
 
   function openCreate() {
     setForm({ ...emptyForm });
@@ -260,16 +388,22 @@ export function Customers() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {selectedOrders.map((order) => (
-                      <tr key={order.id} className="cursor-pointer hover:bg-zinc-50" onClick={() => setSelectedOrder(order)}>
-                        <td className="px-4 py-3">{new Date(order.date).toLocaleDateString("vi-VN")}</td>
-                        <td className="px-4 py-3 font-semibold text-emerald-700 underline decoration-emerald-200 underline-offset-2">{order.id}</td>
-                        <td className="px-4 py-3 text-right">{order.total.toLocaleString()} ₫</td>
-                        <td className="px-4 py-3 text-right text-emerald-700">{order.paid.toLocaleString()} ₫</td>
-                        <td className="px-4 py-3 text-right font-bold text-red-600">{Math.max(0, order.total - order.paid).toLocaleString()} ₫</td>
+                    {debtLedgerDisplayRows.map((row) => {
+                      const order = (row.order_id ? orderByCodeOrId.get(row.order_id) : undefined) ?? (row.source_id ? orderByCodeOrId.get(row.source_id) : undefined);
+                      const canOpenOrder = Boolean(order);
+                      return (
+                      <tr key={row.id} className={canOpenOrder ? "cursor-pointer hover:bg-zinc-50" : "hover:bg-zinc-50"} onClick={() => order && setSelectedOrder(order)}>
+                        <td className="px-4 py-3">{new Date(row.created_at).toLocaleDateString("vi-VN")}</td>
+                        <td className="px-4 py-3">
+                          <div className={`font-semibold ${canOpenOrder ? "text-emerald-700 underline decoration-emerald-200 underline-offset-2" : "text-zinc-900"}`}>{ledgerDocument(row)}</div>
+                          <div className="mt-0.5 text-xs text-zinc-500">{ledgerTypeLabel(row)}{row.note ? ` · ${row.note}` : ""}</div>
+                        </td>
+                        <td className="px-4 py-3 text-right">{row.debit > 0 ? `${row.debit.toLocaleString()} ₫` : "-"}</td>
+                        <td className="px-4 py-3 text-right text-emerald-700">{row.credit > 0 ? `${row.credit.toLocaleString()} ₫` : "-"}</td>
+                        <td className="px-4 py-3 text-right font-bold text-red-600">{Math.max(0, row.balance_after).toLocaleString()} ₫</td>
                       </tr>
-                    ))}
-                    {selectedOrders.length === 0 && (
+                    );})}
+                    {debtLedgerDisplayRows.length === 0 && (
                       <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">Chưa có giao dịch công nợ.</td></tr>
                     )}
                   </tbody>
