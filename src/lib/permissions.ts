@@ -14,6 +14,10 @@ export function canManageProducts(user?: UserLike) {
   return ["ADMIN", "WAREHOUSE"].includes(userRole(user));
 }
 
+export function canEditSalePrices(user?: UserLike) {
+  return ["ADMIN", "ACCOUNTANT"].includes(userRole(user));
+}
+
 export function canManageInventory(user?: UserLike) {
   return ["ADMIN", "WAREHOUSE"].includes(userRole(user));
 }

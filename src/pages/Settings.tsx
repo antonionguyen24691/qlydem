@@ -1,7 +1,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
+import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2, RefreshCw } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 import { Button } from "../components/ui/Button";
@@ -198,6 +198,9 @@ export function Settings() {
   const [clearHistoryConfirmation, setClearHistoryConfirmation] = useState("");
   const [clearHistoryResult, setClearHistoryResult] = useState<Record<string, number> | null>(null);
   const [isClearingHistory, setIsClearingHistory] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [syncError, setSyncError] = useState("");
+  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
 
   useEffect(() => {
     const section = new URLSearchParams(location.search).get("section");
@@ -267,6 +270,25 @@ export function Settings() {
       }));
     } finally {
       setUploading(null);
+    }
+  };
+
+  const syncGoogleSheetsNow = async () => {
+    setIsSyncingSheets(true);
+    setSyncMessage("");
+    setSyncError("");
+    try {
+      const response = await fetch("/api/sync/google-sheets", {
+        method: "POST",
+        headers: await getAuthHeaders()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không đồng bộ được Google Sheet.");
+      setSyncMessage(`Đã đồng bộ ${body.synced?.length ?? 0} bảng lúc ${new Date(body.syncedAt ?? Date.now()).toLocaleString("vi-VN")}.`);
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Không đồng bộ được Google Sheet.");
+    } finally {
+      setIsSyncingSheets(false);
     }
   };
 
@@ -966,54 +988,68 @@ export function Settings() {
             </div>
           </div>
           
-          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {importTargets.map((target) => {
-              const result = results[target.entity];
-              return (
-                <div key={target.entity} className="rounded-xl border border-zinc-200 bg-white p-5 hover:border-emerald-300 transition-colors shadow-sm flex flex-col h-full">
-                  <div className="font-bold text-zinc-900 mb-1 text-base">{target.title}</div>
-                  <p className="text-sm text-zinc-500 mb-5 flex-1">{target.description}</p>
+          <div className="p-4 sm:p-6 space-y-4">
+            {syncError && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{syncError}</div>}
+            {syncMessage && <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{syncMessage}</div>}
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <div className="font-bold text-zinc-900">Đồng bộ Google Sheet thủ công</div>
+                <div className="mt-1 text-sm text-zinc-500">POS và thu tiền sẽ ưu tiên ghi Supabase trước; Sheet chỉ chạy khi admin bấm hoặc theo cron đã cấu hình.</div>
+              </div>
+              <Button type="button" onClick={syncGoogleSheetsNow} disabled={isSyncingSheets} className="mt-3 w-full sm:mt-0 sm:w-auto">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {isSyncingSheets ? "Đang đồng bộ..." : "Đồng bộ ngay"}
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {importTargets.map((target) => {
+                const result = results[target.entity];
+                return (
+                  <div key={target.entity} className="rounded-xl border border-zinc-200 bg-white p-5 hover:border-emerald-300 transition-colors shadow-sm flex flex-col h-full">
+                    <div className="font-bold text-zinc-900 mb-1 text-base">{target.title}</div>
+                    <p className="text-sm text-zinc-500 mb-5 flex-1">{target.description}</p>
 
-                  <div className="flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => downloadTemplate(target.entity)}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
-                    >
-                      <Download className="h-4 w-4" />
-                      Tải mẫu Excel
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => downloadTemplate(target.entity)}
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        Tải mẫu Excel
+                      </button>
 
-                    <label className="w-full inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-[0.98]">
-                      <Upload className="h-4 w-4" />
-                      {uploading === target.entity ? "Đang tải lên..." : "Upload File"}
-                      <input
-                        type="file"
-                        accept=".xlsx"
-                        disabled={uploading === target.entity}
-                        className="hidden"
-                        onChange={(event) => uploadFile(target.entity, event.target.files?.[0])}
-                      />
-                    </label>
-                  </div>
-
-                  {result && (
-                    <div className={`mt-4 rounded-lg p-3 text-sm font-medium border ${result.ok ? "bg-emerald-50 text-emerald-800 border-emerald-100" : "bg-red-50 text-red-800 border-red-100"}`}>
-                      {result.error ? (
-                        <div>{result.error}</div>
-                      ) : (
-                        <div className="space-y-1">
-                          <div className="text-emerald-700 font-bold mb-2">Thành công!</div>
-                          <div className="flex justify-between"><span>Tổng dòng:</span> <span>{result.totalRows ?? 0}</span></div>
-                          <div className="flex justify-between"><span>Lưu thành công:</span> <span className="text-emerald-600 font-bold">{result.successRows ?? 0}</span></div>
-                          <div className="flex justify-between"><span>Lỗi:</span> <span className="text-red-600 font-bold">{result.failedRows ?? 0}</span></div>
-                        </div>
-                      )}
+                      <label className="w-full inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-[0.98]">
+                        <Upload className="h-4 w-4" />
+                        {uploading === target.entity ? "Đang tải lên..." : "Upload File"}
+                        <input
+                          type="file"
+                          accept=".xlsx"
+                          disabled={uploading === target.entity}
+                          className="hidden"
+                          onChange={(event) => uploadFile(target.entity, event.target.files?.[0])}
+                        />
+                      </label>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+
+                    {result && (
+                      <div className={`mt-4 rounded-lg p-3 text-sm font-medium border ${result.ok ? "bg-emerald-50 text-emerald-800 border-emerald-100" : "bg-red-50 text-red-800 border-red-100"}`}>
+                        {result.error ? (
+                          <div>{result.error}</div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="text-emerald-700 font-bold mb-2">Thành công!</div>
+                            <div className="flex justify-between"><span>Tổng dòng:</span> <span>{result.totalRows ?? 0}</span></div>
+                            <div className="flex justify-between"><span>Lưu thành công:</span> <span className="text-emerald-600 font-bold">{result.successRows ?? 0}</span></div>
+                            <div className="flex justify-between"><span>Lỗi:</span> <span className="text-red-600 font-bold">{result.failedRows ?? 0}</span></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>}
 

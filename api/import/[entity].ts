@@ -2,9 +2,10 @@ import type { IncomingMessage } from "node:http";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { parseImportWorkbook } from "../_lib/importExcel.js";
-import { isImportEntity } from "../_lib/importTemplates.js";
+import { isImportEntity, normalizeHeader } from "../_lib/importTemplates.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { requireAuth } from "../_lib/auth.js";
+import { readSheet } from "read-excel-file/node";
 
 export const config = {
   api: {
@@ -18,6 +19,161 @@ function readBody(req: IncomingMessage): Promise<Buffer> {
     req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
+  });
+}
+
+function toNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return 0;
+  if (typeof value === "number") return value;
+  const normalized = String(value).replace(/[^\d.-]/g, "");
+  return normalized ? Number(normalized) : 0;
+}
+
+function textValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+async function importPriceList(req: ApiRequest, res: ApiResponse) {
+  const user = await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+  const buffer = await readBody(req as unknown as IncomingMessage);
+  if (buffer.length === 0) {
+    res.status(400).json({ ok: false, error: "File upload rỗng." });
+    return;
+  }
+
+  const rows = await readSheet(buffer);
+  if (rows.length < 2) throw new Error("File bảng giá phải có header và ít nhất 1 dòng dữ liệu.");
+
+  const headerMap = rows[0].map((header) => normalizeHeader(header));
+  const codeIndex = headerMap.findIndex((header) => ["ma hang", "code", "sku"].includes(header));
+  const priceIndex = headerMap.findIndex((header) => ["gia ban moi", "new price", "sell price", "gia ban", "sell price box vat", "sell price box"].includes(header));
+  const noteIndex = headerMap.findIndex((header) => ["ghi chu", "note"].includes(header));
+  if (codeIndex < 0 || priceIndex < 0) {
+    res.status(400).json({ ok: false, error: "File cần có cột Mã hàng và Giá bán mới." });
+    return;
+  }
+
+  const parsedRows = rows.slice(1)
+    .map((row, index) => ({
+      rowNumber: index + 2,
+      code: textValue(row[codeIndex]),
+      newPrice: Math.max(0, toNumber(row[priceIndex])),
+      note: noteIndex >= 0 ? textValue(row[noteIndex]) : ""
+    }))
+    .filter((row) => row.code || row.newPrice > 0);
+
+  const supabase = getSupabaseAdmin();
+  const filenameHeader = req.headers?.["x-file-name"];
+  const fileName = Array.isArray(filenameHeader) ? filenameHeader[0] : filenameHeader;
+  const { data: batch, error: batchError } = await supabase
+    .from("import_batches")
+    .insert({ entity_type: "price-list", file_name: fileName ?? "bang-gia.xlsx", status: "PROCESSING", created_by: user.id })
+    .select("id")
+    .single();
+  if (batchError) throw new Error(batchError.message);
+
+  const codes = parsedRows.map((row) => row.code).filter(Boolean);
+  const { data: products, error: productError } = await supabase
+    .from("products")
+    .select("id,code,product_name,cost_price,sell_price_box_vat")
+    .in("code", codes);
+  if (productError) throw new Error(productError.message);
+
+  const productByCode = new Map((products ?? []).map((product: any) => [product.code, product]));
+  const errors = parsedRows
+    .filter((row) => !row.code || !productByCode.has(row.code))
+    .map((row) => ({
+      batch_id: batch.id,
+      row_number: row.rowNumber,
+      entity_type: "price-list",
+      row_json: row,
+      error_message: !row.code ? "Thiếu mã hàng" : `Không tìm thấy mã hàng ${row.code}`
+    }));
+
+  const validRows = parsedRows
+    .filter((row) => row.code && productByCode.has(row.code))
+    .map((row) => {
+      const product = productByCode.get(row.code);
+      return {
+        product,
+        code: row.code,
+        newPrice: row.newPrice,
+        note: row.note,
+        oldPrice: toNumber(product.sell_price_box_vat),
+        costPrice: toNumber(product.cost_price)
+      };
+    })
+    .filter((row) => row.newPrice !== row.oldPrice);
+
+  if (errors.length > 0) await supabase.from("import_errors").insert(errors);
+
+  let status = "NO_CHANGE";
+  if (validRows.length > 0 && user.role === "ADMIN") {
+    for (const row of validRows) {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("products")
+        .update({ sell_price_box_vat: row.newPrice, updated_at: now })
+        .eq("id", row.product.id);
+      if (error) throw new Error(error.message);
+      const { error: logError } = await supabase.from("price_edit_logs").insert({
+        product_id: row.product.id,
+        old_sell_price: row.oldPrice,
+        new_sell_price: row.newPrice,
+        old_cost_price: row.costPrice,
+        source_type: "IMPORT_PRICE_LIST",
+        edited_by: user.id,
+        approved_by: user.id,
+        approved_at: now,
+        note: row.note
+      });
+      if (logError) throw new Error(logError.message);
+    }
+    status = "APPLIED";
+  } else if (validRows.length > 0) {
+    const { data: request, error: requestError } = await supabase
+      .from("price_update_requests")
+      .insert({
+        request_type: "SALE_PRICE_IMPORT",
+        status: "PENDING",
+        requested_by: user.id,
+        note: `Import bảng giá ${fileName ?? ""}`.trim()
+      })
+      .select("id")
+      .single();
+    if (requestError) throw new Error(requestError.message);
+
+    const { error: itemError } = await supabase.from("price_update_request_items").insert(validRows.map((row) => ({
+      request_id: request.id,
+      product_id: row.product.id,
+      old_sell_price: row.oldPrice,
+      new_sell_price: row.newPrice,
+      old_cost_price: row.costPrice,
+      note: row.note
+    })));
+    if (itemError) throw new Error(itemError.message);
+    status = "PENDING_APPROVAL";
+  }
+
+  await supabase
+    .from("import_batches")
+    .update({
+      total_rows: parsedRows.length,
+      success_rows: validRows.length,
+      failed_rows: errors.length,
+      status: errors.length > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED",
+      completed_at: new Date().toISOString()
+    })
+    .eq("id", batch.id);
+
+  res.status(200).json({
+    ok: true,
+    batchId: batch.id,
+    entity: "price-list",
+    status,
+    totalRows: parsedRows.length,
+    successRows: validRows.length,
+    failedRows: errors.length
   });
 }
 
@@ -138,8 +294,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);
 
   try {
-    const user = await requireAuth(req, ["ADMIN"]);
     const entity = getQueryValue(req.query?.entity);
+    if (entity === "price-list") {
+      await importPriceList(req, res);
+      return;
+    }
+    const user = await requireAuth(req, ["ADMIN"]);
     if (!isImportEntity(entity)) {
       res.status(400).json({ ok: false, error: "Import không hợp lệ. Dùng customers, suppliers hoặc products." });
       return;

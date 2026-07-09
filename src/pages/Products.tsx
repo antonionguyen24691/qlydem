@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit3, Filter, Package, Plus, ShoppingCart, Trash2, XCircle, Search } from "lucide-react";
+import { CheckCircle, ClipboardList, Download, Edit3, Filter, Package, Plus, ShoppingCart, Trash2, Upload, XCircle, Search } from "lucide-react";
 import { useDataStore, Product } from "../store/data";
 import { usePOSStore } from "../store/pos";
 import { Dialog } from "../components/ui/Dialog";
@@ -8,7 +8,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
 import { useAuthStore } from "../store/auth";
-import { canManageProducts, canSell } from "../lib/permissions";
+import { canEditSalePrices, canManageProducts, canSell, isAdmin } from "../lib/permissions";
 
 type ProductForm = {
   id?: string;
@@ -54,6 +54,45 @@ const defaultUnitOptions = [
   { code: "VIÊN", name: "Viên" },
   { code: "M2", name: "Mét vuông" }
 ];
+
+type PriceSheetRow = {
+  productId: string;
+  code: string;
+  name: string;
+  unit: string;
+  cost: number;
+  currentPrice: number;
+  newPrice: number;
+  note: string;
+};
+
+type PriceUpdateRequest = {
+  id: string;
+  status: string;
+  note?: string;
+  created_at?: string;
+  items: Array<{
+    id: string;
+    old_sell_price: number;
+    new_sell_price: number;
+    old_cost_price: number;
+    note?: string;
+    products?: {
+      code?: string;
+      product_name?: string;
+      unit?: string;
+    };
+  }>;
+};
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
 
 function toForm(product?: Product): ProductForm {
   if (!product) return { ...emptyForm };
@@ -106,6 +145,8 @@ export function Products() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const canManage = canManageProducts(user);
+  const canEditPrices = canEditSalePrices(user);
+  const canApprovePrices = isAdmin(user);
   const canUseSales = canSell(user);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -119,6 +160,15 @@ export function Products() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
   const selectedUnitLabel = unitOptions.find((unit) => unit.code === form.unit)?.name ?? form.unit ?? "ĐVT chính";
+  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isPriceSheetOpen, setIsPriceSheetOpen] = useState(false);
+  const [priceRows, setPriceRows] = useState<PriceSheetRow[]>([]);
+  const [priceNote, setPriceNote] = useState("");
+  const [isSavingPrices, setIsSavingPrices] = useState(false);
+  const [isExportingPrices, setIsExportingPrices] = useState(false);
+  const [isImportingPrices, setIsImportingPrices] = useState(false);
+  const [priceRequests, setPriceRequests] = useState<PriceUpdateRequest[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -151,9 +201,12 @@ export function Products() {
   }, [products]);
 
   const filteredProducts = products.filter((product) => {
-    const term = searchTerm.toLowerCase();
+    const term = normalizeSearch(searchTerm);
     const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
-    const matchSearch = product.name.toLowerCase().includes(term) || product.code.toLowerCase().includes(term);
+    const matchSearch =
+      !term ||
+      [product.name, product.code, product.invoiceName ?? "", product.category ?? "", product.size ?? ""]
+        .some((value) => normalizeSearch(value).includes(term));
     const matchCategory = categoryFilter === "all" || product.category === categoryFilter;
     const matchType = typeFilter === "all" || product.productType === typeFilter;
     const matchStock =
@@ -196,6 +249,165 @@ export function Products() {
     setTypeFilter("all");
     setStockFilter("all");
     setStatusFilter("all");
+  }
+
+  function buildPriceRows(sourceProducts = products) {
+    return sourceProducts
+      .filter((product) => product.status !== "INACTIVE" && product.lifecycleStatus !== "DISCONTINUED")
+      .map((product) => ({
+        productId: product.id,
+        code: product.code,
+        name: product.name,
+        unit: product.unit,
+        cost: product.cost,
+        currentPrice: product.price,
+        newPrice: product.price,
+        note: ""
+      }));
+  }
+
+  async function loadPriceRequests() {
+    if (!canEditPrices) return;
+    try {
+      const response = await fetch("/api/data/price-update-requests", {
+        headers: await getAuthHeaders()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được lệnh giá bán.");
+      setPriceRequests(body.requests ?? []);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không tải được lệnh giá bán.");
+    }
+  }
+
+  async function openPriceSheet() {
+    setPriceRows(buildPriceRows(products));
+    setPriceNote("");
+    setMessage("");
+    setErrorMessage("");
+    setIsPriceSheetOpen(true);
+    await loadPriceRequests();
+  }
+
+  function updatePriceRow(productId: string, patch: Partial<PriceSheetRow>) {
+    setPriceRows((rows) => rows.map((row) => row.productId === productId ? { ...row, ...patch } : row));
+  }
+
+  async function savePriceSheet() {
+    const changedRows = priceRows.filter((row) => row.newPrice !== row.currentPrice);
+    if (changedRows.length === 0) {
+      setMessage("Bảng giá không có thay đổi.");
+      return;
+    }
+
+    setIsSavingPrices(true);
+    setMessage("");
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/data/price-update-sheet", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          note: priceNote,
+          rows: changedRows.map((row) => ({
+            productId: row.productId,
+            newPrice: row.newPrice,
+            note: row.note
+          }))
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được bảng giá.");
+      setMessage(body.status === "PENDING_APPROVAL" ? `Đã gửi ${body.changedRows} dòng chờ admin duyệt.` : `Đã cập nhật ${body.changedRows} dòng giá bán.`);
+      await loadLiveData();
+      setPriceRows(buildPriceRows(products));
+      await loadPriceRequests();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không lưu được bảng giá.");
+    } finally {
+      setIsSavingPrices(false);
+    }
+  }
+
+  async function reviewPriceRequest(requestId: string, decision: "APPROVE" | "REJECT") {
+    setMessage("");
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/data/price-update-requests", {
+        method: "PATCH",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({ requestId, decision })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không duyệt được lệnh giá.");
+      setMessage(decision === "APPROVE" ? `Đã duyệt ${body.changedRows ?? 0} dòng giá bán.` : "Đã từ chối lệnh giá bán.");
+      await loadLiveData();
+      setPriceRows(buildPriceRows(products));
+      await loadPriceRequests();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không duyệt được lệnh giá.");
+    }
+  }
+
+  async function exportPriceList() {
+    setIsExportingPrices(true);
+    setMessage("");
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/export/price-list", {
+        headers: await getAuthHeaders()
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? "Không xuất được bảng giá.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `pmql-bang-gia-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không xuất được bảng giá.");
+    } finally {
+      setIsExportingPrices(false);
+    }
+  }
+
+  async function importPriceList(file?: File) {
+    if (!file) return;
+    setIsImportingPrices(true);
+    setMessage("");
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/import/price-list", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "x-file-name": encodeURIComponent(file.name)
+        },
+        body: await file.arrayBuffer()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không nhập được bảng giá.");
+      setMessage(body.status === "PENDING_APPROVAL" ? `Đã nhập ${body.successRows} dòng và gửi chờ duyệt.` : `Đã nhập ${body.successRows} dòng bảng giá.`);
+      await loadLiveData();
+      setPriceRows(buildPriceRows(products));
+      await loadPriceRequests();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không nhập được bảng giá.");
+    } finally {
+      setIsImportingPrices(false);
+    }
   }
 
   function openCreate() {
@@ -269,15 +481,25 @@ export function Products() {
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Danh mục hàng hóa</h1>
-        {canManage && (
-          <Button onClick={openCreate} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm hàng hóa
-          </Button>
-        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {canEditPrices && (
+            <Button onClick={openPriceSheet} variant="outline" className="w-full sm:w-auto">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Bảng giá
+            </Button>
+          )}
+          {canManage && (
+            <Button onClick={openCreate} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm hàng hóa
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="p-3 sm:p-6 flex-1 overflow-hidden flex flex-col">
+        {errorMessage && <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{errorMessage}</div>}
+        {message && <div className="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{message}</div>}
         <div className="flex flex-col sm:flex-row gap-3 mb-3 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
@@ -520,6 +742,120 @@ export function Products() {
             </div>
           </div>
         )}
+      </Dialog>
+
+      <Dialog isOpen={isPriceSheetOpen} onClose={() => setIsPriceSheetOpen(false)} title="Bảng giá bán" className="sm:max-w-6xl">
+        <div className="flex h-full flex-col gap-4">
+          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {canApprovePrices ? "Admin lưu bảng giá sẽ cập nhật ngay và ghi log." : "Kế toán lưu bảng giá sẽ tạo lệnh chờ admin duyệt."}
+          </div>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <Input value={priceNote} onChange={(event) => setPriceNote(event.target.value)} placeholder="Ghi chú cho đợt cập nhật giá..." className="lg:max-w-xl" />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" variant="outline" onClick={exportPriceList} disabled={isExportingPrices}>
+                <Download className="mr-2 h-4 w-4" />
+                {isExportingPrices ? "Đang xuất..." : "Xuất XLSX"}
+              </Button>
+              <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50">
+                <Upload className="mr-2 h-4 w-4" />
+                {isImportingPrices ? "Đang nhập..." : "Nhập XLSX"}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  disabled={isImportingPrices}
+                  onChange={(event) => {
+                    void importPriceList(event.target.files?.[0]);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+            <table className="min-w-[980px] w-full text-sm">
+              <thead className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Mã</th>
+                  <th className="px-4 py-3 text-left">Hàng hóa</th>
+                  <th className="px-4 py-3 text-center">ĐVT</th>
+                  <th className="px-4 py-3 text-right">Giá vốn</th>
+                  <th className="px-4 py-3 text-right">Giá bán hiện tại</th>
+                  <th className="px-4 py-3 text-right">Giá bán mới</th>
+                  <th className="px-4 py-3 text-left">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {priceRows.map((row) => {
+                  const changed = row.newPrice !== row.currentPrice;
+                  return (
+                    <tr key={row.productId} className={changed ? "bg-emerald-50/40" : undefined}>
+                      <td className="px-4 py-3 font-semibold text-emerald-700">{row.code}</td>
+                      <td className="px-4 py-3"><div className="line-clamp-2 font-semibold text-zinc-900">{row.name}</div></td>
+                      <td className="px-4 py-3 text-center text-zinc-500">{row.unit}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500">{row.cost.toLocaleString()} đ</td>
+                      <td className="px-4 py-3 text-right font-semibold text-zinc-700">{row.currentPrice.toLocaleString()} đ</td>
+                      <td className="px-4 py-3">
+                        <Input type="number" value={row.newPrice || ""} onChange={(event) => updatePriceRow(row.productId, { newPrice: Number(event.target.value) || 0 })} className="text-right font-semibold" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Input value={row.note} onChange={(event) => updatePriceRow(row.productId, { note: event.target.value })} placeholder="Lý do..." />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {priceRows.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Chưa có hàng hóa để chỉnh giá.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-zinc-100 pt-4 sm:flex-row sm:justify-between">
+            <div className="text-sm text-zinc-500">{priceRows.filter((row) => row.newPrice !== row.currentPrice).length} dòng đang thay đổi</div>
+            <div className="grid grid-cols-2 gap-3 sm:flex">
+              <Button type="button" variant="outline" onClick={() => setIsPriceSheetOpen(false)}>Đóng</Button>
+              <Button type="button" onClick={savePriceSheet} disabled={isSavingPrices}>{isSavingPrices ? "Đang lưu..." : canApprovePrices ? "Lưu bảng giá" : "Gửi duyệt"}</Button>
+            </div>
+          </div>
+          {canApprovePrices && (
+            <section className="rounded-xl border border-zinc-200 bg-white">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+                <div>
+                  <h3 className="font-bold text-zinc-900">Lệnh giá chờ duyệt</h3>
+                  <p className="text-sm text-zinc-500">Duyệt các thay đổi do kế toán gửi lên.</p>
+                </div>
+                <Button type="button" variant="outline" onClick={loadPriceRequests}>Tải lại</Button>
+              </div>
+              <div className="divide-y divide-zinc-100">
+                {priceRequests.filter((request) => request.status === "PENDING").map((request) => (
+                  <div key={request.id} className="p-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="font-semibold text-zinc-900">{request.items.length} dòng giá bán</div>
+                        <div className="text-sm text-zinc-500">{request.note || "Không có ghi chú"} • {request.created_at ? new Date(request.created_at).toLocaleString("vi-VN") : ""}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => reviewPriceRequest(request.id, "REJECT")}><XCircle className="mr-2 h-4 w-4" />Từ chối</Button>
+                        <Button type="button" onClick={() => reviewPriceRequest(request.id, "APPROVE")}><CheckCircle className="mr-2 h-4 w-4" />Duyệt</Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {request.items.slice(0, 6).map((item) => (
+                        <div key={item.id} className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
+                          <div className="font-semibold text-zinc-900">{item.products?.code} - {item.products?.product_name}</div>
+                          <div className="text-zinc-500">{Number(item.old_sell_price ?? 0).toLocaleString()} đ -&gt; <span className="font-semibold text-emerald-700">{Number(item.new_sell_price ?? 0).toLocaleString()} đ</span></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {priceRequests.filter((request) => request.status === "PENDING").length === 0 && (
+                  <div className="px-4 py-8 text-center text-sm text-zinc-500">Không có lệnh giá nào đang chờ duyệt.</div>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
       </Dialog>
 
       <Dialog isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={form.id ? "Sửa hàng hóa" : "Thêm hàng hóa"} className="sm:max-w-3xl">
