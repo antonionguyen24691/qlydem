@@ -252,3 +252,130 @@ export function printSalesOrder(order: Order, company?: CompanyInfo) {
     popup.setTimeout(() => popup.print(), 250);
   })();
 }
+
+export function exportSalesOrderXlsx(order: Order) {
+  window.open(`/api/export/bill-xlsx?order=${encodeURIComponent(order.id)}`, "_blank");
+}
+
+function drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+  const words = text.split(" ");
+  let line = "";
+  let currentY = y;
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, currentY);
+      line = word;
+      currentY += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line) ctx.fillText(line, x, currentY);
+  return currentY + lineHeight;
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Không tạo được ảnh bill.")), "image/png", 0.95);
+  });
+}
+
+export async function shareSalesOrderImage(order: Order) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = Math.max(1500, 780 + order.items.length * 86);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Trình duyệt không hỗ trợ tạo ảnh bill.");
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#111827";
+  ctx.font = "700 34px Arial";
+  ctx.fillText(defaultCompany.name, 56, 70);
+  ctx.font = "400 24px Arial";
+  ctx.fillText(defaultCompany.address, 56, 108);
+
+  ctx.textAlign = "right";
+  ctx.font = "700 28px Arial";
+  ctx.fillText(`Số phiếu: ${order.id}`, 1024, 72);
+  ctx.font = "400 22px Arial";
+  ctx.fillText(`Ngày: ${orderDate(order)}`, 1024, 108);
+  ctx.textAlign = "left";
+
+  ctx.font = "800 44px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("PHIẾU XUẤT BÁN HÀNG", 540, 190);
+  ctx.textAlign = "left";
+
+  ctx.font = "700 26px Arial";
+  ctx.fillText("Bên mua:", 56, 250);
+  ctx.font = "400 26px Arial";
+  ctx.fillText(order.customerName, 176, 250);
+
+  let y = 320;
+  ctx.fillStyle = "#f3f4f6";
+  ctx.fillRect(56, y - 42, 968, 54);
+  ctx.fillStyle = "#111827";
+  ctx.font = "700 22px Arial";
+  ctx.fillText("STT", 76, y - 8);
+  ctx.fillText("Tên hàng", 148, y - 8);
+  ctx.fillText("ĐVT", 650, y - 8);
+  ctx.fillText("SL", 740, y - 8);
+  ctx.fillText("Thành tiền", 850, y - 8);
+  y += 32;
+
+  ctx.font = "400 22px Arial";
+  order.items.forEach((item, index) => {
+    ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#f9fafb";
+    ctx.fillRect(56, y - 30, 968, 76);
+    ctx.fillStyle = "#111827";
+    ctx.fillText(String(index + 1), 82, y);
+    const nextY = drawWrappedText(ctx, item.name, 148, y, 470, 26);
+    ctx.fillText(item.unit, 650, y);
+    ctx.fillText(numberText(item.quantity), 740, y);
+    ctx.font = "700 22px Arial";
+    ctx.fillText(money(item.total), 850, y);
+    ctx.font = "400 22px Arial";
+    y = Math.max(y + 76, nextY + 18);
+  });
+
+  y += 28;
+  ctx.font = "700 28px Arial";
+  ctx.textAlign = "right";
+  ctx.fillText(`Tổng cộng: ${money(order.total)}`, 1024, y);
+  y += 42;
+  ctx.fillText(`Đã thu: ${money(order.paid)}`, 1024, y);
+  y += 42;
+  ctx.fillStyle = "#dc2626";
+  ctx.fillText(`Còn nợ: ${money(Math.max(0, order.total - order.paid))}`, 1024, y);
+  ctx.fillStyle = "#111827";
+  ctx.textAlign = "left";
+
+  y += 120;
+  ctx.font = "700 24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("Kế toán/Bên giao", 210, y);
+  ctx.fillText("Người giao hàng", 540, y);
+  ctx.fillText("Bên nhận hàng", 870, y);
+  y += 34;
+  ctx.font = "400 20px Arial";
+  ctx.fillText("(Ký, ghi rõ họ tên)", 210, y);
+  ctx.fillText("(Ký, ghi rõ họ tên)", 540, y);
+  ctx.fillText("(Ký, ghi rõ họ tên)", 870, y);
+
+  const blob = await canvasToBlob(canvas);
+  const file = new File([blob], `bill-${order.id}.png`, { type: "image/png" });
+  const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+  if (navigator.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
+    await navigator.share({ title: `Bill ${order.id}`, text: `Bill ${order.id}`, files: [file] });
+    return;
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `bill-${order.id}.png`;
+  link.click();
+  URL.revokeObjectURL(url);
+}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Edit3, Filter, Package, Plus, ShoppingCart, Trash2, XCircle, Search } from "lucide-react";
 import { useDataStore, Product } from "../store/data";
@@ -48,6 +48,12 @@ const emptyForm: ProductForm = {
   status: "ACTIVE",
   lifecycleStatus: "ACTIVE"
 };
+
+const defaultUnitOptions = [
+  { code: "HỘP", name: "Hộp" },
+  { code: "VIÊN", name: "Viên" },
+  { code: "M2", name: "Mét vuông" }
+];
 
 function toForm(product?: Product): ProductForm {
   if (!product) return { ...emptyForm };
@@ -111,6 +117,29 @@ export function Products() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/settings?key=units")
+      .then((response) => response.json())
+      .then((body) => {
+        const units = Array.isArray(body?.units?.units) ? body.units.units : [];
+        const normalized = units
+          .map((unit: any) => ({
+            code: String(unit.code ?? "").trim(),
+            name: String(unit.name ?? unit.code ?? "").trim()
+          }))
+          .filter((unit: { code: string; name: string }) => unit.code && unit.name);
+        if (mounted && normalized.length > 0) setUnitOptions(normalized);
+      })
+      .catch(() => {
+        if (mounted) setUnitOptions(defaultUnitOptions);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const categories = useMemo(() => {
     return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort();
@@ -500,13 +529,24 @@ export function Products() {
             <Field label="Tên hàng hóa (*)" className="sm:col-span-2"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></Field>
             <Field label="Tên trên hóa đơn" className="sm:col-span-2"><Input value={form.invoiceName} onChange={(event) => setForm({ ...form, invoiceName: event.target.value })} /></Field>
             <Field label="Loại hàng"><Input value={form.productType} onChange={(event) => setForm({ ...form, productType: event.target.value })} /></Field>
-            <Field label="Đơn vị tính"><Input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} /></Field>
+            <Field label="Đơn vị tính">
+              <select
+                value={form.unit}
+                onChange={(event) => setForm({ ...form, unit: event.target.value })}
+                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+              >
+                {unitOptions.map((unit) => (
+                  <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>
+                ))}
+                {form.unit && !unitOptions.some((unit) => unit.code === form.unit) && <option value={form.unit}>{form.unit}</option>}
+              </select>
+            </Field>
             <Field label="Quy cách"><Input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} /></Field>
             <Field label="Tồn mở đầu"><Input type="number" value={form.stock || ""} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) || 0 })} /></Field>
             <Field label="Giá vốn"><Input type="number" value={form.cost || ""} onChange={(event) => setForm({ ...form, cost: Number(event.target.value) || 0 })} /></Field>
             <Field label="Giá bán"><Input type="number" value={form.price || ""} onChange={(event) => setForm({ ...form, price: Number(event.target.value) || 0 })} /></Field>
-            <Field label="M2/Hộp"><Input type="number" value={form.m2PerBox || ""} onChange={(event) => setForm({ ...form, m2PerBox: Number(event.target.value) || 0 })} /></Field>
-            <Field label="Viên/Hộp"><Input type="number" value={form.piecesPerBox || ""} onChange={(event) => setForm({ ...form, piecesPerBox: Number(event.target.value) || 0 })} /></Field>
+            <Field label="Quy đổi M2/Hộp"><Input type="number" value={form.m2PerBox || ""} onChange={(event) => setForm({ ...form, m2PerBox: Number(event.target.value) || 0 })} /></Field>
+            <Field label="Quy đổi Viên/Hộp"><Input type="number" value={form.piecesPerBox || ""} onChange={(event) => setForm({ ...form, piecesPerBox: Number(event.target.value) || 0 })} /></Field>
             <Field label="Trạng thái"><Input value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} /></Field>
             <Field label="Vòng đời"><Input value={form.lifecycleStatus} onChange={(event) => setForm({ ...form, lifecycleStatus: event.target.value })} /></Field>
           </div>

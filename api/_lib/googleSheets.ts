@@ -70,6 +70,7 @@ export async function syncTablesToGoogleSheets(tables: ExportableTable[]) {
 }
 
 export async function bestEffortSyncTables(tables: ExportableTable[]) {
+  if (process.env.ENABLE_TRANSACTION_SHEETS_SYNC !== "1") return;
   if (!isGoogleSheetsConfigured()) return;
   try {
     await syncTablesToGoogleSheets(tables);

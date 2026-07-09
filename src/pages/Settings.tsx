@@ -1,6 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
+import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 import { Button } from "../components/ui/Button";
@@ -57,6 +57,15 @@ type PaymentSettings = {
   transferTemplate: string;
 };
 
+type UnitSettings = {
+  units: Array<{
+    code: string;
+    name: string;
+    baseCode?: string;
+    factor?: number;
+  }>;
+};
+
 type ReadinessTable = {
   table: string;
   ok: boolean;
@@ -78,6 +87,14 @@ const defaultPayment: PaymentSettings = {
   accountNumber: "",
   accountName: "",
   transferTemplate: "Thanh toan {orderCode}"
+};
+
+const defaultUnits: UnitSettings = {
+  units: [
+    { code: "HỘP", name: "Hộp", factor: 1 },
+    { code: "VIÊN", name: "Viên", baseCode: "HỘP", factor: 1 },
+    { code: "M2", name: "Mét vuông", baseCode: "HỘP", factor: 1 }
+  ]
 };
 
 const vietQrBanks = [
@@ -136,7 +153,7 @@ function readImageFile(file?: File) {
 }
 
 export function Settings() {
-  const [activeSection, setActiveSection] = useState<"general" | "payment" | "users" | "data" | "operations">("general");
+  const [activeSection, setActiveSection] = useState<"general" | "payment" | "units" | "users" | "data" | "operations">("general");
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
   const branding = useBrandingStore((state) => state.branding);
@@ -155,6 +172,10 @@ export function Settings() {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
+  const [unitForm, setUnitForm] = useState<UnitSettings>(defaultUnits);
+  const [unitMessage, setUnitMessage] = useState("");
+  const [unitError, setUnitError] = useState("");
+  const [isSavingUnits, setIsSavingUnits] = useState(false);
   const [readiness, setReadiness] = useState<ReadinessResult | null>(null);
   const [operationsMessage, setOperationsMessage] = useState("");
   const [operationsError, setOperationsError] = useState("");
@@ -186,6 +207,7 @@ export function Settings() {
     loadAdminData();
     loadBranding();
     loadPayment();
+    loadUnits();
   }, []);
 
   useEffect(() => {
@@ -358,6 +380,42 @@ export function Settings() {
     }
   };
 
+  const loadUnits = async () => {
+    try {
+      const response = await fetch("/api/settings?key=units");
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được đơn vị tính");
+      setUnitForm({ ...defaultUnits, ...(body.units ?? {}) });
+    } catch (error) {
+      setUnitError(error instanceof Error ? error.message : "Không tải được đơn vị tính");
+    }
+  };
+
+  const saveUnits = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSavingUnits(true);
+    setUnitError("");
+    setUnitMessage("");
+    try {
+      const response = await fetch("/api/settings?key=units", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(unitForm)
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được đơn vị tính");
+      setUnitForm({ ...defaultUnits, ...(body.units ?? unitForm) });
+      setUnitMessage("Đã lưu danh sách đơn vị tính.");
+    } catch (error) {
+      setUnitError(error instanceof Error ? error.message : "Không lưu được đơn vị tính");
+    } finally {
+      setIsSavingUnits(false);
+    }
+  };
+
   const loadOperations = async () => {
     setIsLoadingOperations(true);
     setOperationsError("");
@@ -416,6 +474,7 @@ export function Settings() {
           {[
             ["general", "Cấu hình chung"],
             ["payment", "Thanh toán QR"],
+            ["units", "Đơn vị tính"],
             ["users", "Người dùng"],
             ["data", "Dữ liệu & backup"],
             ["operations", "Vận hành"]
@@ -564,6 +623,139 @@ export function Settings() {
                   <Button type="submit" disabled={isSavingPayment}>
                     <Save className="mr-2 h-4 w-4" />
                     {isSavingPayment ? "Đang lưu..." : "Lưu cấu hình thanh toán"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </section>
+        )}
+
+        {activeSection === "units" && (
+          <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
+              <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+                <Database className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-zinc-900 text-lg">Đơn vị tính & quy đổi</h2>
+                <p className="text-sm text-zinc-500">Danh sách đơn vị dùng khi tạo hàng hóa và in phiếu.</p>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              {unitError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{unitError}</div>}
+              {unitMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{unitMessage}</div>}
+              <form onSubmit={saveUnits} className="space-y-4">
+                <div className="overflow-x-auto rounded-xl border border-zinc-200">
+                  <table className="min-w-[760px] w-full text-sm">
+                    <thead className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Mã ĐVT</th>
+                        <th className="px-4 py-3 text-left">Tên hiển thị</th>
+                        <th className="px-4 py-3 text-left">Quy đổi về</th>
+                        <th className="px-4 py-3 text-right">Hệ số</th>
+                        <th className="px-4 py-3 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 bg-white">
+                      {unitForm.units.map((unit, index) => (
+                        <tr key={`${unit.code}-${index}`}>
+                          <td className="px-4 py-3">
+                            <Input
+                              value={unit.code}
+                              onChange={(event) =>
+                                setUnitForm((current) => ({
+                                  units: current.units.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, code: event.target.value.toUpperCase() } : item
+                                  )
+                                }))
+                              }
+                              required
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <Input
+                              value={unit.name}
+                              onChange={(event) =>
+                                setUnitForm((current) => ({
+                                  units: current.units.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, name: event.target.value } : item
+                                  )
+                                }))
+                              }
+                              required
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={unit.baseCode ?? ""}
+                              onChange={(event) =>
+                                setUnitForm((current) => ({
+                                  units: current.units.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, baseCode: event.target.value || undefined } : item
+                                  )
+                                }))
+                              }
+                              className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                            >
+                              <option value="">Chính nó</option>
+                              {unitForm.units
+                                .filter((item, itemIndex) => itemIndex !== index && item.code.trim())
+                                .map((item) => (
+                                  <option key={item.code} value={item.code}>{item.name || item.code}</option>
+                                ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              value={unit.factor ?? ""}
+                              onChange={(event) =>
+                                setUnitForm((current) => ({
+                                  units: current.units.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, factor: Number(event.target.value) || 1 } : item
+                                  )
+                                }))
+                              }
+                              className="text-right"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setUnitForm((current) => ({
+                                  units: current.units.filter((_, itemIndex) => itemIndex !== index)
+                                }))
+                              }
+                              className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                              title="Xóa đơn vị"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setUnitForm((current) => ({
+                        units: [...current.units, { code: "", name: "", factor: 1 }]
+                      }))
+                    }
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Thêm đơn vị
+                  </Button>
+                  <Button type="submit" disabled={isSavingUnits || unitForm.units.length === 0}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSavingUnits ? "Đang lưu..." : "Lưu đơn vị tính"}
                   </Button>
                 </div>
               </form>

@@ -5,7 +5,7 @@ import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
-import { printSalesOrder } from "../lib/printBill";
+import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
 import type { Order } from "../store/data";
 
 type CustomerForm = {
@@ -640,7 +640,9 @@ function CustomerOrderDialog({ order, onClose }: { order: Order | null; onClose:
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
             <Button variant="outline" onClick={onClose}>Đóng</Button>
-            <Button onClick={() => printSalesOrder(order)}>In lại bill</Button>
+            <Button onClick={() => exportSalesOrderXlsx(order)}>Xuất XLSX</Button>
+            <Button variant="outline" onClick={() => printSalesOrder(order)}>In bill</Button>
+            <Button variant="outline" onClick={() => void shareSalesOrderImage(order)}>Share ảnh</Button>
           </div>
         </div>
       )}

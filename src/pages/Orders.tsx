@@ -4,7 +4,7 @@ import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText } from "luci
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { printSalesOrder } from "../lib/printBill";
+import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
 
 type DateFilterMode = "single" | "range" | "week" | "month" | "year" | "all";
 type DebtFilter = "all" | "debt" | "paid";
@@ -300,7 +300,7 @@ export function Orders() {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          printSalesOrder(order);
+                          exportSalesOrderXlsx(order);
                         }}
                         className="text-zinc-400 hover:text-emerald-600 p-2 rounded-lg hover:bg-emerald-50 transition-colors active:scale-95"
                       >
@@ -353,7 +353,7 @@ export function Orders() {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    printSalesOrder(order);
+                    exportSalesOrderXlsx(order);
                   }}
                   className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-50 text-zinc-600 border border-zinc-200 active:bg-zinc-100"
                 >
@@ -548,10 +548,20 @@ export function Orders() {
               >
                 Đóng
               </Button>
+              <Button onClick={() => exportSalesOrderXlsx(selectedOrder)}>
+                Xuất XLSX
+              </Button>
               <Button 
                 onClick={() => printSalesOrder(selectedOrder)}
+                variant="outline"
               >
                 <Printer className="w-4 h-4 mr-2" /> In hóa đơn
+              </Button>
+              <Button 
+                onClick={() => void shareSalesOrderImage(selectedOrder)}
+                variant="outline"
+              >
+                Share ảnh bill
               </Button>
             </div>
           </div>

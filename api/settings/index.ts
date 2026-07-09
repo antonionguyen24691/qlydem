@@ -23,6 +23,15 @@ type PaymentSettings = {
   transferTemplate: string;
 };
 
+type UnitSettings = {
+  units: Array<{
+    code: string;
+    name: string;
+    baseCode?: string;
+    factor?: number;
+  }>;
+};
+
 const defaultBranding: BrandingSettings = {
   appName: "PMQL",
   companyName: "PMQL",
@@ -40,6 +49,14 @@ const defaultPayment: PaymentSettings = {
   accountNumber: "",
   accountName: "",
   transferTemplate: "Thanh toan {orderCode}"
+};
+
+const defaultUnits: UnitSettings = {
+  units: [
+    { code: "HỘP", name: "Hộp", factor: 1 },
+    { code: "VIÊN", name: "Viên", baseCode: "HỘP", factor: 1 },
+    { code: "M2", name: "Mét vuông", baseCode: "HỘP", factor: 1 }
+  ]
 };
 
 function normalizeBranding(input: Record<string, unknown>): BrandingSettings {
@@ -65,10 +82,33 @@ function normalizePayment(input: Record<string, unknown>): PaymentSettings {
   };
 }
 
+function normalizeUnits(input: Record<string, unknown>): UnitSettings {
+  const rawUnits = Array.isArray(input.units) ? input.units : defaultUnits.units;
+  const units = rawUnits
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const code = toStringValue(row.code).trim().toUpperCase();
+      return {
+        code,
+        name: toStringValue(row.name, code).trim() || code,
+        baseCode: toStringValue(row.baseCode).trim().toUpperCase() || undefined,
+        factor: Number(row.factor ?? 1) || 1
+      };
+    })
+    .filter((item) => item.code);
+  return { units: units.length > 0 ? units : defaultUnits.units };
+}
+
+function normalizeSetting(key: string, input: Record<string, unknown>) {
+  if (key === "branding") return normalizeBranding(input);
+  if (key === "payment") return normalizePayment(input);
+  return normalizeUnits(input);
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const key = getQueryValue(req.query?.key) ?? "branding";
-    if (!["branding", "payment"].includes(key)) {
+    if (!["branding", "payment", "units"].includes(key)) {
       res.status(400).json({ ok: false, error: "Unsupported settings key." });
       return;
     }
@@ -86,13 +126,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         res.status(200).json({
           ok: true,
           branding: key === "branding" ? normalizeBranding(value) : undefined,
-          payment: key === "payment" ? normalizePayment(value) : undefined
+          payment: key === "payment" ? normalizePayment(value) : undefined,
+          units: key === "units" ? normalizeUnits(value) : undefined
         });
       } catch (error) {
         res.status(200).json({
           ok: true,
           branding: key === "branding" ? defaultBranding : undefined,
           payment: key === "payment" ? defaultPayment : undefined,
+          units: key === "units" ? defaultUnits : undefined,
           warning: error instanceof Error ? error.message : "Không đọc được cấu hình Supabase."
         });
       }
@@ -102,7 +144,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") {
       const actor = await requireAuth(req, ["ADMIN"]);
       const supabase = getSupabaseAdmin();
-      const payload = key === "branding" ? normalizeBranding(getJsonBody(req)) : normalizePayment(getJsonBody(req));
+      const payload = normalizeSetting(key, getJsonBody(req));
       const { data, error } = await supabase
         .from("settings")
         .upsert({
@@ -127,7 +169,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       res.status(200).json({
         ok: true,
         branding: key === "branding" ? normalizeBranding(value) : undefined,
-        payment: key === "payment" ? normalizePayment(value) : undefined
+        payment: key === "payment" ? normalizePayment(value) : undefined,
+        units: key === "units" ? normalizeUnits(value) : undefined
       });
       return;
     }
