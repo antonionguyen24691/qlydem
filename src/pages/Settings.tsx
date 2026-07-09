@@ -120,6 +120,15 @@ const vietQrBanks = [
   { bin: "970452", name: "KienlongBank" }
 ];
 
+const historyClearOptions = [
+  { key: "sales", label: "Lịch sử đơn hàng bán", description: "Đơn bán, dòng hàng, công nợ gắn với đơn." },
+  { key: "finance", label: "Lịch sử thu tiền/công nợ", description: "Phiếu thu, sổ quỹ, nhắc nợ và phân bổ thu." },
+  { key: "purchase", label: "Lịch sử mua/nhập hàng", description: "Đơn nhập mua và công nợ nhà cung cấp." },
+  { key: "inventory", label: "Lịch sử xuất/nhập/kiểm kho", description: "Giao dịch kho, lệnh duyệt kiểm kê, log sửa tồn." },
+  { key: "notifications", label: "Thông báo và nhắc việc", description: "Thông báo nội bộ và các nhắc việc công nợ." },
+  { key: "imports", label: "Lịch sử import dữ liệu", description: "Batch import và lỗi import Excel." }
+];
+
 const emptyForm = {
   id: "",
   email: "",
@@ -183,6 +192,10 @@ export function Settings() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [supplierRows, setSupplierRows] = useState<any[]>([]);
   const [purchaseRows, setPurchaseRows] = useState<any[]>([]);
+  const [clearHistoryGroups, setClearHistoryGroups] = useState<string[]>([]);
+  const [clearHistoryConfirmation, setClearHistoryConfirmation] = useState("");
+  const [clearHistoryResult, setClearHistoryResult] = useState<Record<string, number> | null>(null);
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
 
   const loadAdminData = async () => {
     try {
@@ -460,6 +473,59 @@ export function Settings() {
       setOperationsError(error instanceof Error ? error.message : "Không tạo được thông báo.");
     } finally {
       setIsLoadingOperations(false);
+    }
+  };
+
+  const toggleClearHistoryGroup = (key: string) => {
+    setClearHistoryGroups((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    );
+    setClearHistoryResult(null);
+    setOperationsError("");
+    setOperationsMessage("");
+  };
+
+  const clearSelectedHistory = async () => {
+    if (clearHistoryGroups.length === 0) {
+      setOperationsError("Chưa chọn nhóm lịch sử cần xóa.");
+      return;
+    }
+    if (clearHistoryConfirmation.trim().toUpperCase() !== "XOA") {
+      setOperationsError("Vui lòng nhập XOA để xác nhận xóa lịch sử.");
+      return;
+    }
+    const labels = historyClearOptions
+      .filter((item) => clearHistoryGroups.includes(item.key))
+      .map((item) => item.label)
+      .join(", ");
+    if (!window.confirm(`Xóa vĩnh viễn các nhóm: ${labels}?`)) return;
+
+    setIsClearingHistory(true);
+    setOperationsError("");
+    setOperationsMessage("");
+    setClearHistoryResult(null);
+    try {
+      const response = await fetch("/api/operations/clear-history", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          groups: clearHistoryGroups,
+          confirmation: clearHistoryConfirmation
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không xóa được lịch sử.");
+      setClearHistoryResult(body.deleted ?? {});
+      setOperationsMessage(`Đã xóa ${Number(body.totalDeleted ?? 0).toLocaleString()} dòng lịch sử.`);
+      setClearHistoryConfirmation("");
+      await loadOperations();
+    } catch (error) {
+      setOperationsError(error instanceof Error ? error.message : "Không xóa được lịch sử.");
+    } finally {
+      setIsClearingHistory(false);
     }
   };
 
@@ -1029,6 +1095,71 @@ export function Settings() {
               <MiniOpsList title="Audit log" rows={auditLogs} primaryKey="action" secondaryKey="entity_type" dateKey="created_at" />
               <MiniOpsList title="Nhà cung cấp" rows={supplierRows} primaryKey="name" secondaryKey="phone" dateKey="created_at" />
               <MiniOpsList title="Đơn nhập" rows={purchaseRows} primaryKey="code" secondaryKey="status" dateKey="purchase_date" />
+            </div>
+
+            <div className="rounded-xl border border-red-200 bg-red-50/60 p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-base font-black text-red-700">Clear lịch sử</div>
+                  <div className="mt-1 text-sm text-red-700/80">Chỉ admin dùng khi cần dọn dữ liệu giao dịch cũ. Dữ liệu danh mục như khách hàng, hàng hóa, kho vẫn được giữ.</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-red-200 bg-white text-red-700 hover:bg-red-50"
+                  onClick={() => setClearHistoryGroups(historyClearOptions.map((item) => item.key))}
+                >
+                  Chọn tất cả
+                </Button>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {historyClearOptions.map((option) => (
+                  <label key={option.key} className="flex cursor-pointer gap-3 rounded-xl border border-red-100 bg-white p-3 shadow-sm">
+                    <input
+                      type="checkbox"
+                      checked={clearHistoryGroups.includes(option.key)}
+                      onChange={() => toggleClearHistoryGroup(option.key)}
+                      className="mt-1 h-4 w-4 shrink-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-bold text-zinc-900">{option.label}</span>
+                      <span className="mt-0.5 block text-xs text-zinc-500">{option.description}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+                <Input
+                  value={clearHistoryConfirmation}
+                  onChange={(event) => setClearHistoryConfirmation(event.target.value)}
+                  placeholder="Nhập XOA để xác nhận"
+                />
+                <Button
+                  type="button"
+                  onClick={clearSelectedHistory}
+                  disabled={isClearingHistory || clearHistoryGroups.length === 0}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {isClearingHistory ? "Đang xóa..." : "Xóa lịch sử đã chọn"}
+                </Button>
+              </div>
+
+              {clearHistoryResult && (
+                <div className="mt-4 rounded-lg border border-red-100 bg-white p-3 text-sm">
+                  <div className="font-bold text-zinc-900">Kết quả xóa</div>
+                  <div className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {Object.entries(clearHistoryResult).map(([table, count]) => (
+                      <div key={table} className="flex justify-between gap-3 rounded bg-zinc-50 px-3 py-2">
+                        <span className="truncate text-zinc-500">{table}</span>
+                        <span className="font-bold text-zinc-900">{count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>}
