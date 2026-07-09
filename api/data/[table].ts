@@ -25,6 +25,7 @@ const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   order_debts: ["ADMIN", "ACCOUNTANT", "SALE"],
   receipt_allocations: ["ADMIN", "ACCOUNTANT"],
   cashbook_entries: ["ADMIN", "ACCOUNTANT"],
+  audit_logs: ["ADMIN"],
   suppliers: ["ADMIN", "ACCOUNTANT", "WAREHOUSE"],
   purchase_orders: ["ADMIN", "ACCOUNTANT", "WAREHOUSE"],
   purchase_order_items: ["ADMIN", "ACCOUNTANT", "WAREHOUSE"],

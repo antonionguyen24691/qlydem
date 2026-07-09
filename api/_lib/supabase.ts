@@ -31,6 +31,7 @@ export const EXPORTABLE_TABLES = [
   "inventory_adjustment_request_items",
   "inventory_edit_logs",
   "cashbook_entries",
+  "audit_logs",
   "import_batches",
   "import_errors"
 ] as const;
