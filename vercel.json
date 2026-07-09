@@ -4,11 +4,7 @@
   "crons": [
     {
       "path": "/api/sync/google-sheets",
-      "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/sync/google-sheets",
-      "schedule": "0 11,17 * * *"
+      "schedule": "0 17 * * *"
     }
   ],
   "routes": [
