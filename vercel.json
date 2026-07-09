@@ -9,7 +9,74 @@
   ],
   "routes": [
     {
+      "src": "/api/data/([^/]+)",
+      "dest": "/api/data/[table]?table=$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "src": "/api/import/([^/]+)",
+      "dest": "/api/import/[entity]?entity=$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "src": "/api/templates/([^/]+)",
+      "dest": "/api/templates/[entity]?entity=$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "src": "/api/export/([^/]+)",
+      "dest": "/api/export/[kind]?kind=$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "src": "/api/operations/([^/]+)",
+      "dest": "/api/operations/[action]?action=$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "src": "/api/users/([^/]+)",
+      "dest": "/api/users/[id]?id=$1",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "src": "/api/users",
+      "dest": "/api/users/[id]",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
+      "dest": "/index.html",
       "headers": {
         "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
         "X-Content-Type-Options": "nosniff",
@@ -17,43 +84,7 @@
         "Referrer-Policy": "same-origin",
         "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
         "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co"
-      },
-      "continue": true
-    },
-    {
-      "src": "/api/data/([^/]+)",
-      "dest": "/api/data/[table]?table=$1"
-    },
-    {
-      "src": "/api/import/([^/]+)",
-      "dest": "/api/import/[entity]?entity=$1"
-    },
-    {
-      "src": "/api/templates/([^/]+)",
-      "dest": "/api/templates/[entity]?entity=$1"
-    },
-    {
-      "src": "/api/export/([^/]+)",
-      "dest": "/api/export/[kind]?kind=$1"
-    },
-    {
-      "src": "/api/operations/([^/]+)",
-      "dest": "/api/operations/[action]?action=$1"
-    },
-    {
-      "src": "/api/users/([^/]+)",
-      "dest": "/api/users/[id]?id=$1"
-    },
-    {
-      "src": "/api/users",
-      "dest": "/api/users/[id]"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      }
     }
   ]
 }
