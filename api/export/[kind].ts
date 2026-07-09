@@ -1,8 +1,9 @@
-import writeXlsxFile from "write-excel-file/node";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { fetchTableRows, parseTables } from "../_lib/supabase.js";
 import { requireAuth } from "../_lib/auth.js";
+import writeXlsxFile from "write-excel-file/node";
+import billXlsx from "../_lib/exportBillXlsx.js";
 
 function cell(value: unknown, fontWeight?: "bold") {
   return {
@@ -19,7 +20,7 @@ function rowsToSheet(rows: Record<string, unknown>[]) {
   ];
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function tablesXlsx(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   try {
@@ -45,4 +46,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   } catch (error) {
     sendError(res, error);
   }
+}
+
+export default async function handler(req: ApiRequest, res: ApiResponse) {
+  const kind = getQueryValue(req.query?.kind);
+  if (kind === "xlsx") return tablesXlsx(req, res);
+  if (kind === "bill-xlsx") return billXlsx(req, res);
+  res.status(400).json({ ok: false, error: "Unsupported export kind." });
 }

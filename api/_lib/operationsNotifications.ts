@@ -1,7 +1,7 @@
-import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { methodNotAllowed, sendError } from "../_lib/http.js";
-import { requireAuth } from "../_lib/auth.js";
-import { getSupabaseAdmin } from "../_lib/supabase.js";
+import type { ApiRequest, ApiResponse } from "./http.js";
+import { methodNotAllowed, sendError } from "./http.js";
+import { requireAuth } from "./auth.js";
+import { getSupabaseAdmin } from "./supabase.js";
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
