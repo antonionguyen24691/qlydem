@@ -20,7 +20,8 @@ import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { useBrandingStore } from "./store/branding";
 import { useAuthStore } from "./store/auth";
-import { canManageInventory, canSell, canViewCustomers, canViewFinance, isAdmin } from "./lib/permissions";
+import { canManageInventory, canSell, canViewCustomers, canViewFinance, canViewSuppliers, isAdmin } from "./lib/permissions";
+import { Suppliers } from "./pages/Suppliers";
 
 function RequirePermission({ allow, children }: { allow: (user: any) => boolean; children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="products" element={<Products />} />
           <Route path="inventory" element={<RequirePermission allow={(user) => canManageInventory(user) || user?.role === "SALE"}><Inventory /></RequirePermission>} />
           <Route path="customers" element={<RequirePermission allow={canViewCustomers}><Customers /></RequirePermission>} />
+          <Route path="suppliers" element={<RequirePermission allow={canViewSuppliers}><Suppliers /></RequirePermission>} />
           <Route path="finance" element={<RequirePermission allow={canViewFinance}><Finance /></RequirePermission>} />
           <Route path="settings" element={<RequirePermission allow={isAdmin}><Settings /></RequirePermission>} />
         </Route>

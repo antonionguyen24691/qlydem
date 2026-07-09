@@ -4,6 +4,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Check, ClipboardCheck, Plus, RefreshC
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { useAuthStore } from "../store/auth";
 import { canCountInventory, canManageInventory, canRequestStockOut, isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
@@ -800,18 +801,17 @@ export function Inventory() {
             ) : (
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1.5">Sản phẩm</label>
-                <select 
-                  value={selectedProduct?.id ?? ""} 
-                  onChange={(event) => {
-                    const product = products.find((item) => item.id === event.target.value) ?? null;
+                <SearchableSelect
+                  value={selectedProduct?.id ?? ""}
+                  onChange={(value) => {
+                    const product = products.find((item) => item.id === value) ?? null;
                     setSelectedProduct(product);
                     if (mode === "IN") setUnitCost(Number(product?.cost ?? 0));
-                  }} 
-                  className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                >
-                  <option value="">-- Chọn sản phẩm --</option>
-                  {products.map((product) => <option key={product.id} value={product.id}>{product.code} - {product.name}</option>)}
-                </select>
+                  }}
+                  placeholder="-- Chọn sản phẩm --"
+                  searchPlaceholder="Tìm mã hoặc tên hàng hóa..."
+                  options={products.map((product) => ({ value: product.id, label: `${product.code} - ${product.name}`, description: `Tồn ${product.stock.toLocaleString()} ${product.unit}` }))}
+                />
               </div>
             )}
             
@@ -860,14 +860,7 @@ export function Inventory() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nhà cung cấp</label>
-                    <select
-                      value={supplierId}
-                      onChange={(event) => setSupplierId(event.target.value)}
-                      className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                    >
-                      <option value="">-- Chưa chọn NCC --</option>
-                      {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code ? `${supplier.code} - ` : ""}{supplier.name}</option>)}
-                    </select>
+                    <SearchableSelect value={supplierId} onChange={setSupplierId} placeholder="-- Chưa chọn NCC --" searchPlaceholder="Tìm mã hoặc tên NCC..." options={suppliers.map((supplier) => ({ value: supplier.id, label: `${supplier.code ? `${supplier.code} - ` : ""}${supplier.name}`, description: supplier.phone }))} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1.5">Số chứng từ</label>

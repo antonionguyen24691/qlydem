@@ -109,6 +109,29 @@ function customerPayload(body: Record<string, unknown>) {
   };
 }
 
+function supplierPayload(body: Record<string, unknown>) {
+  const name = toStringValue(body.name).trim();
+  if (!name) {
+    const error = new Error("Thiếu tên nhà cung cấp.");
+    error.name = "BAD_REQUEST";
+    throw error;
+  }
+
+  return {
+    code: toStringValue(body.code, createCode("NCC")).trim(),
+    name,
+    short_name: optionalString(body.shortName ?? body.short_name),
+    phone: optionalString(body.phone),
+    address: optionalString(body.address),
+    tax_code: optionalString(body.taxCode ?? body.tax_code),
+    contact_person: optionalString(body.contactPerson ?? body.contact_person),
+    payment_terms: optionalString(body.paymentTerms ?? body.payment_terms),
+    status: toStringValue(body.status, "ACTIVE").toUpperCase(),
+    note: optionalString(body.note),
+    updated_at: new Date().toISOString()
+  };
+}
+
 async function saveCustomer(req: ApiRequest, res: ApiResponse) {
   const body = getJsonBody(req);
   const existingId = optionalString(body.id);
@@ -137,6 +160,29 @@ async function saveCustomer(req: ApiRequest, res: ApiResponse) {
 
   await bestEffortSyncTables(["customers"]);
   res.status(200).json({ ok: true, customer: data });
+}
+
+async function saveSupplier(req: ApiRequest, res: ApiResponse) {
+  const body = getJsonBody(req);
+  const existingId = optionalString(body.id);
+  const actor = await requirePermission(req, "inventory.manage");
+  const supabase = getSupabaseAdmin();
+  const payload = supplierPayload(body);
+  const query = existingId
+    ? supabase.from("suppliers").update(payload).eq("id", existingId).select("*").single()
+    : supabase.from("suppliers").upsert(payload, { onConflict: "code" }).select("*").single();
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: existingId ? "UPDATE" : "UPSERT",
+    entity_type: "supplier",
+    entity_id: data.id,
+    after_json: data
+  });
+  await bestEffortSyncTables(["suppliers"]);
+  res.status(200).json({ ok: true, supplier: data });
 }
 
 async function ensureWarehouse(code = "KHO-CHINH") {
@@ -1145,6 +1191,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "customers" && ["POST", "PATCH"].includes(req.method ?? "")) {
       await saveCustomer(req, res);
+      return;
+    }
+
+    if (table === "suppliers" && ["POST", "PATCH"].includes(req.method ?? "")) {
+      await saveSupplier(req, res);
       return;
     }
 

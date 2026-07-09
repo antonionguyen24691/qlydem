@@ -8,13 +8,14 @@ import {
   Store,
   FileText,
   BadgeDollarSign,
+  Truck,
   X
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useUIStore } from "../../store/ui";
 import { useBrandingStore } from "../../store/branding";
 import { useAuthStore } from "../../store/auth";
-import { canManageInventory, canManageProducts, canSell, canViewCustomers, canViewFinance, isAdmin } from "../../lib/permissions";
+import { canManageInventory, canManageProducts, canSell, canViewCustomers, canViewFinance, canViewSuppliers, isAdmin } from "../../lib/permissions";
 
 const navItems = [
   { name: "Tổng quan", href: "/", icon: LayoutDashboard, visible: () => true },
@@ -23,6 +24,7 @@ const navItems = [
   { name: "Sản phẩm", href: "/products", icon: Package, visible: (user: any) => canManageProducts(user) || canSell(user) || canViewFinance(user) },
   { name: "Tồn kho", href: "/inventory", icon: Store, visible: (user: any) => canManageInventory(user) || user?.role === "SALE" },
   { name: "Khách hàng", href: "/customers", icon: Users, visible: canViewCustomers },
+  { name: "Nhà cung cấp", href: "/suppliers", icon: Truck, visible: canViewSuppliers },
   { name: "Tài chính", href: "/finance", icon: BadgeDollarSign, visible: canViewFinance },
   { name: "Cấu hình", href: "/settings", icon: Settings, visible: isAdmin },
 ];

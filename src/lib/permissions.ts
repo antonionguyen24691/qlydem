@@ -41,3 +41,7 @@ export function canViewFinance(user?: UserLike) {
 export function canViewCustomers(user?: UserLike) {
   return ["ADMIN", "ACCOUNTANT", "SALE"].includes(userRole(user));
 }
+
+export function canViewSuppliers(user?: UserLike) {
+  return ["ADMIN", "ACCOUNTANT", "WAREHOUSE"].includes(userRole(user));
+}

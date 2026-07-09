@@ -4,6 +4,7 @@ import { Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCirc
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { useAuthStore } from "../store/auth";
 import { getAuthHeaders } from "../lib/supabase";
 
@@ -26,10 +27,14 @@ export function Finance() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedCustomerForReceipt, setSelectedCustomerForReceipt] = useState("");
   const [receiptAmount, setReceiptAmount] = useState<number | ''>('');
+  const [receiptPaymentMethod, setReceiptPaymentMethod] = useState("CASH");
+  const [receiptNote, setReceiptNote] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSavingReceipt, setIsSavingReceipt] = useState(false);
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
   const [agingFilter, setAgingFilter] = useState<AgingFilter>("all");
+  const [debtPage, setDebtPage] = useState(1);
+  const [debtPageSize, setDebtPageSize] = useState(20);
 
   const loadFinanceRows = async () => {
     try {
@@ -75,6 +80,7 @@ export function Finance() {
     }));
 
   const filteredCustomers = customers.filter(c => {
+    if (c.oldDebt <= 0) return false;
     const age = debtAgeByCustomer.get(c.id) ?? 0;
     const matchAging =
       agingFilter === "all" ||
@@ -87,6 +93,8 @@ export function Finance() {
       c.phone.includes(searchTerm)
     );
   });
+  const debtTotalPages = Math.max(1, Math.ceil(filteredCustomers.length / debtPageSize));
+  const pagedCustomers = filteredCustomers.slice((debtPage - 1) * debtPageSize, debtPage * debtPageSize);
 
   const selectedCustomerOrders = useMemo(() => {
     if (!selectedCustomer) return [];
@@ -110,7 +118,15 @@ export function Finance() {
   const openReceiptForCustomer = (customer: Customer) => {
     setSelectedCustomerForReceipt(customer.id);
     setReceiptAmount(customer.oldDebt > 0 ? customer.oldDebt : "");
+    setReceiptPaymentMethod("CASH");
+    setReceiptNote(`Thu nợ ${customer.name}`);
     setIsReceiptOpen(true);
+  };
+
+  const selectReceiptCustomer = (customerId: string) => {
+    setSelectedCustomerForReceipt(customerId);
+    const customer = customers.find((item) => item.id === customerId);
+    if (customer) setReceiptAmount(customer.oldDebt);
   };
 
   const handleReceiptSubmit = async (e: React.FormEvent) => {
@@ -136,8 +152,8 @@ export function Finance() {
         body: JSON.stringify({
           customerId: selectedCustomerForReceipt,
           amount,
-          paymentMethod: "CASH",
-          note: "Thu nợ từ màn hình tài chính"
+          paymentMethod: receiptPaymentMethod,
+          note: receiptNote.trim() || "Thu nợ từ màn hình tài chính"
         })
       });
       const body = await response.json();
@@ -157,6 +173,7 @@ export function Finance() {
     setIsReceiptOpen(false);
     setSelectedCustomerForReceipt("");
     setReceiptAmount('');
+    setReceiptNote("");
   };
 
   return (
@@ -205,7 +222,7 @@ export function Finance() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setAgingFilter(key as AgingFilter)}
+                    onClick={() => { setAgingFilter(key as AgingFilter); setDebtPage(1); }}
                     className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-bold ${
                       agingFilter === key ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600"
                     }`}
@@ -333,14 +350,14 @@ export function Finance() {
             <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="font-bold text-zinc-900 text-lg">Quản lý công nợ khách hàng</h2>
-                <div className="mt-1 text-sm text-zinc-500">{filteredCustomers.length} khách theo bộ lọc</div>
+                <div className="mt-1 text-sm text-zinc-500">{filteredCustomers.length} khách còn công nợ</div>
               </div>
               <div className="relative w-full sm:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                 <Input 
                   type="text" 
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setDebtPage(1); }}
                   placeholder="Tìm khách hàng..."
                   className="pl-10"
                 />
@@ -359,7 +376,7 @@ export function Finance() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-zinc-200">
-                  {filteredCustomers.map((customer) => {
+                  {pagedCustomers.map((customer) => {
                     const selected = selectedCustomer?.id === customer.id;
                     const age = debtAgeByCustomer.get(customer.id) ?? 0;
                     return (
@@ -398,7 +415,7 @@ export function Finance() {
             </div>
 
             <div className="md:hidden flex-1 overflow-y-auto space-y-3 p-3 sm:p-4 custom-scrollbar">
-              {filteredCustomers.map((customer) => {
+              {pagedCustomers.map((customer) => {
                 const selected = selectedCustomer?.id === customer.id;
                 return (
                   <div
@@ -440,6 +457,14 @@ export function Finance() {
                   <p>Không tìm thấy khách hàng nào</p>
                 </div>
               )}
+            </div>
+            <div className="flex flex-col gap-3 border-t border-zinc-200 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-zinc-500">Trang {debtPage}/{debtTotalPages}</span>
+              <div className="flex items-center gap-2">
+                <select value={debtPageSize} onChange={(event) => { setDebtPageSize(Number(event.target.value)); setDebtPage(1); }} className="h-9 rounded-md border border-zinc-200 bg-white px-2"><option value={10}>10 / trang</option><option value={20}>20 / trang</option><option value={50}>50 / trang</option></select>
+                <Button size="sm" variant="outline" disabled={debtPage <= 1} onClick={() => setDebtPage((current) => current - 1)}>Trước</Button>
+                <Button size="sm" variant="outline" disabled={debtPage >= debtTotalPages} onClick={() => setDebtPage((current) => current + 1)}>Sau</Button>
+              </div>
             </div>
           </div>
 
@@ -552,19 +577,7 @@ export function Finance() {
           <div className="space-y-5 flex-1">
             <div>
               <label className="block text-sm font-bold text-zinc-700 mb-2">Chọn Khách hàng</label>
-              <select 
-                value={selectedCustomerForReceipt}
-                onChange={(e) => setSelectedCustomerForReceipt(e.target.value)}
-                className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                required
-              >
-                <option value="">-- Chọn khách hàng --</option>
-                {customers.filter(c => c.oldDebt > 0).map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} (Nợ: {c.oldDebt.toLocaleString()} đ)
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect value={selectedCustomerForReceipt} onChange={selectReceiptCustomer} required placeholder="-- Chọn khách hàng --" searchPlaceholder="Tìm tên, SĐT khách hàng..." options={customers.filter((customer) => customer.oldDebt > 0).map((customer) => ({ value: customer.id, label: customer.name, description: `${customer.phone || "Chưa có SĐT"} · Nợ ${customer.oldDebt.toLocaleString()} đ` }))} />
             </div>
             
             {selectedCustomerForReceipt && (
@@ -588,6 +601,11 @@ export function Finance() {
                 className="text-lg font-bold text-emerald-600"
               />
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức thu</label><select value={receiptPaymentMethod} onChange={(event) => setReceiptPaymentMethod(event.target.value)} className="flex h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm"><option value="CASH">Tiền mặt</option><option value="TRANSFER">Chuyển khoản</option><option value="CARD">Thẻ</option><option value="OTHER">Khác</option></select></div>
+              <div><label className="mb-2 block text-sm font-bold text-zinc-700">Ngày thu</label><Input type="date" defaultValue={new Date().toISOString().slice(0, 10)} disabled /></div>
+            </div>
+            <div><label className="mb-2 block text-sm font-bold text-zinc-700">Nội dung / ghi chú</label><textarea value={receiptNote} onChange={(event) => setReceiptNote(event.target.value)} rows={3} placeholder="VD: Thu công nợ đơn DH..." className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" /></div>
           </div>
           
           <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-100">
