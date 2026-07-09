@@ -20,7 +20,7 @@ export async function findAuthUserIdByEmail(supabase: SupabaseClient, email: str
 
 export async function upsertAuthPassword(supabase: SupabaseClient, email: string, password?: string) {
   if (!password) return;
-  if (password.length < 6) throw new Error("Mật khẩu phải có ít nhất 6 ký tự.");
+  if (password.length < 8) throw new Error("Mật khẩu phải có ít nhất 8 ký tự.");
 
   const normalizedEmail = email.trim().toLowerCase();
   const authUserId = await findAuthUserIdByEmail(supabase, normalizedEmail);
