@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDataStore, Product } from "../store/data";
-import { ArrowDownToLine, ArrowUpFromLine, Check, ClipboardCheck, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, ClipboardCheck, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -46,6 +46,27 @@ type ApprovalRequest = {
   }>;
 };
 
+type SupplierRow = {
+  id: string;
+  code?: string;
+  name: string;
+};
+
+type InventoryOperation = {
+  code: string;
+  name: string;
+  direction: "IN" | "OUT" | "COUNT";
+  costingMethod?: string;
+};
+
+const defaultInventoryOperations: InventoryOperation[] = [
+  { code: "PURCHASE_IN", name: "Nhập mua hàng", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
+  { code: "RETURN_IN", name: "Nhập hàng trả lại", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
+  { code: "SALE_OUT", name: "Xuất bán hàng", direction: "OUT", costingMethod: "WEIGHTED_AVERAGE" },
+  { code: "DAMAGE_OUT", name: "Xuất hao hụt/hư hỏng", direction: "OUT", costingMethod: "WEIGHTED_AVERAGE" },
+  { code: "STOCK_COUNT", name: "Kiểm kê điều chỉnh", direction: "COUNT", costingMethod: "WEIGHTED_AVERAGE" }
+];
+
 export function Inventory() {
   const { products, loadLiveData } = useDataStore();
   const user = useAuthStore((state) => state.user);
@@ -66,6 +87,52 @@ export function Inventory() {
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
+  const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
+  const [inventoryOperations, setInventoryOperations] = useState<InventoryOperation[]>(defaultInventoryOperations);
+  const [supplierId, setSupplierId] = useState("");
+  const [documentCode, setDocumentCode] = useState("");
+  const [operationType, setOperationType] = useState("PURCHASE_IN");
+  const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [unitCost, setUnitCost] = useState<number>(0);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [vatAmount, setVatAmount] = useState<number>(0);
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    code: "",
+    name: "",
+    category: "",
+    unit: "HỘP",
+    size: "",
+    salePrice: 0
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    void (async () => {
+      try {
+        const supplierResponse = await fetch("/api/data/suppliers", { headers: await getAuthHeaders() });
+        const body = await supplierResponse.json();
+        if (mounted && supplierResponse.ok && body.ok) setSuppliers(body.rows ?? []);
+      } catch {
+        if (mounted) setSuppliers([]);
+      }
+      try {
+        const operationResponse = await fetch("/api/settings?key=inventoryOperations");
+        const body = await operationResponse.json();
+        const operations = body?.inventoryOperations?.operations;
+        if (mounted && Array.isArray(operations) && operations.length > 0) setInventoryOperations(operations);
+      } catch {
+        if (mounted) setInventoryOperations(defaultInventoryOperations);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const stockInTotal = Math.max(0, quantity * unitCost - discountAmount + vatAmount);
+  const stockInPayable = Math.max(0, stockInTotal - paidAmount);
 
   const filteredProducts = products.filter((product) => {
     const term = searchTerm.toLowerCase();
@@ -124,6 +191,20 @@ export function Inventory() {
     setSelectedProduct(product ?? null);
     setQuantity(0);
     setNote("");
+    setSupplierId("");
+    setDocumentCode("");
+    setOperationType(
+      nextMode === "IN"
+        ? (inventoryOperations.find((item) => item.direction === "IN")?.code ?? "PURCHASE_IN")
+        : (inventoryOperations.find((item) => item.direction === "OUT")?.code ?? "SALE_OUT")
+    );
+    setReceivedAt(new Date().toISOString().slice(0, 10));
+    setUnitCost(nextMode === "IN" ? Number(product?.cost ?? 0) : 0);
+    setDiscountAmount(0);
+    setVatAmount(0);
+    setPaidAmount(0);
+    setIsCreatingProduct(false);
+    setNewProduct({ code: "", name: "", category: "", unit: "HỘP", size: "", salePrice: 0 });
     setIsAdjustOpen(true);
   };
 
@@ -172,7 +253,11 @@ export function Inventory() {
       await saveCountSheet();
       return;
     }
-    if (!selectedProduct) {
+    if (mode === "IN" && isCreatingProduct && (!newProduct.code.trim() || !newProduct.name.trim())) {
+      alert("Vui lòng nhập mã hàng và tên hàng hóa mới.");
+      return;
+    }
+    if (!selectedProduct && !(mode === "IN" && isCreatingProduct)) {
       alert("Vui lòng chọn sản phẩm.");
       return;
     }
@@ -182,6 +267,46 @@ export function Inventory() {
     }
     setIsSaving(true);
     try {
+      let productForAdjustment = selectedProduct;
+      if (mode === "IN" && isCreatingProduct) {
+        const productResponse = await fetch("/api/data/products", {
+          method: "POST",
+          headers: {
+            ...(await getAuthHeaders()),
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            code: newProduct.code,
+            productName: newProduct.name,
+            invoiceName: newProduct.name,
+            category: newProduct.category,
+            unit: newProduct.unit,
+            size: newProduct.size,
+            cost: unitCost,
+            price: newProduct.salePrice,
+            stock: 0,
+            warehouseCode: "KHO-CHINH"
+          })
+        });
+        const productBody = await productResponse.json();
+        if (!productResponse.ok || !productBody.ok) throw new Error(productBody.error ?? "Không tạo được hàng hóa mới");
+        productForAdjustment = {
+          id: productBody.product.id,
+          code: productBody.product.code,
+          name: productBody.product.product_name,
+          invoiceName: productBody.product.invoice_name,
+          productType: productBody.product.product_type,
+          category: productBody.product.category ?? "",
+          size: productBody.product.size ?? "",
+          unit: productBody.product.unit ?? newProduct.unit,
+          stock: 0,
+          price: Number(productBody.product.sell_price_box_vat ?? 0),
+          cost: Number(productBody.product.cost_price ?? unitCost),
+          status: productBody.product.status,
+          lifecycleStatus: productBody.product.lifecycle_status
+        };
+      }
+
       const response = await fetch("/api/data/inventory-adjustments", {
         method: "POST",
         headers: {
@@ -190,16 +315,24 @@ export function Inventory() {
         },
         body: JSON.stringify({
           mode,
-          productId: selectedProduct.id,
+          productId: productForAdjustment?.id,
           quantity,
           warehouseCode: "KHO-CHINH",
+          operationType,
+          supplierId,
+          documentCode,
+          receivedAt,
+          unitCost,
+          discountAmount,
+          vatAmount,
+          paidAmount,
           note
         })
       });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được nghiệp vụ kho");
       await loadLiveData();
-      alert(`${MODE_LABEL[mode]} thành công. Tồn sau: ${Number(body.stockAfter ?? 0).toLocaleString()} ${selectedProduct.unit}`);
+      alert(`${MODE_LABEL[mode]} thành công. Tồn sau: ${Number(body.stockAfter ?? 0).toLocaleString()} ${productForAdjustment?.unit ?? ""}`);
       setSelectedProduct(null);
       setIsAdjustOpen(false);
     } catch (error) {
@@ -555,7 +688,7 @@ export function Inventory() {
         )}
       </div>
 
-      <Dialog isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title={MODE_LABEL[mode]}>
+      <Dialog isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title={MODE_LABEL[mode]} className={mode === "IN" ? "sm:max-w-3xl" : undefined}>
         <div className="flex flex-col h-full">
           {mode === "COUNT" ? (
             <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -618,17 +751,69 @@ export function Inventory() {
             </div>
           ) : (
           <div className="space-y-5 flex-1">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1.5">Sản phẩm</label>
-              <select 
-                value={selectedProduct?.id ?? ""} 
-                onChange={(event) => setSelectedProduct(products.find((item) => item.id === event.target.value) ?? null)} 
-                className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              >
-                <option value="">-- Chọn sản phẩm --</option>
-                {products.map((product) => <option key={product.id} value={product.id}>{product.code} - {product.name}</option>)}
-              </select>
-            </div>
+            {mode === "IN" && (
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-emerald-800">
+                  <input
+                    type="checkbox"
+                    checked={isCreatingProduct}
+                    onChange={(event) => {
+                      setIsCreatingProduct(event.target.checked);
+                      if (event.target.checked) setSelectedProduct(null);
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <Plus className="h-4 w-4" />
+                  Nhập kho hàng hóa mới
+                </label>
+                <div className="mt-1 text-xs text-emerald-700">Tạo mã hàng ngay tại phiếu nhập rồi ghi nhận giá vốn, công nợ nhà cung cấp.</div>
+              </div>
+            )}
+
+            {mode === "IN" && isCreatingProduct ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Mã hàng mới (*)</label>
+                  <Input value={newProduct.code} onChange={(event) => setNewProduct((current) => ({ ...current, code: event.target.value }))} placeholder="VD: SP001" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Đơn vị tính</label>
+                  <Input value={newProduct.unit} onChange={(event) => setNewProduct((current) => ({ ...current, unit: event.target.value }))} placeholder="HỘP, CÁI, KG..." />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Tên hàng hóa mới (*)</label>
+                  <Input value={newProduct.name} onChange={(event) => setNewProduct((current) => ({ ...current, name: event.target.value }))} placeholder="Tên hàng hóa..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Danh mục</label>
+                  <Input value={newProduct.category} onChange={(event) => setNewProduct((current) => ({ ...current, category: event.target.value }))} placeholder="VD: Gạch, keo, phụ kiện..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Quy cách</label>
+                  <Input value={newProduct.size} onChange={(event) => setNewProduct((current) => ({ ...current, size: event.target.value }))} placeholder="VD: 400x800, 20kg..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Giá bán dự kiến</label>
+                  <Input type="number" value={newProduct.salePrice || ""} onChange={(event) => setNewProduct((current) => ({ ...current, salePrice: Number(event.target.value) || 0 }))} placeholder="0" />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Sản phẩm</label>
+                <select 
+                  value={selectedProduct?.id ?? ""} 
+                  onChange={(event) => {
+                    const product = products.find((item) => item.id === event.target.value) ?? null;
+                    setSelectedProduct(product);
+                    if (mode === "IN") setUnitCost(Number(product?.cost ?? 0));
+                  }} 
+                  className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                >
+                  <option value="">-- Chọn sản phẩm --</option>
+                  {products.map((product) => <option key={product.id} value={product.id}>{product.code} - {product.name}</option>)}
+                </select>
+              </div>
+            )}
             
             {selectedProduct && (
               <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 flex items-center justify-between">
@@ -638,7 +823,28 @@ export function Inventory() {
                 </div>
               </div>
             )}
-            
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Loại nghiệp vụ</label>
+                <select
+                  value={operationType}
+                  onChange={(event) => setOperationType(event.target.value)}
+                  className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                >
+                  {inventoryOperations
+                    .filter((item) => mode === "IN" ? item.direction === "IN" : item.direction === "OUT")
+                    .map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+                </select>
+              </div>
+              {mode === "IN" && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Ngày nhập</label>
+                  <Input type="date" value={receivedAt} onChange={(event) => setReceivedAt(event.target.value)} />
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1.5">{mode === "COUNT" ? "Tồn thực tế sau kiểm kê" : "Số lượng"}</label>
               <Input 
@@ -648,7 +854,60 @@ export function Inventory() {
                 placeholder="Nhập số lượng..."
               />
             </div>
-            
+
+            {mode === "IN" && (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nhà cung cấp</label>
+                    <select
+                      value={supplierId}
+                      onChange={(event) => setSupplierId(event.target.value)}
+                      className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    >
+                      <option value="">-- Chưa chọn NCC --</option>
+                      {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code ? `${supplier.code} - ` : ""}{supplier.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Số chứng từ</label>
+                    <Input value={documentCode} onChange={(event) => setDocumentCode(event.target.value)} placeholder="Tự tạo nếu bỏ trống" />
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Giá nhập</label>
+                    <Input type="number" value={unitCost || ""} onChange={(event) => setUnitCost(Number(event.target.value) || 0)} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Giảm giá</label>
+                    <Input type="number" value={discountAmount || ""} onChange={(event) => setDiscountAmount(Number(event.target.value) || 0)} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">VAT/Chi phí</label>
+                    <Input type="number" value={vatAmount || ""} onChange={(event) => setVatAmount(Number(event.target.value) || 0)} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1.5">Đã trả</label>
+                    <Input type="number" value={paidAmount || ""} onChange={(event) => setPaidAmount(Number(event.target.value) || 0)} placeholder="0" />
+                  </div>
+                </div>
+                <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-3 sm:grid-cols-3">
+                  <div>
+                    <div className="text-xs font-bold uppercase text-zinc-500">Tiền hàng</div>
+                    <div className="mt-1 font-black text-zinc-900">{(quantity * unitCost).toLocaleString()} đ</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold uppercase text-zinc-500">Tổng nhập</div>
+                    <div className="mt-1 font-black text-emerald-700">{stockInTotal.toLocaleString()} đ</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold uppercase text-zinc-500">Còn phải trả</div>
+                    <div className={`mt-1 font-black ${stockInPayable > 0 ? "text-red-600" : "text-zinc-900"}`}>{stockInPayable.toLocaleString()} đ</div>
+                  </div>
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1.5">Ghi chú</label>
               <textarea 

@@ -503,6 +503,14 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   const warehouseId = await ensureWarehouse(toStringValue(body.warehouseCode, "KHO-CHINH"));
   const quantity = Math.max(0, toNumber(body.quantity));
   const note = optionalString(body.note);
+  const operationType = toStringValue(body.operationType, mode === "IN" ? "PURCHASE_IN" : mode).trim().toUpperCase();
+  const documentCode = optionalString(body.documentCode);
+  const supplierId = optionalString(body.supplierId);
+  const receivedAt = optionalString(body.receivedAt ?? body.transactionDate) ?? new Date().toISOString();
+  const unitCost = Math.max(0, toNumber(body.unitCost ?? body.costPrice));
+  const discountAmount = Math.max(0, toNumber(body.discountAmount));
+  const vatAmount = Math.max(0, toNumber(body.vatAmount));
+  const paidAmount = Math.max(0, toNumber(body.paidAmount));
 
   const { data: balance, error: balanceError } = await supabase
     .from("inventory_balances")
@@ -531,6 +539,89 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
     sourceType = "STOCK_EXPORT_REQUEST";
   }
 
+  let purchaseId: string | null = null;
+  if (mode === "IN") {
+    const lineTotal = quantity * unitCost;
+    const totalAmount = Math.max(0, lineTotal - discountAmount + vatAmount);
+    const payableAmount = Math.max(0, totalAmount - paidAmount);
+
+    if (unitCost > 0 || supplierId || documentCode) {
+      const { data: purchase, error: purchaseError } = await supabase
+        .from("purchase_orders")
+        .insert({
+          code: documentCode ?? createCode("PNK"),
+          purchase_date: receivedAt,
+          supplier_id: supplierId,
+          warehouse_id: warehouseId,
+          subtotal: lineTotal,
+          discount_amount: discountAmount,
+          vat_amount: vatAmount,
+          total_amount: totalAmount,
+          paid_amount: Math.min(paidAmount, totalAmount),
+          payable_amount: payableAmount,
+          status: "RECEIVED",
+          note: [operationType, note].filter(Boolean).join(" - ")
+        })
+        .select("id")
+        .single();
+      if (purchaseError) throw new Error(purchaseError.message);
+      purchaseId = purchase.id as string;
+
+      const { data: product } = await supabase
+        .from("products")
+        .select("code,product_name,unit,cost_price")
+        .eq("id", productId)
+        .maybeSingle();
+
+      const { error: itemError } = await supabase.from("purchase_order_items").insert({
+        purchase_id: purchaseId,
+        product_id: productId,
+        product_code: product?.code,
+        product_name: product?.product_name ?? "Hàng hóa",
+        unit: product?.unit,
+        quantity,
+        unit_cost: unitCost,
+        line_total: lineTotal
+      });
+      if (itemError) throw new Error(itemError.message);
+
+      if (unitCost > 0 && stockAfter > 0) {
+        const oldCost = toNumber(product?.cost_price);
+        const weightedCost = Math.round(((current * oldCost) + (quantity * unitCost)) / stockAfter);
+        const { error: costError } = await supabase
+          .from("products")
+          .update({ cost_price: weightedCost, updated_at: new Date().toISOString() })
+          .eq("id", productId);
+        if (costError) throw new Error(costError.message);
+      }
+
+      if (supplierId && payableAmount > 0) {
+        const { data: supplier } = await supabase
+          .from("suppliers")
+          .select("current_payable")
+          .eq("id", supplierId)
+          .maybeSingle();
+        const balanceAfter = toNumber(supplier?.current_payable) + payableAmount;
+        const { error: supplierError } = await supabase
+          .from("suppliers")
+          .update({ current_payable: balanceAfter, updated_at: new Date().toISOString() })
+          .eq("id", supplierId);
+        if (supplierError) throw new Error(supplierError.message);
+        const { error: ledgerError } = await supabase.from("supplier_debt_ledger").insert({
+          supplier_id: supplierId,
+          source_type: "PURCHASE_ORDER",
+          source_id: purchaseId,
+          debit: payableAmount,
+          credit: 0,
+          balance_after: balanceAfter,
+          status: "OPEN",
+          note: documentCode ?? "Phiếu nhập kho"
+        });
+        if (ledgerError) throw new Error(ledgerError.message);
+      }
+    }
+  }
+
   const balancePayload = {
     warehouse_id: warehouseId,
     product_id: productId,
@@ -546,16 +637,16 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   }
 
   const { data: transaction, error: transactionError } = await supabase
-    .from("inventory_transactions")
-    .insert({
-      warehouse_id: warehouseId,
-      product_id: productId,
-      source_type: sourceType,
-      source_id: createCode(sourceType === "STOCK_EXPORT_REQUEST" ? "DXK" : "KHO"),
-      quantity_change: quantityChange,
-      stock_after: stockAfter,
-      note: note ?? `${sourceType} bởi ${actor.email}`
-    })
+      .from("inventory_transactions")
+      .insert({
+        warehouse_id: warehouseId,
+        product_id: productId,
+        source_type: mode === "IN" ? operationType : sourceType,
+        source_id: purchaseId,
+        quantity_change: quantityChange,
+        stock_after: stockAfter,
+        note: note ?? `${mode === "IN" ? operationType : sourceType} bởi ${actor.email}`
+      })
     .select("*")
     .single();
   if (transactionError) throw new Error(transactionError.message);
@@ -568,8 +659,8 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
     after_json: transaction
   });
 
-  await bestEffortSyncTables(["inventory_balances", "inventory_transactions"]);
-  res.status(200).json({ ok: true, transaction, stockAfter });
+  await bestEffortSyncTables(["inventory_balances", "inventory_transactions", "purchase_orders", "purchase_order_items"]);
+  res.status(200).json({ ok: true, transaction, stockAfter, purchaseId });
 }
 
 type CountRow = {

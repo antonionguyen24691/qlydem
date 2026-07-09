@@ -67,6 +67,15 @@ type UnitSettings = {
   }>;
 };
 
+type InventoryOperationSettings = {
+  operations: Array<{
+    code: string;
+    name: string;
+    direction: "IN" | "OUT" | "COUNT";
+    costingMethod?: string;
+  }>;
+};
+
 type ReadinessTable = {
   table: string;
   ok: boolean;
@@ -95,6 +104,16 @@ const defaultUnits: UnitSettings = {
     { code: "HỘP", name: "Hộp", factor: 1 },
     { code: "VIÊN", name: "Viên", baseCode: "HỘP", factor: 1 },
     { code: "M2", name: "Mét vuông", baseCode: "HỘP", factor: 1 }
+  ]
+};
+
+const defaultInventoryOperations: InventoryOperationSettings = {
+  operations: [
+    { code: "PURCHASE_IN", name: "Nhập mua hàng", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "RETURN_IN", name: "Nhập hàng trả lại", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "SALE_OUT", name: "Xuất bán hàng", direction: "OUT", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "DAMAGE_OUT", name: "Xuất hao hụt/hư hỏng", direction: "OUT", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "STOCK_COUNT", name: "Kiểm kê điều chỉnh", direction: "COUNT", costingMethod: "WEIGHTED_AVERAGE" }
   ]
 };
 
@@ -187,6 +206,8 @@ export function Settings() {
   const [unitMessage, setUnitMessage] = useState("");
   const [unitError, setUnitError] = useState("");
   const [isSavingUnits, setIsSavingUnits] = useState(false);
+  const [inventoryOperationForm, setInventoryOperationForm] = useState<InventoryOperationSettings>(defaultInventoryOperations);
+  const [isSavingInventoryOperations, setIsSavingInventoryOperations] = useState(false);
   const [readiness, setReadiness] = useState<ReadinessResult | null>(null);
   const [operationsMessage, setOperationsMessage] = useState("");
   const [operationsError, setOperationsError] = useState("");
@@ -233,6 +254,7 @@ export function Settings() {
     loadBranding();
     loadPayment();
     loadUnits();
+    loadInventoryOperations();
   }, []);
 
   useEffect(() => {
@@ -457,6 +479,43 @@ export function Settings() {
       setUnitError(error instanceof Error ? error.message : "Không lưu được đơn vị tính");
     } finally {
       setIsSavingUnits(false);
+    }
+  };
+
+  const loadInventoryOperations = async () => {
+    try {
+      const response = await fetch("/api/settings?key=inventoryOperations");
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được hình thức kho");
+      setInventoryOperationForm({ ...defaultInventoryOperations, ...(body.inventoryOperations ?? {}) });
+    } catch (error) {
+      setOperationsError(error instanceof Error ? error.message : "Không tải được hình thức kho");
+    }
+  };
+
+  const saveInventoryOperations = async () => {
+    setIsSavingInventoryOperations(true);
+    setOperationsError("");
+    setOperationsMessage("");
+    try {
+      const response = await fetch("/api/settings?key=inventoryOperations", {
+        method: "POST",
+        headers: {
+          ...(await getAuthHeaders()),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          ...inventoryOperationForm
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được hình thức kho");
+      setInventoryOperationForm({ ...defaultInventoryOperations, ...(body.inventoryOperations ?? inventoryOperationForm) });
+      setOperationsMessage("Đã lưu cấu hình hình thức nhập/xuất kho.");
+    } catch (error) {
+      setOperationsError(error instanceof Error ? error.message : "Không lưu được hình thức kho");
+    } finally {
+      setIsSavingInventoryOperations(false);
     }
   };
 
@@ -1079,6 +1138,88 @@ export function Settings() {
           <div className="p-4 sm:p-6 space-y-5">
             {operationsError && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{operationsError}</div>}
             {operationsMessage && <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{operationsMessage}</div>}
+
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-base font-black text-zinc-900">Hình thức nhập/xuất kho</div>
+                  <div className="mt-1 text-sm text-zinc-500">Admin cấu hình loại phiếu để phân loại nhập mua, trả hàng, xuất bán, hao hụt và kiểm kê.</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setInventoryOperationForm((current) => ({
+                    operations: [
+                      ...current.operations,
+                      { code: "", name: "", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" }
+                    ]
+                  }))}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Thêm hình thức
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {inventoryOperationForm.operations.map((operation, index) => (
+                  <div key={`${operation.code}-${index}`} className="grid gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3 lg:grid-cols-[160px_1fr_150px_190px_auto]">
+                    <Input
+                      value={operation.code}
+                      onChange={(event) => setInventoryOperationForm((current) => ({
+                        operations: current.operations.map((item, itemIndex) => itemIndex === index ? { ...item, code: event.target.value.toUpperCase().replace(/\s+/g, "_") } : item)
+                      }))}
+                      placeholder="Mã"
+                    />
+                    <Input
+                      value={operation.name}
+                      onChange={(event) => setInventoryOperationForm((current) => ({
+                        operations: current.operations.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item)
+                      }))}
+                      placeholder="Tên hiển thị"
+                    />
+                    <select
+                      value={operation.direction}
+                      onChange={(event) => setInventoryOperationForm((current) => ({
+                        operations: current.operations.map((item, itemIndex) => itemIndex === index ? { ...item, direction: event.target.value as "IN" | "OUT" | "COUNT" } : item)
+                      }))}
+                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                    >
+                      <option value="IN">Nhập kho</option>
+                      <option value="OUT">Xuất kho</option>
+                      <option value="COUNT">Kiểm kê</option>
+                    </select>
+                    <select
+                      value={operation.costingMethod ?? "WEIGHTED_AVERAGE"}
+                      onChange={(event) => setInventoryOperationForm((current) => ({
+                        operations: current.operations.map((item, itemIndex) => itemIndex === index ? { ...item, costingMethod: event.target.value } : item)
+                      }))}
+                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                    >
+                      <option value="WEIGHTED_AVERAGE">Bình quân gia quyền</option>
+                      <option value="FIFO">FIFO</option>
+                      <option value="LOT">Theo lô cụ thể</option>
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-red-600"
+                      onClick={() => setInventoryOperationForm((current) => ({
+                        operations: current.operations.filter((_, itemIndex) => itemIndex !== index)
+                      }))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <Button type="button" onClick={saveInventoryOperations} disabled={isSavingInventoryOperations || inventoryOperationForm.operations.length === 0}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSavingInventoryOperations ? "Đang lưu..." : "Lưu hình thức kho"}
+                </Button>
+              </div>
+            </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="rounded-xl border border-zinc-200 bg-white p-4">

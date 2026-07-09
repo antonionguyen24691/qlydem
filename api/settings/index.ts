@@ -32,6 +32,15 @@ type UnitSettings = {
   }>;
 };
 
+type InventoryOperationSettings = {
+  operations: Array<{
+    code: string;
+    name: string;
+    direction: "IN" | "OUT" | "COUNT";
+    costingMethod?: "WEIGHTED_AVERAGE" | "FIFO" | "LOT";
+  }>;
+};
+
 const defaultBranding: BrandingSettings = {
   appName: "PMQL",
   companyName: "PMQL",
@@ -56,6 +65,16 @@ const defaultUnits: UnitSettings = {
     { code: "HỘP", name: "Hộp", factor: 1 },
     { code: "VIÊN", name: "Viên", baseCode: "HỘP", factor: 1 },
     { code: "M2", name: "Mét vuông", baseCode: "HỘP", factor: 1 }
+  ]
+};
+
+const defaultInventoryOperations: InventoryOperationSettings = {
+  operations: [
+    { code: "PURCHASE_IN", name: "Nhập mua hàng", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "RETURN_IN", name: "Nhập hàng trả lại", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "SALE_OUT", name: "Xuất bán hàng", direction: "OUT", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "DAMAGE_OUT", name: "Xuất hao hụt/hư hỏng", direction: "OUT", costingMethod: "WEIGHTED_AVERAGE" },
+    { code: "STOCK_COUNT", name: "Kiểm kê điều chỉnh", direction: "COUNT", costingMethod: "WEIGHTED_AVERAGE" }
   ]
 };
 
@@ -99,16 +118,35 @@ function normalizeUnits(input: Record<string, unknown>): UnitSettings {
   return { units: units.length > 0 ? units : defaultUnits.units };
 }
 
+function normalizeInventoryOperations(input: Record<string, unknown>): InventoryOperationSettings {
+  const rawOperations = Array.isArray(input.operations) ? input.operations : defaultInventoryOperations.operations;
+  const operations = rawOperations
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const direction = toStringValue(row.direction, "IN").trim().toUpperCase();
+      const costingMethod = toStringValue(row.costingMethod, "WEIGHTED_AVERAGE").trim().toUpperCase();
+      return {
+        code: toStringValue(row.code).trim().toUpperCase(),
+        name: toStringValue(row.name).trim(),
+        direction: ["IN", "OUT", "COUNT"].includes(direction) ? direction as "IN" | "OUT" | "COUNT" : "IN",
+        costingMethod: ["WEIGHTED_AVERAGE", "FIFO", "LOT"].includes(costingMethod) ? costingMethod as "WEIGHTED_AVERAGE" | "FIFO" | "LOT" : "WEIGHTED_AVERAGE"
+      };
+    })
+    .filter((item) => item.code && item.name);
+  return { operations: operations.length > 0 ? operations : defaultInventoryOperations.operations };
+}
+
 function normalizeSetting(key: string, input: Record<string, unknown>) {
   if (key === "branding") return normalizeBranding(input);
   if (key === "payment") return normalizePayment(input);
+  if (key === "inventoryOperations") return normalizeInventoryOperations(input);
   return normalizeUnits(input);
 }
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const key = getQueryValue(req.query?.key) ?? "branding";
-    if (!["branding", "payment", "units"].includes(key)) {
+    if (!["branding", "payment", "units", "inventoryOperations"].includes(key)) {
       res.status(400).json({ ok: false, error: "Unsupported settings key." });
       return;
     }
@@ -127,7 +165,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           ok: true,
           branding: key === "branding" ? normalizeBranding(value) : undefined,
           payment: key === "payment" ? normalizePayment(value) : undefined,
-          units: key === "units" ? normalizeUnits(value) : undefined
+          units: key === "units" ? normalizeUnits(value) : undefined,
+          inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined
         });
       } catch (error) {
         res.status(200).json({
@@ -135,6 +174,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           branding: key === "branding" ? defaultBranding : undefined,
           payment: key === "payment" ? defaultPayment : undefined,
           units: key === "units" ? defaultUnits : undefined,
+          inventoryOperations: key === "inventoryOperations" ? defaultInventoryOperations : undefined,
           warning: error instanceof Error ? error.message : "Không đọc được cấu hình Supabase."
         });
       }
@@ -170,7 +210,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         ok: true,
         branding: key === "branding" ? normalizeBranding(value) : undefined,
         payment: key === "payment" ? normalizePayment(value) : undefined,
-        units: key === "units" ? normalizeUnits(value) : undefined
+        units: key === "units" ? normalizeUnits(value) : undefined,
+        inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined
       });
       return;
     }
