@@ -88,6 +88,31 @@ export function Finance() {
     );
   });
 
+  const selectedCustomerOrders = useMemo(() => {
+    if (!selectedCustomer) return [];
+    return orders
+      .filter((order) => order.customerId === selectedCustomer.id || order.customerName === selectedCustomer.name)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [orders, selectedCustomer]);
+
+  const selectedCustomerReceipts = useMemo(() => {
+    if (!selectedCustomer) return [];
+    return receipts
+      .filter((receipt) => receipt.customer_id === selectedCustomer.id)
+      .sort((a, b) => new Date(b.receipt_date).getTime() - new Date(a.receipt_date).getTime());
+  }, [receipts, selectedCustomer]);
+
+  const selectedDebtOrders = selectedCustomerOrders.filter((order) => order.total > order.paid);
+  const selectedTotalSales = selectedCustomerOrders.reduce((sum, order) => sum + order.total, 0);
+  const selectedTotalPaid = selectedCustomerOrders.reduce((sum, order) => sum + order.paid, 0);
+  const selectedOldestDebtAge = selectedCustomer ? debtAgeByCustomer.get(selectedCustomer.id) ?? 0 : 0;
+
+  const openReceiptForCustomer = (customer: Customer) => {
+    setSelectedCustomerForReceipt(customer.id);
+    setReceiptAmount(customer.oldDebt > 0 ? customer.oldDebt : "");
+    setIsReceiptOpen(true);
+  };
+
   const handleReceiptSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = Number(receiptAmount);
@@ -303,193 +328,224 @@ export function Finance() {
         </div>
 
         {/* Debt Management Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 flex flex-col flex-1 min-h-[400px]">
-          <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="font-bold text-zinc-900 text-lg">Chi tiết công nợ khách hàng</h2>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
-              <Input 
-                type="text" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm khách hàng..."
-                className="pl-10"
-              />
+        <div className="grid flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 flex flex-col min-h-[480px]">
+            <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-bold text-zinc-900 text-lg">Quản lý công nợ khách hàng</h2>
+                <div className="mt-1 text-sm text-zinc-500">{filteredCustomers.length} khách theo bộ lọc</div>
+              </div>
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+                <Input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Tìm khách hàng..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <div className="hidden md:flex overflow-auto flex-1 custom-scrollbar">
+              <table className="min-w-[860px] w-full divide-y divide-zinc-200">
+                <thead className="bg-zinc-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Khách hàng</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">SĐT</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nợ hiện tại</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tuổi nợ</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-zinc-200">
+                  {filteredCustomers.map((customer) => {
+                    const selected = selectedCustomer?.id === customer.id;
+                    const age = debtAgeByCustomer.get(customer.id) ?? 0;
+                    return (
+                      <tr 
+                        key={customer.id} 
+                        className={`${selected ? "bg-emerald-50/70" : "hover:bg-zinc-50"} cursor-pointer transition-colors`}
+                        onClick={() => setSelectedCustomer(customer)}
+                      >
+                        <td className="px-5 py-4 text-sm font-bold text-zinc-900 uppercase">
+                          <div className="line-clamp-2">{customer.name}</div>
+                          <div className="mt-1 text-xs font-medium normal-case text-zinc-400">{customer.id}</div>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap text-sm text-zinc-500">{customer.phone || "-"}</td>
+                        <td className="px-5 py-4 whitespace-nowrap text-sm font-bold text-red-600 text-right">
+                          {customer.oldDebt > 0 ? customer.oldDebt.toLocaleString() + ' ₫' : "0 ₫"}
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-semibold text-zinc-700">
+                          {customer.oldDebt > 0 ? `${age} ngày` : "-"}
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            customer.oldDebt > customer.creditLimit && customer.creditLimit > 0
+                              ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20' 
+                              : customer.oldDebt > 0 
+                                ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20'
+                                : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
+                          }`}>
+                            {customer.oldDebt > customer.creditLimit && customer.creditLimit > 0 ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden flex-1 overflow-y-auto space-y-3 p-3 sm:p-4 custom-scrollbar">
+              {filteredCustomers.map((customer) => {
+                const selected = selectedCustomer?.id === customer.id;
+                return (
+                  <div
+                    key={customer.id}
+                    onClick={() => setSelectedCustomer(customer)}
+                    className={`${selected ? "border-emerald-300 bg-emerald-50/60" : "bg-white border-zinc-200"} p-3 sm:p-4 rounded-xl border shadow-sm active:scale-[0.98] transition-transform`}
+                  >
+                    <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
+                      <div className="min-w-0">
+                        <h3 className="mb-1 line-clamp-2 break-words text-base font-bold uppercase text-zinc-900">{customer.name}</h3>
+                        <div className="truncate text-sm font-medium text-zinc-500">{customer.phone || "-"}</div>
+                      </div>
+                      <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        customer.oldDebt > customer.creditLimit && customer.creditLimit > 0
+                          ? 'bg-red-50 text-red-700' 
+                          : customer.oldDebt > 0 
+                            ? 'bg-orange-50 text-orange-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                      }`}>
+                        {customer.oldDebt > customer.creditLimit && customer.creditLimit > 0 ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-end mt-4 pt-4 border-t border-zinc-100">
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium text-zinc-400 mb-0.5">Nợ hiện tại</div>
+                        <div className="truncate text-lg font-bold text-red-600 leading-none">{customer.oldDebt.toLocaleString()} ₫</div>
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className="text-xs font-medium text-zinc-400 mb-0.5">Tuổi nợ</div>
+                        <div className="truncate text-sm font-semibold text-zinc-700">{customer.oldDebt > 0 ? `${debtAgeByCustomer.get(customer.id) ?? 0} ngày` : "-"}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredCustomers.length === 0 && (
+                <div className="text-center py-10 text-zinc-500">
+                  <p>Không tìm thấy khách hàng nào</p>
+                </div>
+              )}
             </div>
           </div>
-          
-          {/* Desktop Table View */}
-          <div className="hidden md:flex overflow-auto flex-1 custom-scrollbar">
-            <table className="min-w-full divide-y divide-zinc-200">
-              <thead className="bg-zinc-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">Khách hàng</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider">SĐT</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nợ hiện tại</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-zinc-500 uppercase tracking-wider">Hạn mức</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-zinc-200">
-                {filteredCustomers.map((customer) => (
-                  <tr 
-                    key={customer.id} 
-                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedCustomer(customer)}
-                  >
-                    <td className="px-5 py-4 whitespace-nowrap text-sm font-bold text-zinc-900 uppercase">{customer.name}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-sm text-zinc-500">{customer.phone}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-sm font-bold text-red-600 text-right">
-                      {customer.oldDebt > 0 ? customer.oldDebt.toLocaleString() + ' ₫' : "0 ₫"}
-                    </td>
-                    <td className="px-5 py-4 whitespace-nowrap text-sm text-zinc-500 text-right">
-                      {customer.creditLimit.toLocaleString()} ₫
-                    </td>
-                    <td className="px-5 py-4 whitespace-nowrap text-center">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        customer.oldDebt > customer.creditLimit 
-                          ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20' 
-                          : customer.oldDebt > 0 
-                            ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20'
-                            : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
-                      }`}>
-                        {customer.oldDebt > customer.creditLimit ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden flex-1 overflow-y-auto space-y-3 p-3 sm:p-4 custom-scrollbar">
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                onClick={() => setSelectedCustomer(customer)}
-                className="bg-white p-3 sm:p-4 rounded-xl border border-zinc-200 shadow-sm active:scale-[0.98] transition-transform"
-              >
-                <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
-                  <div className="min-w-0">
-                    <h3 className="mb-1 line-clamp-2 break-words text-base font-bold uppercase text-zinc-900">{customer.name}</h3>
-                    <div className="truncate text-sm font-medium text-zinc-500">{customer.phone}</div>
-                  </div>
-                  <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    customer.oldDebt > customer.creditLimit 
-                      ? 'bg-red-50 text-red-700' 
-                      : customer.oldDebt > 0 
-                        ? 'bg-orange-50 text-orange-700'
-                        : 'bg-emerald-50 text-emerald-700'
-                  }`}>
-                    {customer.oldDebt > customer.creditLimit ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
-                  </span>
+          <div className="rounded-xl border border-zinc-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+            {selectedCustomer ? (
+              <div className="flex max-h-[calc(100vh-140px)] flex-col overflow-hidden">
+                <div className="border-b border-zinc-100 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-600">{selectedCustomer.phone || "Chưa có SĐT"}</div>
+                  <div className="mt-1 break-words text-xl font-black uppercase text-zinc-900">{selectedCustomer.name}</div>
+                  <div className="mt-2 line-clamp-2 text-sm text-zinc-500">{selectedCustomer.address || "Chưa có địa chỉ"}</div>
                 </div>
-                
-                <div className="flex justify-between items-end mt-4 pt-4 border-t border-zinc-100">
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-zinc-400 mb-0.5">Nợ hiện tại</div>
-                    <div className="truncate text-lg font-bold text-red-600 leading-none">{customer.oldDebt.toLocaleString()} ₫</div>
+
+                <div className="custom-scrollbar overflow-y-auto p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-red-100 bg-red-50 p-3">
+                      <div className="text-xs font-bold uppercase tracking-wider text-red-700">Nợ hiện tại</div>
+                      <div className="mt-1 truncate text-2xl font-black text-red-600">{selectedCustomer.oldDebt.toLocaleString()} ₫</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                      <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Hạn mức</div>
+                      <div className="mt-1 truncate text-xl font-black text-zinc-900">{selectedCustomer.creditLimit.toLocaleString()} ₫</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                      <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Tuổi nợ</div>
+                      <div className="mt-1 text-xl font-black text-zinc-900">{selectedCustomer.oldDebt > 0 ? `${selectedOldestDebtAge} ngày` : "-"}</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                      <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Đơn còn nợ</div>
+                      <div className="mt-1 text-xl font-black text-zinc-900">{selectedDebtOrders.length}</div>
+                    </div>
                   </div>
-                  <div className="min-w-0 text-right">
-                    <div className="text-xs font-medium text-zinc-400 mb-0.5">Hạn mức</div>
-                    <div className="truncate text-sm font-semibold text-zinc-700">{customer.creditLimit.toLocaleString()} ₫</div>
+
+                  <div className="grid grid-cols-2 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Doanh số</div>
+                      <div className="mt-1 font-black text-zinc-900">{selectedTotalSales.toLocaleString()} ₫</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Đã thu</div>
+                      <div className="mt-1 font-black text-emerald-600">{selectedTotalPaid.toLocaleString()} ₫</div>
+                    </div>
                   </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="font-bold text-zinc-900">Đơn hàng còn nợ</h3>
+                      <span className="text-xs font-bold text-red-600">{selectedDebtOrders.length}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {selectedDebtOrders.slice(0, 8).map((order) => (
+                        <div key={order.id} className="rounded-lg border border-zinc-200 bg-white p-3 text-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate font-bold text-emerald-700">{order.id}</div>
+                              <div className="text-xs text-zinc-500">{new Date(order.date).toLocaleDateString('vi-VN')}</div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="font-bold text-red-600">{(order.total - order.paid).toLocaleString()} ₫</div>
+                              <div className="text-xs text-zinc-500">Tổng {order.total.toLocaleString()} ₫</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {selectedDebtOrders.length === 0 && (
+                        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">Không còn đơn nợ.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="font-bold text-zinc-900">Phiếu thu</h3>
+                      <span className="text-xs font-bold text-emerald-600">{selectedCustomerReceipts.length}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {selectedCustomerReceipts.slice(0, 6).map((receipt) => (
+                        <div key={receipt.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 text-sm">
+                          <div>
+                            <div className="font-bold text-zinc-900">{receipt.code}</div>
+                            <div className="text-xs text-zinc-500">{new Date(receipt.receipt_date).toLocaleDateString("vi-VN")} · {receipt.payment_method}</div>
+                          </div>
+                          <div className="font-bold text-emerald-600">{Number(receipt.amount ?? 0).toLocaleString()} ₫</div>
+                        </div>
+                      ))}
+                      {selectedCustomerReceipts.length === 0 && (
+                        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">Chưa có phiếu thu.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-zinc-100 p-4">
+                  <Button variant="outline" onClick={() => setSelectedCustomer(null)}>Bỏ chọn</Button>
+                  <Button onClick={() => openReceiptForCustomer(selectedCustomer)}>Thu nợ</Button>
                 </div>
               </div>
-            ))}
-            {filteredCustomers.length === 0 && (
-              <div className="text-center py-10 text-zinc-500">
-                <p>Không tìm thấy khách hàng nào</p>
+            ) : (
+              <div className="flex min-h-[420px] flex-col items-center justify-center p-6 text-center">
+                <UserCircle className="h-12 w-12 text-zinc-300" />
+                <div className="mt-3 font-bold text-zinc-900">Chọn một khách hàng</div>
+                <div className="mt-1 text-sm text-zinc-500">Chi tiết công nợ, đơn còn nợ và phiếu thu sẽ hiện ngay tại đây.</div>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Customer Detail Dialog */}
-      <Dialog 
-        isOpen={!!selectedCustomer} 
-        onClose={() => setSelectedCustomer(null)} 
-        title="Công nợ khách hàng"
-      >
-        {selectedCustomer && (
-          <div className="flex flex-col h-full">
-            <div className="space-y-6 flex-1">
-              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200">
-                <div className="text-sm text-zinc-500 mb-1">Khách hàng:</div>
-                <div className="mb-3 break-words text-xl font-bold uppercase text-zinc-900">{selectedCustomer.name}</div>
-                <div className="flex flex-col gap-2 text-sm">
-                  <div className="grid grid-cols-[80px_1fr] gap-3">
-                    <span className="text-zinc-500">Mã KH:</span>
-                    <span className="break-words text-right font-medium text-zinc-900">{selectedCustomer.id}</span>
-                  </div>
-                  <div className="grid grid-cols-[80px_1fr] gap-3">
-                    <span className="text-zinc-500">SĐT:</span>
-                    <span className="break-words text-right font-medium text-zinc-900">{selectedCustomer.phone}</span>
-                  </div>
-                  <div className="grid grid-cols-[80px_1fr] gap-3">
-                    <span className="text-zinc-500">Địa chỉ:</span>
-                    <span className="break-words text-right font-medium text-zinc-900">{selectedCustomer.address || "-"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                    <span className="text-red-700 text-xs font-bold uppercase tracking-wider block mb-1">Nợ hiện tại</span>
-                    <div className="font-bold text-red-600 text-2xl truncate">{selectedCustomer.oldDebt.toLocaleString()}</div>
-                 </div>
-                 <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
-                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider block mb-1">Hạn mức</span>
-                    <div className="font-bold text-zinc-900 text-xl truncate">{selectedCustomer.creditLimit.toLocaleString()}</div>
-                 </div>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-zinc-900 mb-3">5 đơn hàng gần nhất</h4>
-                <div className="space-y-2">
-                  {orders.filter(o => o.customerId === selectedCustomer.id || o.customerName === selectedCustomer.name).slice(0, 5).map(order => (
-                    <div key={order.id} className="flex justify-between items-center text-sm border border-zinc-200 p-3 rounded-lg bg-white">
-                      <div>
-                        <div className="font-bold text-emerald-600">{order.id}</div>
-                        <div className="text-xs text-zinc-500">{new Date(order.date).toLocaleDateString('vi-VN')}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-zinc-900">{order.total.toLocaleString()} ₫</div>
-                        <div className="text-xs text-emerald-600 font-medium">Đã thu: {order.paid.toLocaleString()} ₫</div>
-                      </div>
-                    </div>
-                  ))}
-                  {orders.filter(o => o.customerId === selectedCustomer.id || o.customerName === selectedCustomer.name).length === 0 && (
-                     <div className="text-sm text-zinc-500 text-center py-4 border border-zinc-200 border-dashed rounded-lg bg-zinc-50">Chưa có đơn hàng nào.</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-100">
-               <Button 
-                onClick={() => setSelectedCustomer(null)}
-                variant="outline"
-                className="flex-1"
-              >
-                Đóng
-              </Button>
-               <Button 
-                onClick={() => {
-                   setSelectedCustomerForReceipt(selectedCustomer.id);
-                   setSelectedCustomer(null);
-                   setIsReceiptOpen(true);
-                }}
-                className="flex-1"
-              >
-                Thu nợ
-              </Button>
-            </div>
-          </div>
-        )}
-      </Dialog>
 
       <Dialog isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} title="Lập Phiếu Thu">
         <form onSubmit={handleReceiptSubmit} className="flex flex-col h-full">

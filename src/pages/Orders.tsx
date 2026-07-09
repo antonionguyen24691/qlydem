@@ -1,4 +1,5 @@
 import { useState, useMemo, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDataStore, Order } from "../store/data";
 import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -27,6 +28,7 @@ function startOfWeek(date: Date) {
 
 export function Orders() {
   const { orders, products, customers } = useDataStore();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [dateMode, setDateMode] = useState<DateFilterMode>("single");
@@ -550,6 +552,12 @@ export function Orders() {
               </Button>
               <Button onClick={() => exportSalesOrderXlsx(selectedOrder)}>
                 Xuất XLSX
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/orders/${encodeURIComponent(selectedOrder.id)}/bill`, { state: { order: selectedOrder } })}
+              >
+                Mở bill
               </Button>
               <Button 
                 onClick={() => printSalesOrder(selectedOrder)}

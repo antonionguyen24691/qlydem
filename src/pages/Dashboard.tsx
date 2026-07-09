@@ -56,8 +56,8 @@ export function Dashboard() {
     <div className="relative mx-auto w-full max-w-7xl p-3 pb-24 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Tổng quan</h1>
-        <p className="mt-1 text-sm text-zinc-500">Số liệu thật từ Supabase theo đơn hàng, tồn kho và công nợ.</p>
-        {isLoadingLiveData && <p className="mt-2 text-sm text-blue-600">Đang tải dữ liệu thật...</p>}
+        <p className="mt-1 text-sm text-zinc-500">Số liệu được đồng bộ theo đơn hàng, tồn kho và công nợ.</p>
+        {isLoadingLiveData && <p className="mt-2 text-sm text-blue-600">Đang đồng bộ dữ liệu...</p>}
         {liveDataError && <p className="mt-2 text-sm text-red-600">Lỗi dữ liệu: {liveDataError}</p>}
       </div>
 

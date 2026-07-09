@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePOSStore } from "../store/pos";
 import { useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
@@ -6,7 +7,6 @@ import { getAuthHeaders } from "../lib/supabase";
 import { Search, Trash2, Plus, Minus, X, ChevronDown, Package } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
 
 const POS_DRAFT_KEY = "pmql-pos-draft";
 
@@ -14,6 +14,7 @@ export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
   const draftPromptedRef = useRef(false);
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +31,6 @@ export function POS() {
   const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
-  const [lastCompletedOrder, setLastCompletedOrder] = useState<any>(null);
   const [newCustomer, setNewCustomer] = useState({
     name: "",
     phone: "",
@@ -164,13 +164,13 @@ export function POS() {
       setIsCheckingOut(false);
     }
 
-    setLastCompletedOrder(newOrder);
     clearCart();
     setSelectedCustomer(null);
     setCustomerSearch("");
     setDiscountPercent(0);
     setCustomerPaid("");
     setIsMobileCheckoutOpen(false);
+    navigate(`/orders/${encodeURIComponent(newOrder.id)}/bill`, { state: { order: newOrder } });
   };
 
   const handleCancel = () => {
@@ -576,25 +576,6 @@ export function POS() {
           </div>
         </div>
       </div>
-
-      {lastCompletedOrder && (
-        <div className="fixed bottom-4 left-4 right-4 z-[65] rounded-2xl border border-emerald-200 bg-white p-3 shadow-2xl sm:left-auto sm:w-[520px]">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-bold text-emerald-700">Đã bán thành công {lastCompletedOrder.id}</div>
-              <div className="truncate text-sm text-zinc-500">{lastCompletedOrder.customerName} · {lastCompletedOrder.total.toLocaleString()} đ</div>
-            </div>
-            <button onClick={() => setLastCompletedOrder(null)} className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700">
-              <X size={18} />
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Button size="sm" onClick={() => exportSalesOrderXlsx(lastCompletedOrder)}>Tải XLSX</Button>
-            <Button size="sm" variant="outline" onClick={() => printSalesOrder(lastCompletedOrder)}>In bill</Button>
-            <Button size="sm" variant="outline" onClick={() => void shareSalesOrderImage(lastCompletedOrder)}>Share ảnh</Button>
-          </div>
-        </div>
-      )}
 
       {showNewCustomerModal && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-zinc-900/50 p-0 sm:items-center sm:p-4">

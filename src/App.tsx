@@ -11,6 +11,7 @@ import { MainLayout } from "./components/layout/MainLayout";
 import { Dashboard } from "./pages/Dashboard";
 import { POS } from "./pages/POS";
 import { Orders } from "./pages/Orders";
+import { Bill } from "./pages/Bill";
 import { Products } from "./pages/Products";
 import { Inventory } from "./pages/Inventory";
 import { Customers } from "./pages/Customers";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="pos" element={<RequirePermission allow={canSell}><POS /></RequirePermission>} />
+          <Route path="orders/:orderId/bill" element={<RequirePermission allow={canSell}><Bill /></RequirePermission>} />
           <Route path="orders" element={<RequirePermission allow={canSell}><Orders /></RequirePermission>} />
           <Route path="products" element={<Products />} />
           <Route path="inventory" element={<RequirePermission allow={(user) => canManageInventory(user) || user?.role === "SALE"}><Inventory /></RequirePermission>} />

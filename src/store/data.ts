@@ -205,7 +205,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
       set({
         isLiveData: false,
         isLoadingLiveData: false,
-        liveDataError: error instanceof Error ? error.message : "Không tải được dữ liệu thật"
+        liveDataError: error instanceof Error ? error.message : "Không đồng bộ được dữ liệu"
       });
     }
   }
