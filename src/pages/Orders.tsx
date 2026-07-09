@@ -41,6 +41,12 @@ export function Orders() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  const downloadOrderXlsx = (order: Order) => {
+    void exportSalesOrderXlsx(order).catch((error) => {
+      alert(error instanceof Error ? error.message : "Không xuất được file XLSX.");
+    });
+  };
+
   // Lấy các ngày duy nhất từ orders
   const uniqueDates = useMemo(() => {
     const dates = Array.from(new Set(orders.map(o => dateKey(o.date)).filter(Boolean)));
@@ -302,7 +308,7 @@ export function Orders() {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          exportSalesOrderXlsx(order);
+                          downloadOrderXlsx(order);
                         }}
                         className="text-zinc-400 hover:text-emerald-600 p-2 rounded-lg hover:bg-emerald-50 transition-colors active:scale-95"
                       >
@@ -355,7 +361,7 @@ export function Orders() {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    exportSalesOrderXlsx(order);
+                    downloadOrderXlsx(order);
                   }}
                   className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-50 text-zinc-600 border border-zinc-200 active:bg-zinc-100"
                 >
@@ -550,7 +556,7 @@ export function Orders() {
               >
                 Đóng
               </Button>
-              <Button onClick={() => exportSalesOrderXlsx(selectedOrder)}>
+              <Button onClick={() => downloadOrderXlsx(selectedOrder)}>
                 Xuất XLSX
               </Button>
               <Button

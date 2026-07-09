@@ -611,6 +611,12 @@ function InfoPreviewDialog({
 }
 
 function CustomerOrderDialog({ order, onClose }: { order: Order | null; onClose: () => void }) {
+  const downloadOrderXlsx = (targetOrder: Order) => {
+    void exportSalesOrderXlsx(targetOrder).catch((error) => {
+      alert(error instanceof Error ? error.message : "Không xuất được file XLSX.");
+    });
+  };
+
   return (
     <Dialog isOpen={Boolean(order)} onClose={onClose} title={`Bill ${order?.id ?? ""}`}>
       {order && (
@@ -640,7 +646,7 @@ function CustomerOrderDialog({ order, onClose }: { order: Order | null; onClose:
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
             <Button variant="outline" onClick={onClose}>Đóng</Button>
-            <Button onClick={() => exportSalesOrderXlsx(order)}>Xuất XLSX</Button>
+            <Button onClick={() => downloadOrderXlsx(order)}>Xuất XLSX</Button>
             <Button variant="outline" onClick={() => printSalesOrder(order)}>In bill</Button>
             <Button variant="outline" onClick={() => void shareSalesOrderImage(order)}>Share ảnh</Button>
           </div>

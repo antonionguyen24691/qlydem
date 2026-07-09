@@ -49,6 +49,11 @@ export function Bill() {
   }
 
   const debt = Math.max(0, order.total - order.paid);
+  const downloadXlsx = () => {
+    void exportSalesOrderXlsx(order).catch((error) => {
+      alert(error instanceof Error ? error.message : "Không xuất được file XLSX.");
+    });
+  };
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
@@ -72,7 +77,7 @@ export function Bill() {
               <FileDown className="mr-2 h-4 w-4" />
               PDF/In
             </Button>
-            <Button onClick={() => exportSalesOrderXlsx(order)}>
+            <Button onClick={downloadXlsx}>
               <Table2 className="mr-2 h-4 w-4" />
               XLSX
             </Button>
