@@ -4,7 +4,7 @@ import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { parseImportWorkbook } from "../_lib/importExcel.js";
 import { isImportEntity, normalizeHeader } from "../_lib/importTemplates.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
-import { requireAuth } from "../_lib/auth.js";
+import { requirePermission } from "../_lib/auth.js";
 import { readSheet } from "read-excel-file/node";
 
 export const config = {
@@ -13,13 +13,33 @@ export const config = {
   }
 };
 
+const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 5_000;
+
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-    req.on("end", () => resolve(Buffer.concat(chunks)));
+    let size = 0;
+    req.on("data", (chunk) => {
+      const value = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += value.length;
+      if (size <= MAX_IMPORT_BYTES) chunks.push(value);
+    });
+    req.on("end", () => {
+      if (size > MAX_IMPORT_BYTES) {
+        reject(new Error("File import vượt giới hạn 10 MB."));
+        return;
+      }
+      resolve(Buffer.concat(chunks));
+    });
     req.on("error", reject);
   });
+}
+
+function isDryRun(req: ApiRequest) {
+  const header = req.headers?.["x-import-dry-run"];
+  const value = Array.isArray(header) ? header[0] : header;
+  return value === "true" || req.query?.dryRun === "true";
 }
 
 function toNumber(value: unknown) {
@@ -30,11 +50,12 @@ function toNumber(value: unknown) {
 }
 
 function textValue(value: unknown) {
-  return String(value ?? "").trim();
+  const text = String(value ?? "").trim();
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
 }
 
 async function importPriceList(req: ApiRequest, res: ApiResponse) {
-  const user = await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+  const user = await requirePermission(req, "data.import");
   const buffer = await readBody(req as unknown as IncomingMessage);
   if (buffer.length === 0) {
     res.status(400).json({ ok: false, error: "File upload rỗng." });
@@ -43,6 +64,7 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
 
   const rows = await readSheet(buffer);
   if (rows.length < 2) throw new Error("File bảng giá phải có header và ít nhất 1 dòng dữ liệu.");
+  if (rows.length - 1 > MAX_IMPORT_ROWS) throw new Error(`File import vượt giới hạn ${MAX_IMPORT_ROWS.toLocaleString("vi-VN")} dòng.`);
 
   const headerMap = rows[0].map((header) => normalizeHeader(header));
   const codeIndex = headerMap.findIndex((header) => ["ma hang", "code", "sku"].includes(header));
@@ -61,6 +83,11 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
       note: noteIndex >= 0 ? textValue(row[noteIndex]) : ""
     }))
     .filter((row) => row.code || row.newPrice > 0);
+
+  if (isDryRun(req)) {
+    res.status(200).json({ ok: true, dryRun: true, entity: "price-list", totalRows: parsedRows.length, previewRows: parsedRows.slice(0, 20) });
+    return;
+  }
 
   const supabase = getSupabaseAdmin();
   const filenameHeader = req.headers?.["x-file-name"];
@@ -299,7 +326,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       await importPriceList(req, res);
       return;
     }
-    const user = await requireAuth(req, ["ADMIN"]);
+    const user = await requirePermission(req, "data.import");
     if (!isImportEntity(entity)) {
       res.status(400).json({ ok: false, error: "Import không hợp lệ. Dùng customers, suppliers hoặc products." });
       return;
@@ -308,6 +335,29 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const buffer = await readBody(req as unknown as IncomingMessage);
     if (buffer.length === 0) {
       res.status(400).json({ ok: false, error: "File upload rỗng." });
+      return;
+    }
+
+    const parsedRows = await parseImportWorkbook(entity, buffer);
+    if (parsedRows.length > MAX_IMPORT_ROWS) {
+      res.status(400).json({ ok: false, error: `File import vượt giới hạn ${MAX_IMPORT_ROWS.toLocaleString("vi-VN")} dòng.` });
+      return;
+    }
+    const invalidRows = parsedRows.filter((row) => row.error);
+    const normalizedRows = parsedRows.filter((row) => !row.error).map((row) => normalizeRow(entity, row.data));
+    const validRows = normalizedRows.map(({ _inventory, ...row }) => row);
+
+    if (isDryRun(req)) {
+      res.status(200).json({
+        ok: true,
+        dryRun: true,
+        entity,
+        totalRows: parsedRows.length,
+        validRows: validRows.length,
+        failedRows: invalidRows.length,
+        errors: invalidRows.slice(0, 50).map((row) => ({ rowNumber: row.rowNumber, error: row.error })),
+        previewRows: validRows.slice(0, 20)
+      });
       return;
     }
 
@@ -321,11 +371,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       .single();
 
     if (batchError) throw new Error(batchError.message);
-
-    const parsedRows = await parseImportWorkbook(entity, buffer);
-    const invalidRows = parsedRows.filter((row) => row.error);
-    const normalizedRows = parsedRows.filter((row) => !row.error).map((row) => normalizeRow(entity, row.data));
-    const validRows = normalizedRows.map(({ _inventory, ...row }) => row);
 
     let upserted = 0;
     let upsertError: string | undefined;

@@ -1,13 +1,13 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
-import { requireAuth } from "../_lib/auth.js";
+import { requirePermission } from "../_lib/auth.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { getJsonBody, optionalString, toStringValue } from "../_lib/body.js";
 import { upsertAuthPassword } from "../_lib/authUsers.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
-    const actor = await requireAuth(req, ["ADMIN"]);
+    const actor = await requirePermission(req, "users.manage");
     const id = getQueryValue(req.query?.id);
     const supabase = getSupabaseAdmin();
 

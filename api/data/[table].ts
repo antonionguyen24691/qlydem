@@ -1,7 +1,7 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { EXPORTABLE_TABLES, fetchTableRows, type ExportableTable } from "../_lib/supabase.js";
-import { requireAuth } from "../_lib/auth.js";
+import { requireAuth, requirePermission } from "../_lib/auth.js";
 import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { bestEffortSyncTables } from "../_lib/googleSheets.js";
@@ -110,14 +110,19 @@ function customerPayload(body: Record<string, unknown>) {
 }
 
 async function saveCustomer(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT", "SALE"]);
   const body = getJsonBody(req);
-  const supabase = getSupabaseAdmin();
-  const payload = customerPayload(body);
-
   const existingId = optionalString(body.id);
+  const actor = await requirePermission(req, existingId ? "customers.update" : "customers.create");
+  const supabase = getSupabaseAdmin();
+  const payload = {
+    ...customerPayload(body),
+    assigned_sale_id: actor.role === "SALE" ? actor.id : optionalString(body.assignedSaleId)
+  };
+
   const query = existingId
-    ? supabase.from("customers").update(payload).eq("id", existingId).select("*").single()
+    ? actor.role === "SALE"
+      ? supabase.from("customers").update(payload).eq("id", existingId).eq("assigned_sale_id", actor.id).select("*").single()
+      : supabase.from("customers").update(payload).eq("id", existingId).select("*").single()
     : supabase.from("customers").upsert(payload, { onConflict: "code" }).select("*").single();
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -155,7 +160,7 @@ async function ensureWarehouse(code = "KHO-CHINH") {
 }
 
 async function saveProduct(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN", "WAREHOUSE"]);
+  const actor = await requirePermission(req, "products.manage");
   const body = getJsonBody(req);
   const supabase = getSupabaseAdmin();
   const payload = productPayload(body);
@@ -192,7 +197,7 @@ async function saveProduct(req: ApiRequest, res: ApiResponse) {
 }
 
 async function discontinueProduct(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN", "WAREHOUSE"]);
+  const actor = await requirePermission(req, "products.manage");
   const body = getJsonBody(req);
   const productId = optionalString(body.id ?? body.productId);
   if (!productId) {
@@ -311,7 +316,7 @@ async function applyPriceRows({
 }
 
 async function savePriceUpdateSheet(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+  const actor = await requirePermission(req, "orders.price_override");
   const body = getJsonBody(req);
   const rows = normalizePriceRows(body.rows);
   if (rows.length === 0) {
@@ -390,7 +395,7 @@ async function savePriceUpdateSheet(req: ApiRequest, res: ApiResponse) {
 }
 
 async function getPriceUpdateRequests(req: ApiRequest, res: ApiResponse) {
-  await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+  await requirePermission(req, "orders.price_override");
   const supabase = getSupabaseAdmin();
   const { data: requests, error } = await supabase
     .from("price_update_requests")
@@ -418,7 +423,7 @@ async function getPriceUpdateRequests(req: ApiRequest, res: ApiResponse) {
 }
 
 async function reviewPriceUpdateRequest(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN"]);
+  const actor = await requirePermission(req, "products.manage");
   const body = getJsonBody(req);
   const requestId = optionalString(body.id ?? body.requestId);
   const decision = toStringValue(body.decision, "APPROVE").toUpperCase();
@@ -491,8 +496,7 @@ async function reviewPriceUpdateRequest(req: ApiRequest, res: ApiResponse) {
 async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   const body = getJsonBody(req);
   const mode = toStringValue(body.mode, "IN").toUpperCase();
-  const allowedRoles = mode === "REQUEST_EXPORT" ? ["ADMIN", "WAREHOUSE", "SALE"] : ["ADMIN", "WAREHOUSE"];
-  const actor = await requireAuth(req, allowedRoles);
+  const actor = await requirePermission(req, mode === "REQUEST_EXPORT" ? "inventory.view" : "inventory.manage");
   const productId = optionalString(body.productId);
   if (!productId) {
     res.status(400).json({ ok: false, error: "Thiếu sản phẩm." });
@@ -776,7 +780,7 @@ async function applyInventoryCountRows({
 }
 
 async function saveInventoryCountSheet(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN", "WAREHOUSE", "ACCOUNTANT"]);
+  const actor = await requirePermission(req, "inventory.manage");
   const body = getJsonBody(req);
   const rows = normalizeCountRows(body.rows);
   if (rows.length === 0) {
@@ -858,7 +862,7 @@ async function saveInventoryCountSheet(req: ApiRequest, res: ApiResponse) {
 }
 
 async function getInventoryApprovalRequests(req: ApiRequest, res: ApiResponse) {
-  await requireAuth(req, ["ADMIN"]);
+  await requirePermission(req, "inventory.manage");
   const supabase = getSupabaseAdmin();
   const { data: requests, error } = await supabase
     .from("inventory_adjustment_requests")
@@ -886,7 +890,7 @@ async function getInventoryApprovalRequests(req: ApiRequest, res: ApiResponse) {
 }
 
 async function reviewInventoryApprovalRequest(req: ApiRequest, res: ApiResponse) {
-  const actor = await requireAuth(req, ["ADMIN"]);
+  const actor = await requirePermission(req, "inventory.manage");
   const body = getJsonBody(req);
   const requestId = optionalString(body.id ?? body.requestId);
   const decision = toStringValue(body.decision, "APPROVE").toUpperCase();
@@ -1146,8 +1150,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (req.method !== "GET") return methodNotAllowed(res, ["GET", "POST", "PATCH"]);
 
-    await requireAuth(req, TABLE_READ_ROLES[table as ExportableTable]);
-    const rows = await fetchTableRows(table as ExportableTable);
+    const actor = await requireAuth(req, TABLE_READ_ROLES[table as ExportableTable]);
+    const rows = await fetchTableRows(table as ExportableTable, actor);
     res.status(200).json({ ok: true, table, rows });
   } catch (error) {
     sendError(res, error);

@@ -1,6 +1,6 @@
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { methodNotAllowed, sendError } from "./http.js";
-import { requireAuth } from "./auth.js";
+import { requirePermission } from "./auth.js";
 import { getJsonBody, toStringValue } from "./body.js";
 import { getSupabaseAdmin } from "./supabase.js";
 
@@ -68,6 +68,8 @@ const CLEAR_GROUPS: ClearGroup[] = [
   }
 ];
 
+const MAX_ARCHIVE_ROWS = 20_000;
+
 function uniqueTables(groups: ClearGroup[]) {
   const seen = new Set<string>();
   const tables: string[] = [];
@@ -102,17 +104,53 @@ async function clearTable(table: string) {
   return before;
 }
 
+async function createArchive(actorId: string, groups: ClearGroup[], tables: string[]) {
+  const supabase = getSupabaseAdmin();
+  const rowCounts: Record<string, number> = {};
+  const snapshot: Record<string, unknown[]> = {};
+  let totalRows = 0;
+
+  for (const table of tables) {
+    const count = await countRows(table);
+    rowCounts[table] = count;
+    totalRows += count;
+    if (totalRows > MAX_ARCHIVE_ROWS) {
+      throw new Error(`Có ${totalRows.toLocaleString("vi-VN")} dòng cần lưu, vượt giới hạn archive ${MAX_ARCHIVE_ROWS.toLocaleString("vi-VN")} dòng. Hãy chạy backup ngoài hệ thống trước khi xóa.`);
+    }
+    if (count === 0) {
+      snapshot[table] = [];
+      continue;
+    }
+    const { data, error } = await supabase.from(table).select("*");
+    if (error) throw new Error(`${table}: ${error.message}`);
+    snapshot[table] = data ?? [];
+  }
+
+  const { data: archive, error } = await supabase
+    .from("history_clear_backups")
+    .insert({
+      actor_id: actorId,
+      groups: groups.map((group) => group.key),
+      row_counts: rowCounts,
+      snapshot_json: snapshot
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`Không tạo được archive trước khi xóa: ${error.message}`);
+  return { id: archive.id, rowCounts };
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") return methodNotAllowed(res, ["GET", "POST"]);
 
   try {
     if (req.method === "GET") {
-      await requireAuth(req, ["ADMIN"]);
+      await requirePermission(req, "history.clear");
       res.status(200).json({ ok: true, groups: CLEAR_GROUPS });
       return;
     }
 
-    const actor = await requireAuth(req, ["ADMIN"]);
+    const actor = await requirePermission(req, "history.clear");
     const body = getJsonBody(req);
     const confirmation = toStringValue(body.confirmation).trim().toUpperCase();
     const requested = Array.isArray(body.groups) ? body.groups.map((item) => toStringValue(item).trim()) : [];
@@ -130,6 +168,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const supabase = getSupabaseAdmin();
     const tables = uniqueTables(selectedGroups);
+    const archive = await createArchive(actor.id, selectedGroups, tables);
     const deleted: Record<string, number> = {};
     for (const table of tables) {
       deleted[table] = await clearTable(table);
@@ -142,7 +181,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       entity_id: selectedGroups.map((group) => group.key).join(","),
       after_json: {
         groups: selectedGroups.map((group) => group.label),
-        deleted
+        deleted,
+        archiveId: archive.id,
+        archiveRows: archive.rowCounts
       }
     });
 
@@ -150,6 +191,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       ok: true,
       groups: selectedGroups.map((group) => group.key),
       deleted,
+      archiveId: archive.id,
       totalDeleted: Object.values(deleted).reduce((sum, value) => sum + value, 0)
     });
   } catch (error) {

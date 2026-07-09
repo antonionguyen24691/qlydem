@@ -49,7 +49,7 @@ function orderDate(order: Order) {
 
 async function loadPaymentSettings(): Promise<PaymentSettings> {
   try {
-    const response = await fetch("/api/settings?key=payment");
+    const response = await fetch("/api/settings?key=payment", { headers: await getAuthHeaders() });
     const body = await response.json();
     return body.payment ?? {};
   } catch {

@@ -1,6 +1,6 @@
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { methodNotAllowed, sendError } from "./http.js";
-import { requireAuth } from "./auth.js";
+import { requirePermission } from "./auth.js";
 import { getSupabaseAdmin } from "./supabase.js";
 
 function todayKey() {
@@ -35,7 +35,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     if (!(await isCron(req))) {
-      await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+      await requirePermission(req, "settings.manage");
     }
 
     const supabase = getSupabaseAdmin();

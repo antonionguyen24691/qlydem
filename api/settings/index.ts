@@ -1,6 +1,6 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
-import { requireAuth } from "../_lib/auth.js";
+import { requireAuth, requirePermission } from "../_lib/auth.js";
 import { getJsonBody, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 
@@ -152,6 +152,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (req.method === "GET") {
+      if (key !== "branding") await requireAuth(req);
       try {
         const supabase = getSupabaseAdmin();
         const { data, error } = await supabase
@@ -182,7 +183,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (req.method === "POST") {
-      const actor = await requireAuth(req, ["ADMIN"]);
+      const actor = await requirePermission(req, "settings.manage");
       const supabase = getSupabaseAdmin();
       const payload = normalizeSetting(key, getJsonBody(req));
       const { data, error } = await supabase

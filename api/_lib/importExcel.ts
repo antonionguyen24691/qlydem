@@ -32,7 +32,10 @@ function cleanValue(key: string, value: unknown) {
   ) {
     return toNumber(value);
   }
-  return typeof value === "string" ? value.trim() : value;
+  if (typeof value !== "string") return value;
+  const text = value.trim();
+  // Keep imported text harmless when it is later exported to spreadsheet tools.
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
 }
 
 export async function parseImportWorkbook(entity: ImportEntity, buffer: Buffer): Promise<ParsedImportRow[]> {

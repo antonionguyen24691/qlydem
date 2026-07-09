@@ -118,7 +118,7 @@ export function Inventory() {
         if (mounted) setSuppliers([]);
       }
       try {
-        const operationResponse = await fetch("/api/settings?key=inventoryOperations");
+        const operationResponse = await fetch("/api/settings?key=inventoryOperations", { headers: await getAuthHeaders() });
         const body = await operationResponse.json();
         const operations = body?.inventoryOperations?.operations;
         if (mounted && Array.isArray(operations) && operations.length > 0) setInventoryOperations(operations);

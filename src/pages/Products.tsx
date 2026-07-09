@@ -172,9 +172,10 @@ export function Products() {
 
   useEffect(() => {
     let mounted = true;
-    fetch("/api/settings?key=units")
-      .then((response) => response.json())
-      .then((body) => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/settings?key=units", { headers: await getAuthHeaders() });
+        const body = await response.json();
         const units = Array.isArray(body?.units?.units) ? body.units.units : [];
         const normalized = units
           .map((unit: any) => ({
@@ -183,10 +184,10 @@ export function Products() {
           }))
           .filter((unit: { code: string; name: string }) => unit.code && unit.name);
         if (mounted && normalized.length > 0) setUnitOptions(normalized);
-      })
-      .catch(() => {
+      } catch {
         if (mounted) setUnitOptions(defaultUnitOptions);
-      });
+      }
+    })();
     return () => {
       mounted = false;
     };

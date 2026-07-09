@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePOSStore } from "../store/pos";
-import { useDataStore } from "../store/data";
+import { type Order, useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
 import { getAuthHeaders } from "../lib/supabase";
+import { canEditSalePrices } from "../lib/permissions";
 import { Search, Trash2, Plus, Minus, X, ChevronDown, Package } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
 const POS_DRAFT_KEY = "pmql-pos-draft";
+const POS_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
 function normalizeSearch(value: string) {
   return value
@@ -22,12 +24,15 @@ function normalizeSearch(value: string) {
 export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const draftPromptedRef = useRef(false);
+  const checkoutKeyRef = useRef<string | undefined>(undefined);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState(products);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productPickerSearch, setProductPickerSearch] = useState("");
 
   // Checkout states
   const [customerSearch, setCustomerSearch] = useState("");
@@ -52,10 +57,31 @@ export function POS() {
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
   const finalTotal = subTotal - discountAmount;
+  const canDiscount = canEditSalePrices(user);
+  const normalizedPickerSearch = normalizeSearch(productPickerSearch.trim());
+  const productPickerResults = products.filter((product) => {
+    if (!normalizedPickerSearch) return true;
+    return [product.name, product.code, product.invoiceName ?? "", product.category ?? "", product.size ?? ""]
+      .some((value) => normalizeSearch(value).includes(normalizedPickerSearch));
+  });
+
+  const isProductUnavailable = (product: (typeof products)[number]) => {
+    const status = (product.lifecycleStatus || product.status || "ACTIVE").toUpperCase();
+    return ["HOLD", "DISCONTINUED", "INACTIVE"].includes(status);
+  };
+
+  const handleAddProduct = (product: (typeof products)[number]) => {
+    if (isProductUnavailable(product)) return;
+    addToCart(product);
+  };
 
   useEffect(() => {
     setSearchResults(products);
   }, [products]);
+
+  useEffect(() => {
+    if (!canDiscount && discountPercent !== 0) setDiscountPercent(0);
+  }, [canDiscount, discountPercent]);
 
   useEffect(() => {
     if (draftPromptedRef.current || cart.length > 0) return;
@@ -65,6 +91,11 @@ export function POS() {
     draftPromptedRef.current = true;
     try {
       const draft = JSON.parse(rawDraft);
+      const savedAt = new Date(draft.savedAt ?? 0).getTime();
+      if (!savedAt || Date.now() - savedAt > POS_DRAFT_TTL_MS) {
+        window.localStorage.removeItem(POS_DRAFT_KEY);
+        return;
+      }
       if (!Array.isArray(draft.cart) || draft.cart.length === 0) return;
       const shouldRestore = window.confirm(`Có đơn nháp chưa thanh toán (${draft.cart.length} mặt hàng). Bạn có muốn khôi phục không?`);
       if (!shouldRestore) return;
@@ -115,7 +146,7 @@ export function POS() {
       return;
     }
 
-    const newOrder = {
+    let newOrder: Order = {
       id: `HD${String(Date.now()).slice(-6)}`,
       date: new Date().toISOString().split('T')[0],
       customerName: selectedCustomer ? selectedCustomer.name : "Khách lẻ",
@@ -141,24 +172,24 @@ export function POS() {
 
     setIsCheckingOut(true);
     try {
+      const idempotencyKey = checkoutKeyRef.current ?? (window.crypto?.randomUUID?.() ?? `pos-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      checkoutKeyRef.current = idempotencyKey;
       const response = await fetch("/api/orders/create", {
         method: "POST",
         headers: {
           ...(await getAuthHeaders()),
           "content-type": "application/json",
+          "idempotency-key": idempotencyKey,
         },
         body: JSON.stringify({
           customerId: selectedCustomer?.id,
           paymentMethod,
           paidAmount: selectedCustomer ? amountPaid : finalTotal,
-          discountAmount,
+          discountAmount: canDiscount ? discountAmount : 0,
+          idempotencyKey,
           items: cart.map((item) => ({
             productId: item.id,
-            productCode: item.code,
-            productName: item.invoiceName || item.name,
-            unit: item.unit,
-            quantity: item.quantity,
-            unitPrice: item.price
+            quantity: item.quantity
           }))
         })
       });
@@ -166,7 +197,27 @@ export function POS() {
       if (!response.ok || !body.ok) {
         throw new Error(body.error ?? "Không tạo được đơn hàng");
       }
-      newOrder.id = body.order?.code ?? newOrder.id;
+      const savedOrder = body.order;
+      if (!savedOrder) throw new Error("Server không trả về đơn hàng vừa tạo.");
+      newOrder = {
+        dbId: savedOrder.id,
+        id: savedOrder.code ?? newOrder.id,
+        date: String(savedOrder.order_date ?? new Date().toISOString()).slice(0, 10),
+        customerName: selectedCustomer?.name ?? "Khách lẻ",
+        customerId: selectedCustomer?.id,
+        total: Number(savedOrder.total_amount ?? finalTotal),
+        paid: Number(savedOrder.paid_amount ?? (selectedCustomer ? amountPaid : finalTotal)),
+        status: Number(savedOrder.debt_amount ?? 0) > 0 ? "Nợ" : "Đã thanh toán",
+        items: (body.items ?? []).map((item: any) => ({
+          id: item.product_id,
+          name: item.product_name,
+          size: "",
+          unit: item.unit ?? "",
+          quantity: Number(item.quantity ?? 0),
+          price: Number(item.unit_price ?? 0),
+          total: Number(item.line_total ?? 0)
+        }))
+      };
       await loadLiveData();
       window.localStorage.removeItem(POS_DRAFT_KEY);
     } catch (error) {
@@ -178,6 +229,7 @@ export function POS() {
     }
 
     clearCart();
+    checkoutKeyRef.current = undefined;
     setSelectedCustomer(null);
     setCustomerSearch("");
     setDiscountPercent(0);
@@ -193,6 +245,7 @@ export function POS() {
       setCustomerSearch("");
       setDiscountPercent(0);
       setCustomerPaid("");
+      checkoutKeyRef.current = undefined;
     }
   };
 
@@ -211,6 +264,11 @@ export function POS() {
       savedAt: new Date().toISOString()
     }));
     alert("Đã lưu nháp đơn hàng trên thiết bị này.");
+  };
+
+  const handleClearSavedDraft = () => {
+    window.localStorage.removeItem(POS_DRAFT_KEY);
+    alert("Đã xóa đơn nháp đã lưu trên thiết bị này.");
   };
 
   const handleCreateCustomer = async () => {
@@ -273,10 +331,15 @@ export function POS() {
     <div className="flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
         <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Bán hàng mới</h1>
-        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <Button data-testid="pos-product-picker-open" variant="primary" size="sm" onClick={() => setShowProductPicker(true)}>
+            <Package className="mr-1.5 h-4 w-4" />
+            Chọn sản phẩm
+          </Button>
           <Button variant="danger" size="sm" onClick={handleCancel}>Hủy đơn</Button>
           <Button variant="outline" size="sm" onClick={handleSaveDraft}>Lưu nháp</Button>
-          <Button variant="primary" size="sm" onClick={() => setShowNewCustomerModal(true)}>Khách mới</Button>
+          <Button variant="outline" size="sm" onClick={handleClearSavedDraft}>Xóa nháp</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowNewCustomerModal(true)}>Khách mới</Button>
         </div>
       </div>
 
@@ -302,7 +365,8 @@ export function POS() {
                 {searchResults.map(p => (
                   <button 
                     key={p.id}
-                    onClick={() => addToCart(p)}
+                    onClick={() => handleAddProduct(p)}
+                    disabled={isProductUnavailable(p)}
                     className="flex min-w-[220px] max-w-[320px] items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all"
                     title={`${p.name} - ${p.price.toLocaleString()}đ`}
                   >
@@ -347,7 +411,8 @@ export function POS() {
                       <td colSpan={7} className="px-4 py-16 text-center text-zinc-500">
                         <Package className="mx-auto h-12 w-12 text-zinc-300 mb-3" />
                         <p className="font-medium text-zinc-900">Giỏ hàng trống</p>
-                        <p className="text-sm">Nhập tên sản phẩm để thêm vào.</p>
+                        <p className="text-sm">Tìm nhanh hoặc mở danh mục để chọn sản phẩm.</p>
+                        <Button size="sm" className="mt-4" onClick={() => setShowProductPicker(true)}>Chọn sản phẩm</Button>
                       </td>
                     </tr>
                   ) : (
@@ -372,8 +437,8 @@ export function POS() {
                           <Input
                             type="number"
                             value={item.price || ""}
-                            onChange={(event) => updatePrice(item.id, Number(event.target.value) || 0)}
-                            className="h-9 text-right font-semibold"
+                            readOnly
+                            className="h-9 text-right font-semibold bg-zinc-50 text-zinc-500"
                           />
                         </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm font-bold text-zinc-900 text-right">{item.total.toLocaleString()}đ</td>
@@ -396,7 +461,8 @@ export function POS() {
               <div className="bg-white rounded-xl p-8 text-center text-zinc-500 ring-1 ring-zinc-200">
                 <Package className="mx-auto h-12 w-12 text-zinc-300 mb-3" />
                 <p className="font-medium text-zinc-900">Giỏ hàng trống</p>
-                <p className="text-sm">Nhập tên sản phẩm để thêm vào.</p>
+                <p className="text-sm">Tìm nhanh hoặc mở danh mục để chọn sản phẩm.</p>
+                <Button size="sm" className="mt-4" onClick={() => setShowProductPicker(true)}>Chọn sản phẩm</Button>
               </div>
             ) : (
               cart.map((item) => (
@@ -416,8 +482,8 @@ export function POS() {
                       <Input
                         type="number"
                         value={item.price || ""}
-                        onChange={(event) => updatePrice(item.id, Number(event.target.value) || 0)}
-                        className="h-10 text-right font-semibold"
+                        readOnly
+                        className="h-10 text-right font-semibold bg-zinc-50 text-zinc-500"
                       />
                     </div>
                     <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1 w-fit">
@@ -530,6 +596,7 @@ export function POS() {
                     max="100" 
                     value={discountPercent} 
                     onChange={(e) => setDiscountPercent(Number(e.target.value) || 0)}
+                    disabled={!canDiscount}
                     className="w-24 text-right !min-h-[36px] !h-9" 
                   />
                 </div>
@@ -608,6 +675,110 @@ export function POS() {
           </div>
         </div>
       </div>
+
+      {showProductPicker && (
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-zinc-900/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="product-picker-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowProductPicker(false);
+          }}
+        >
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl ring-1 ring-zinc-200 sm:rounded-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-zinc-200 px-4 py-4 sm:px-5">
+              <div className="min-w-0">
+                <h2 id="product-picker-title" className="text-lg font-bold text-zinc-900">Chọn sản phẩm bán</h2>
+                <p className="mt-0.5 text-sm text-zinc-500">Bấm Thêm nhiều lần để tăng số lượng trong giỏ.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProductPicker(false)}
+                className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100"
+                aria-label="Đóng danh mục sản phẩm"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="border-b border-zinc-100 p-4 sm:px-5">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  value={productPickerSearch}
+                  onChange={(event) => setProductPickerSearch(event.target.value)}
+                  className="pl-10"
+                  placeholder="Tìm theo mã, tên hàng, quy cách..."
+                  autoFocus
+                />
+              </div>
+              <div className="mt-2 text-xs font-medium text-zinc-500">
+                {productPickerResults.length.toLocaleString("vi-VN")} sản phẩm • {cart.length.toLocaleString("vi-VN")} mặt hàng trong giỏ
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar sm:p-5">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {productPickerResults.map((product) => {
+                  const cartItem = cart.find((item) => item.id === product.id);
+                  const unavailable = isProductUnavailable(product);
+                  return (
+                    <div
+                      key={product.id}
+                      className={`flex min-w-0 flex-col rounded-xl border p-3 shadow-sm ${unavailable ? "border-zinc-200 bg-zinc-50 opacity-70" : "border-zinc-200 bg-white hover:border-emerald-300"}`}
+                    >
+                      <div className="flex min-w-0 items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-bold uppercase tracking-wide text-emerald-700" title={product.code}>{product.code}</div>
+                          <div className="mt-1 line-clamp-2 min-h-10 break-words text-sm font-bold leading-5 text-zinc-900" title={product.name}>{product.name}</div>
+                        </div>
+                        {cartItem && (
+                          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-xs font-black text-emerald-700">Đã chọn {cartItem.quantity}</span>
+                        )}
+                      </div>
+                      <div className="mt-2 min-h-8 text-xs text-zinc-500">
+                        {[product.size, product.category].filter(Boolean).join(" • ") || "Chưa phân loại"}
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-3 border-t border-zinc-100 pt-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-black text-emerald-600">{product.price.toLocaleString("vi-VN")} đ</div>
+                          <div className={`text-xs font-semibold ${product.stock <= 0 ? "text-red-600" : "text-zinc-500"}`}>
+                            Tồn {product.stock.toLocaleString("vi-VN")} {product.unit}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleAddProduct(product)}
+                          disabled={unavailable}
+                          className="shrink-0"
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          {unavailable ? "Ngưng bán" : "Thêm"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {productPickerResults.length === 0 && (
+                <div className="py-14 text-center text-sm text-zinc-500">
+                  <Package className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
+                  Không tìm thấy sản phẩm phù hợp.
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] sm:px-5 sm:pb-3">
+              <div className="min-w-0 text-sm text-zinc-600">
+                Tổng giỏ: <span className="font-black text-zinc-900">{cart.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("vi-VN")}</span>
+              </div>
+              <Button type="button" onClick={() => setShowProductPicker(false)}>Xong</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNewCustomerModal && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-zinc-900/50 p-0 sm:items-center sm:p-4">

@@ -1,6 +1,6 @@
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { methodNotAllowed, sendError } from "./http.js";
-import { requireAuth } from "./auth.js";
+import { requirePermission } from "./auth.js";
 import { getSupabaseAdmin } from "./supabase.js";
 
 const REQUIRED_TABLES = [
@@ -26,7 +26,9 @@ const REQUIRED_TABLES = [
   "purchase_orders",
   "purchase_order_items",
   "supplier_debt_ledger",
-  "cashbook_entries"
+  "cashbook_entries",
+  "idempotency_keys",
+  "history_clear_backups"
 ];
 
 async function probeTable(table: string) {
@@ -49,7 +51,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   try {
-    await requireAuth(req, ["ADMIN"]);
+    await requirePermission(req, "settings.manage");
     const tables = await Promise.all(REQUIRED_TABLES.map(probeTable));
     const missing = tables.filter((item) => !item.ok);
 

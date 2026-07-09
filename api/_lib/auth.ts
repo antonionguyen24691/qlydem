@@ -1,5 +1,6 @@
 import type { ApiRequest } from "./http.js";
 import { getSupabaseAdmin } from "./supabase.js";
+import { hasPermission, normalizePermissions, type PermissionMap } from "./permissions.js";
 
 export type ApiUser = {
   id: string;
@@ -7,6 +8,7 @@ export type ApiUser = {
   fullName: string;
   role: string;
   status: string;
+  permissions: PermissionMap;
 };
 
 function getBearerToken(req: ApiRequest) {
@@ -40,28 +42,7 @@ export async function requireAuth(req: ApiRequest, allowedRoles?: string[]) {
     .maybeSingle();
 
   if (profileError) throw new Error(profileError.message);
-  let activeProfile = profile;
-  if (!activeProfile) {
-    const { count, error: countError } = await supabase
-      .from("users")
-      .select("id", { count: "exact", head: true });
-    if (countError) throw new Error(countError.message);
-
-    if (count === 0) {
-      const { data: created, error: createError } = await supabase
-        .from("users")
-        .insert({
-          email,
-          full_name: authData.user.user_metadata?.full_name ?? authData.user.user_metadata?.name ?? email,
-          role: "ADMIN",
-          status: "ACTIVE"
-        })
-        .select("id,email,full_name,role,status")
-        .single();
-      if (createError) throw new Error(createError.message);
-      activeProfile = created;
-    }
-  }
+  const activeProfile = profile;
 
   if (!activeProfile) {
     const error = new Error("User is not provisioned in CRM users table.");
@@ -79,11 +60,30 @@ export async function requireAuth(req: ApiRequest, allowedRoles?: string[]) {
     throw error;
   }
 
+  const { data: roleDefinition, error: roleError } = await supabase
+    .from("roles")
+    .select("permissions_json")
+    .eq("role", activeProfile.role)
+    .maybeSingle();
+  if (roleError) throw new Error(roleError.message);
+  const permissions = normalizePermissions(activeProfile.role, roleDefinition?.permissions_json);
+
   return {
     id: activeProfile.id,
     email: activeProfile.email,
     fullName: activeProfile.full_name,
     role: activeProfile.role,
-    status: activeProfile.status
+    status: activeProfile.status,
+    permissions
   } as ApiUser;
+}
+
+export async function requirePermission(req: ApiRequest, permission: string) {
+  const actor = await requireAuth(req);
+  if (!hasPermission(actor.permissions, permission)) {
+    const error = new Error("User does not have permission for this action.");
+    error.name = "FORBIDDEN";
+    throw error;
+  }
+  return actor;
 }

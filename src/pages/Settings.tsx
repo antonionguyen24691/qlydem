@@ -6,6 +6,7 @@ import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { permissionCatalog, permissionScopeFor, permissionScopeLabels, permissionScopes, type PermissionScope, withPermissionScope } from "../lib/permissionCatalog";
 
 const importTargets = [
   {
@@ -195,6 +196,7 @@ export function Settings() {
   const [brandingError, setBrandingError] = useState("");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [userError, setUserError] = useState("");
@@ -267,17 +269,38 @@ export function Settings() {
 
   const uploadFile = async (entity: string, file?: File) => {
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setResults((current) => ({ ...current, [entity]: { ok: false, error: "File vượt giới hạn 10 MB." } }));
+      return;
+    }
     setUploading(entity);
     setResults((current) => ({ ...current, [entity]: { ok: true } }));
 
     try {
+      const headers = {
+        ...(await getAuthHeaders()),
+        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "x-file-name": file.name,
+      };
+      const dryRunResponse = await fetch(`/api/import/${entity}?dryRun=true`, {
+        method: "POST",
+        headers: { ...headers, "x-import-dry-run": "true" },
+        body: await file.arrayBuffer()
+      });
+      const dryRun = await dryRunResponse.json();
+      if (!dryRunResponse.ok || !dryRun.ok) throw new Error(dryRun.error ?? "Không kiểm tra được file import.");
+      const shouldImport = window.confirm(
+        `Kiểm tra file: ${Number(dryRun.totalRows ?? 0).toLocaleString("vi-VN")} dòng, ` +
+        `${Number(dryRun.validRows ?? dryRun.totalRows ?? 0).toLocaleString("vi-VN")} dòng hợp lệ, ` +
+        `${Number(dryRun.failedRows ?? 0).toLocaleString("vi-VN")} dòng lỗi.\n\nBạn có muốn ghi dữ liệu thật không?`
+      );
+      if (!shouldImport) {
+        setResults((current) => ({ ...current, [entity]: { ok: true, totalRows: dryRun.totalRows, successRows: 0, failedRows: dryRun.failedRows } }));
+        return;
+      }
       const response = await fetch(`/api/import/${entity}`, {
         method: "POST",
-        headers: {
-          ...(await getAuthHeaders()),
-          "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "x-file-name": file.name,
-        },
+        headers,
         body: await file.arrayBuffer()
       });
       const body = await response.json();
@@ -378,6 +401,31 @@ export function Settings() {
     }
   };
 
+  const updateRolePermission = (roleCode: string, permission: string, scope: PermissionScope) => {
+    setRoles((current) => current.map((role) => role.role === roleCode
+      ? { ...role, permissions_json: withPermissionScope(role.permissions_json, permission, scope) }
+      : role));
+  };
+
+  const saveRolePermissions = async (role: Role) => {
+    setSavingRole(role.role);
+    setUserError("");
+    try {
+      const response = await fetch("/api/roles", {
+        method: "POST",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
+        body: JSON.stringify({ role: role.role, name: role.name, permissionsJson: role.permissions_json })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được ma trận quyền.");
+      setRoles((current) => current.map((item) => item.role === role.role ? body.role : item));
+    } catch (error) {
+      setUserError(error instanceof Error ? error.message : "Không lưu được ma trận quyền.");
+    } finally {
+      setSavingRole(null);
+    }
+  };
+
   const updateBrandField = (key: keyof BrandingSettings, value: string) => {
     setBrandForm((current) => ({ ...current, [key]: value }));
     setBrandingMessage("");
@@ -412,7 +460,7 @@ export function Settings() {
 
   const loadPayment = async () => {
     try {
-      const response = await fetch("/api/settings?key=payment");
+      const response = await fetch("/api/settings?key=payment", { headers: await getAuthHeaders() });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được cấu hình thanh toán");
       setPaymentForm({ ...defaultPayment, ...(body.payment ?? {}) });
@@ -448,7 +496,7 @@ export function Settings() {
 
   const loadUnits = async () => {
     try {
-      const response = await fetch("/api/settings?key=units");
+      const response = await fetch("/api/settings?key=units", { headers: await getAuthHeaders() });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được đơn vị tính");
       setUnitForm({ ...defaultUnits, ...(body.units ?? {}) });
@@ -484,7 +532,7 @@ export function Settings() {
 
   const loadInventoryOperations = async () => {
     try {
-      const response = await fetch("/api/settings?key=inventoryOperations");
+      const response = await fetch("/api/settings?key=inventoryOperations", { headers: await getAuthHeaders() });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được hình thức kho");
       setInventoryOperationForm({ ...defaultInventoryOperations, ...(body.inventoryOperations ?? {}) });
@@ -1030,6 +1078,59 @@ export function Settings() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+              <div className="mb-4">
+                <h3 className="text-base font-black text-zinc-900">Ma trận quyền thao tác</h3>
+                <p className="mt-1 text-sm text-zinc-500">Quyền được kiểm tra ở backend. “Của mình” áp dụng cho dữ liệu sale được gán/phát sinh bởi user đó.</p>
+              </div>
+              <div className="space-y-5">
+                {roles.map((role) => (
+                  <div key={role.role} className="rounded-xl border border-zinc-200 bg-white p-3 sm:p-4">
+                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="font-black text-zinc-900">{role.name}</div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-zinc-500">{role.role}</div>
+                      </div>
+                      <Button type="button" size="sm" onClick={() => saveRolePermissions(role)} disabled={role.role === "ADMIN" || savingRole === role.role}>
+                        <Save className="mr-1.5 h-4 w-4" />
+                        {savingRole === role.role ? "Đang lưu..." : "Lưu quyền"}
+                      </Button>
+                    </div>
+                    {role.role === "ADMIN" ? (
+                      <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">ADMIN luôn có toàn quyền; không thể hạ quyền từ màn này.</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-[650px] w-full text-sm">
+                          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                            <tr><th className="px-2 py-2">Chức năng</th><th className="px-2 py-2">Phạm vi</th></tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100">
+                            {permissionCatalog.map((permission) => {
+                              const scope = permissionScopeFor(role.role, role.permissions_json, permission.key);
+                              return (
+                                <tr key={permission.key}>
+                                  <td className="px-2 py-2 font-medium text-zinc-800">{permission.label}</td>
+                                  <td className="px-2 py-2">
+                                    <select
+                                      value={scope}
+                                      onChange={(event) => updateRolePermission(role.role, permission.key, event.target.value as PermissionScope)}
+                                      className="h-9 min-w-36 rounded-lg border border-zinc-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600"
+                                    >
+                                      {permissionScopes.map((option) => <option key={option} value={option}>{permissionScopeLabels[option]}</option>)}
+                                    </select>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
           </div>

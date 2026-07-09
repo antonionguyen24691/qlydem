@@ -16,7 +16,8 @@
     "import:kho-hang": "node scripts/import-kho-hang-from-xlsx.mjs",
     "import:cua-hang": "node scripts/import-cua-hang-customers.mjs",
     "sheets:create": "node scripts/create-google-sheets-backup.mjs",
-    "sheets:sync": "node scripts/sync-supabase-to-google-sheets.mjs"
+    "sheets:sync": "node scripts/sync-supabase-to-google-sheets.mjs",
+    "verify:hardening": "node scripts/verify-security-hardening.mjs"
   },
   "dependencies": {
     "@fontsource/geist-sans": "^5.2.5",

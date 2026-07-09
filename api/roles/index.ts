@@ -1,12 +1,12 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { methodNotAllowed, sendError } from "../_lib/http.js";
-import { requireAuth } from "../_lib/auth.js";
+import { requirePermission } from "../_lib/auth.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { getJsonBody, toStringValue } from "../_lib/body.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
-    const actor = await requireAuth(req, req.method === "GET" ? undefined : ["ADMIN"]);
+    await requirePermission(req, "users.manage");
     const supabase = getSupabaseAdmin();
 
     if (req.method === "GET") {
@@ -17,11 +17,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (req.method === "POST") {
-      if (actor.role !== "ADMIN") {
-        const error = new Error("Only ADMIN can update roles.");
-        error.name = "FORBIDDEN";
-        throw error;
-      }
       const body = getJsonBody(req);
       const role = toStringValue(body.role).trim().toUpperCase();
       const name = toStringValue(body.name).trim();

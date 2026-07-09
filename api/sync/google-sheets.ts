@@ -2,7 +2,7 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { parseTables } from "../_lib/supabase.js";
 import { syncTablesToGoogleSheets } from "../_lib/googleSheets.js";
-import { requireAuth } from "../_lib/auth.js";
+import { requirePermission } from "../_lib/auth.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
@@ -20,7 +20,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         return;
       }
     } else {
-      await requireAuth(req, ["ADMIN"]);
+      await requirePermission(req, "settings.manage");
     }
 
     const tables = parseTables(getQueryValue(req.query?.tables));
