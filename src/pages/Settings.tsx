@@ -1,5 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2 } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
@@ -162,6 +163,7 @@ function readImageFile(file?: File) {
 }
 
 export function Settings() {
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState<"general" | "payment" | "units" | "users" | "data" | "operations">("general");
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
@@ -196,6 +198,13 @@ export function Settings() {
   const [clearHistoryConfirmation, setClearHistoryConfirmation] = useState("");
   const [clearHistoryResult, setClearHistoryResult] = useState<Record<string, number> | null>(null);
   const [isClearingHistory, setIsClearingHistory] = useState(false);
+
+  useEffect(() => {
+    const section = new URLSearchParams(location.search).get("section");
+    if (section && ["general", "payment", "units", "users", "data", "operations"].includes(section)) {
+      setActiveSection(section as "general" | "payment" | "units" | "users" | "data" | "operations");
+    }
+  }, [location.search]);
 
   const loadAdminData = async () => {
     try {

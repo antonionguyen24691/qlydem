@@ -118,6 +118,7 @@ export function Products() {
   const [stockFilter, setStockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
+  const selectedUnitLabel = unitOptions.find((unit) => unit.code === form.unit)?.name ?? form.unit ?? "ĐVT chính";
 
   useEffect(() => {
     let mounted = true;
@@ -540,13 +541,22 @@ export function Products() {
                 ))}
                 {form.unit && !unitOptions.some((unit) => unit.code === form.unit) && <option value={form.unit}>{form.unit}</option>}
               </select>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/settings?section=units")}
+                  className="mt-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                >
+                  Cấu hình danh sách đơn vị
+                </button>
+              )}
             </Field>
             <Field label="Quy cách"><Input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} /></Field>
             <Field label="Tồn mở đầu"><Input type="number" value={form.stock || ""} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) || 0 })} /></Field>
             <Field label="Giá vốn"><Input type="number" value={form.cost || ""} onChange={(event) => setForm({ ...form, cost: Number(event.target.value) || 0 })} /></Field>
             <Field label="Giá bán"><Input type="number" value={form.price || ""} onChange={(event) => setForm({ ...form, price: Number(event.target.value) || 0 })} /></Field>
-            <Field label="Quy đổi M2/Hộp"><Input type="number" value={form.m2PerBox || ""} onChange={(event) => setForm({ ...form, m2PerBox: Number(event.target.value) || 0 })} /></Field>
-            <Field label="Quy đổi Viên/Hộp"><Input type="number" value={form.piecesPerBox || ""} onChange={(event) => setForm({ ...form, piecesPerBox: Number(event.target.value) || 0 })} /></Field>
+            <Field label={`Quy đổi diện tích/${selectedUnitLabel}`}><Input type="number" value={form.m2PerBox || ""} onChange={(event) => setForm({ ...form, m2PerBox: Number(event.target.value) || 0 })} /></Field>
+            <Field label={`Quy đổi số lượng lẻ/${selectedUnitLabel}`}><Input type="number" value={form.piecesPerBox || ""} onChange={(event) => setForm({ ...form, piecesPerBox: Number(event.target.value) || 0 })} /></Field>
             <Field label="Trạng thái"><Input value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} /></Field>
             <Field label="Vòng đời"><Input value={form.lifecycleStatus} onChange={(event) => setForm({ ...form, lifecycleStatus: event.target.value })} /></Field>
           </div>

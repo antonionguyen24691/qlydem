@@ -101,6 +101,23 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         })
         .eq("id", debt.id);
 
+      const { data: order } = await supabase
+        .from("sales_orders")
+        .select("paid_amount,debt_amount,total_amount")
+        .eq("id", debt.order_id)
+        .maybeSingle();
+      if (order) {
+        const nextOrderPaid = Math.min(toNumber(order.total_amount), toNumber(order.paid_amount) + allocationAmount);
+        const nextOrderDebt = Math.max(0, toNumber(order.debt_amount) - allocationAmount);
+        await supabase
+          .from("sales_orders")
+          .update({
+            paid_amount: nextOrderPaid,
+            debt_amount: nextOrderDebt
+          })
+          .eq("id", debt.order_id);
+      }
+
       allocationRows.push({
         receipt_id: receipt.id,
         order_debt_id: debt.id,

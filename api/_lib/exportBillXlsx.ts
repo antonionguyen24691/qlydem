@@ -21,6 +21,10 @@ async function loadSetting(key: string) {
   return data?.value ?? {};
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
@@ -33,11 +37,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     const supabase = getSupabaseAdmin();
-    const { data: order, error: orderError } = await supabase
+    let orderQuery = supabase
       .from("sales_orders")
       .select("*")
-      .or(`code.eq.${orderCode},id.eq.${orderCode}`)
-      .maybeSingle();
+      .eq("code", orderCode);
+    if (isUuid(orderCode)) {
+      orderQuery = supabase
+        .from("sales_orders")
+        .select("*")
+        .or(`code.eq.${orderCode},id.eq.${orderCode}`);
+    }
+    const { data: order, error: orderError } = await orderQuery.maybeSingle();
     if (orderError) throw new Error(orderError.message);
     if (!order) {
       res.status(404).json({ ok: false, error: "Không tìm thấy đơn hàng." });

@@ -10,8 +10,17 @@ import { Input } from "../components/ui/Input";
 
 const POS_DRAFT_KEY = "pmql-pos-draft";
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
 export function POS() {
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal } = usePOSStore();
+  const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
@@ -82,7 +91,11 @@ export function POS() {
       setSearchResults(products);
       return;
     }
-    const filtered = products.filter(p => p.name.toLowerCase().includes(term.toLowerCase()) || p.code.toLowerCase().includes(term.toLowerCase()));
+    const normalizedTerm = normalizeSearch(term);
+    const filtered = products.filter((product) => {
+      return [product.name, product.code, product.invoiceName ?? "", product.category ?? ""]
+        .some((value) => normalizeSearch(value).includes(normalizedTerm));
+    });
     setSearchResults(filtered);
   };
 
@@ -355,7 +368,14 @@ export function POS() {
                             <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1.5 rounded hover:bg-white hover:shadow-sm text-zinc-600 transition-all"><Plus size={14}/></button>
                           </div>
                         </td>
-                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-600 text-right">{item.price.toLocaleString()}đ</td>
+                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-600 text-right">
+                          <Input
+                            type="number"
+                            value={item.price || ""}
+                            onChange={(event) => updatePrice(item.id, Number(event.target.value) || 0)}
+                            className="h-9 text-right font-semibold"
+                          />
+                        </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm font-bold text-zinc-900 text-right">{item.total.toLocaleString()}đ</td>
                         <td className="px-2 py-3 align-top whitespace-nowrap text-sm text-center">
                           <button onClick={() => removeFromCart(item.id)} className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
@@ -384,18 +404,30 @@ export function POS() {
                   <div className="flex min-w-0 justify-between items-start gap-2">
                     <div className="min-w-0">
                       <h4 className="line-clamp-2 break-words text-base font-semibold text-zinc-900">{item.name}</h4>
-                      <p className="truncate text-sm text-zinc-500">{item.code} • {item.unit} • {item.price.toLocaleString()}đ/đơn vị</p>
+                      <p className="truncate text-sm text-zinc-500">{item.code} • {item.unit}</p>
                     </div>
                     <button onClick={() => removeFromCart(item.id)} className="p-2 text-zinc-400 hover:text-red-600 bg-zinc-50 rounded-lg">
                       <Trash2 size={18} />
                     </button>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-zinc-100">
+                  <div className="grid grid-cols-[1fr_auto] items-end gap-3 pt-2 border-t border-zinc-100">
+                    <div>
+                      <div className="mb-1 text-xs font-bold uppercase tracking-wider text-zinc-400">Giá bán</div>
+                      <Input
+                        type="number"
+                        value={item.price || ""}
+                        onChange={(event) => updatePrice(item.id, Number(event.target.value) || 0)}
+                        className="h-10 text-right font-semibold"
+                      />
+                    </div>
                     <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1 w-fit">
                       <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="p-2 rounded-md hover:bg-white hover:shadow-sm text-zinc-600"><Minus size={16}/></button>
                       <span className="w-10 text-center font-semibold text-zinc-900 text-base">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-2 rounded-md hover:bg-white hover:shadow-sm text-zinc-600"><Plus size={16}/></button>
                     </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-zinc-500">Thành tiền</span>
                     <span className="max-w-[150px] truncate text-lg font-bold text-emerald-600">{item.total.toLocaleString()}đ</span>
                   </div>
                 </div>
