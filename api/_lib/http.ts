@@ -14,6 +14,9 @@ export type ApiRequest = {
 
 export function methodNotAllowed(res: ApiResponse, allowed: string[]) {
   res.setHeader("Allow", allowed.join(", "));
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
   res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED", allowed });
 }
 
@@ -22,6 +25,9 @@ export function getQueryValue(value: string | string[] | undefined) {
 }
 
 export function sendError(res: ApiResponse, error: unknown) {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
   const message = error instanceof Error ? error.message : "Unknown error";
   const code = error instanceof Error && error.name === "UNAUTHORIZED"
     ? 401

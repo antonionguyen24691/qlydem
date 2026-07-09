@@ -5,6 +5,9 @@ import { syncTablesToGoogleSheets } from "../_lib/googleSheets.js";
 import { requireAuth } from "../_lib/auth.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
   if (!["GET", "POST"].includes(req.method ?? "")) return methodNotAllowed(res, ["GET", "POST"]);
 
   try {
