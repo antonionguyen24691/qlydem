@@ -70,7 +70,7 @@ export function InventoryReceiptDialog({ isOpen, products, suppliers, initialPro
     }
     setIsSaving(true);
     try {
-      const response = await fetch("/api/inventory/receive", {
+      const response = await fetch("/api/data/inventory-receipts", {
         method: "POST",
         headers: { ...(await getAuthHeaders()), "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
         body: JSON.stringify({ supplierId, warehouseCode: "KHO-CHINH", receivedAt, documentCode, discountAmount, vatAmount, paidAmount, paymentMethod, note, items: lines })
