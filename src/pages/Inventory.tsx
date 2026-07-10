@@ -5,6 +5,7 @@ import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
+import { InventoryReceiptDialog } from "../components/inventory/InventoryReceiptDialog";
 import { useAuthStore } from "../store/auth";
 import { canCountInventory, canManageInventory, canRequestStockOut, isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
@@ -51,6 +52,17 @@ type SupplierRow = {
   id: string;
   code?: string;
   name: string;
+  phone?: string;
+};
+
+type InventoryTransactionRow = {
+  id: string;
+  product_id: string;
+  source_type: string;
+  quantity_change: number;
+  stock_after: number;
+  note?: string;
+  created_at: string;
 };
 
 type InventoryOperation = {
@@ -89,6 +101,12 @@ export function Inventory() {
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
+  const [transactions, setTransactions] = useState<InventoryTransactionRow[]>([]);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [receiptInitialProductId, setReceiptInitialProductId] = useState<string | undefined>();
+  const [stockPage, setStockPage] = useState(1);
+  const [stockPageSize, setStockPageSize] = useState(20);
+  const [stockStatusFilter, setStockStatusFilter] = useState<"ALL" | "LOW" | "AVAILABLE">("ALL");
   const [inventoryOperations, setInventoryOperations] = useState<InventoryOperation[]>(defaultInventoryOperations);
   const [supplierId, setSupplierId] = useState("");
   const [documentCode, setDocumentCode] = useState("");
@@ -119,6 +137,13 @@ export function Inventory() {
         if (mounted) setSuppliers([]);
       }
       try {
+        const transactionResponse = await fetch("/api/data/inventory_transactions", { headers: await getAuthHeaders() });
+        const body = await transactionResponse.json();
+        if (mounted && transactionResponse.ok && body.ok) setTransactions(body.rows ?? []);
+      } catch {
+        if (mounted) setTransactions([]);
+      }
+      try {
         const operationResponse = await fetch("/api/settings?key=inventoryOperations", { headers: await getAuthHeaders() });
         const body = await operationResponse.json();
         const operations = body?.inventoryOperations?.operations;
@@ -137,18 +162,27 @@ export function Inventory() {
 
   const filteredProducts = products.filter((product) => {
     const term = searchTerm.toLowerCase();
-    return product.name.toLowerCase().includes(term) || product.code.toLowerCase().includes(term);
+    const matchesSearch = product.name.toLowerCase().includes(term) || product.code.toLowerCase().includes(term);
+    const minimum = product.minStockLevel ?? 0;
+    const matchesStatus = stockStatusFilter === "ALL" || (stockStatusFilter === "LOW" ? product.stock <= minimum : product.stock > minimum);
+    return matchesSearch && matchesStatus;
   });
 
   const lowStock = products.filter((product) => product.stock <= 0);
-  const nearLowStock = products.filter((product) => product.stock > 0 && product.stock <= 5);
+  const nearLowStock = products.filter((product) => product.stock > 0 && product.stock <= (product.minStockLevel ?? 0));
   const inventoryWarnings = [...lowStock, ...nearLowStock].slice(0, 8);
   const totalValue = products.reduce((sum, product) => sum + product.stock * product.cost, 0);
   const inventoryByCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const product of products) map.set(product.category || "Khác", (map.get(product.category || "Khác") ?? 0) + product.stock);
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const map = new Map<string, { count: number; value: number }>();
+    for (const product of products) {
+      const category = product.category || "Khác";
+      const current = map.get(category) ?? { count: 0, value: 0 };
+      map.set(category, { count: current.count + 1, value: current.value + (product.stock * product.cost) });
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1].value - a[1].value).slice(0, 6);
   }, [products]);
+  const stockTotalPages = Math.max(1, Math.ceil(filteredProducts.length / stockPageSize));
+  const pagedProducts = filteredProducts.slice((stockPage - 1) * stockPageSize, stockPage * stockPageSize);
 
   const countVisibleRows = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -207,6 +241,22 @@ export function Inventory() {
     setIsCreatingProduct(false);
     setNewProduct({ code: "", name: "", category: "", unit: "HỘP", size: "", salePrice: 0 });
     setIsAdjustOpen(true);
+  };
+
+  const openReceipt = (product?: Product) => {
+    setReceiptInitialProductId(product?.id);
+    setIsReceiptOpen(true);
+  };
+
+  const reloadInventory = async () => {
+    await loadLiveData();
+    try {
+      const response = await fetch("/api/data/inventory_transactions", { headers: await getAuthHeaders() });
+      const body = await response.json();
+      if (response.ok && body.ok) setTransactions(body.rows ?? []);
+    } catch {
+      setTransactions([]);
+    }
   };
 
   const saveCountSheet = async () => {
@@ -327,7 +377,8 @@ export function Inventory() {
           discountAmount,
           vatAmount,
           paidAmount,
-          note
+          note,
+          idempotencyKey: crypto.randomUUID()
         })
       });
       const body = await response.json();
@@ -388,11 +439,11 @@ export function Inventory() {
           <p className="text-sm text-zinc-500 hidden sm:block mt-1">Nhập, xuất, kiểm kê và đề nghị xuất kho.</p>
         </div>
         <div className={`grid gap-2 sm:flex sm:flex-wrap ${canAdjust ? "grid-cols-4" : "grid-cols-1"}`}>
-          <Button variant="outline" onClick={() => loadLiveData()} size="sm" className="hidden sm:flex">
+          <Button variant="outline" onClick={reloadInventory} size="sm" className="hidden sm:flex">
             <RefreshCw className="h-4 w-4 mr-2" />
             Tải lại
           </Button>
-          <Button variant="outline" onClick={() => loadLiveData()} className="sm:hidden flex-1">
+          <Button variant="outline" onClick={reloadInventory} aria-label="Tải lại tồn kho" className="sm:hidden flex-1">
             <RefreshCw className="h-4 w-4" />
           </Button>
           {canAdjust && (
@@ -405,7 +456,7 @@ export function Inventory() {
                 <ArrowUpFromLine className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Xuất kho</span>
               </Button>
-              <Button onClick={() => openAdjust("IN")} className="flex-1 sm:flex-none">
+              <Button onClick={() => openReceipt()} className="flex-1 sm:flex-none">
                 <ArrowDownToLine className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Nhập kho</span>
               </Button>
@@ -539,10 +590,11 @@ export function Inventory() {
             <div className="min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3">
               <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn theo danh mục</div>
               <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar">
-                {inventoryByCategory.map(([category, stock]) => (
+                {inventoryByCategory.map(([category, summary]) => (
                   <div key={category} className="min-w-[120px] rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
                     <div className="truncate text-xs font-medium text-zinc-500">{category}</div>
-                    <div className="text-base font-bold text-zinc-900">{stock.toLocaleString()}</div>
+                    <div className="text-base font-bold text-zinc-900">{summary.value.toLocaleString()} ₫</div>
+                    <div className="text-xs text-zinc-500">{summary.count} mã hàng</div>
                   </div>
                 ))}
               </div>
@@ -578,14 +630,17 @@ export function Inventory() {
 
         <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-bold text-zinc-900 text-lg hidden sm:block">Chi tiết tồn kho</h2>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <select value={stockStatusFilter} onChange={(event) => { setStockStatusFilter(event.target.value as "ALL" | "LOW" | "AVAILABLE"); setStockPage(1); }} className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="ALL">Tất cả tồn kho</option><option value="LOW">Cần nhập thêm</option><option value="AVAILABLE">Đủ tồn</option></select>
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <Input 
               value={searchTerm} 
-              onChange={(event) => setSearchTerm(event.target.value)} 
-              placeholder="Tìm sản phẩm..." 
+              onChange={(event) => { setSearchTerm(event.target.value); setStockPage(1); }}
+              placeholder="Tìm sản phẩm…"
               className="pl-10" 
             />
+          </div>
           </div>
         </div>
 
@@ -603,7 +658,7 @@ export function Inventory() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 bg-white">
-                {filteredProducts.map((product) => (
+                {pagedProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-emerald-600">{product.code}</td>
                     <td className="px-4 py-3 text-sm text-zinc-900 font-medium">
@@ -624,7 +679,7 @@ export function Inventory() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <div className="inline-flex gap-2 justify-end w-full">
-                        {canAdjust && <Button variant="outline" size="sm" onClick={() => openAdjust("IN", product)}>Nhập</Button>}
+                        {canAdjust && <Button variant="outline" size="sm" onClick={() => openReceipt(product)}>Nhập</Button>}
                         {canAdjust && <Button variant="outline" size="sm" onClick={() => openAdjust("OUT", product)}>Xuất</Button>}
                         {canAdjust && <Button variant="outline" size="sm" onClick={startCountMode}>Kiểm</Button>}
                         {!canAdjust && canRequest && <Button variant="outline" size="sm" onClick={() => openAdjust("REQUEST_EXPORT", product)} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">Đề nghị</Button>}
@@ -639,7 +694,7 @@ export function Inventory() {
 
         {/* Mobile Card View */}
         <div className="md:hidden flex-1 overflow-y-auto space-y-3 pb-20 custom-scrollbar">
-          {filteredProducts.map((product) => (
+          {pagedProducts.map((product) => (
             <div key={product.id} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200">
               <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
                 <div className="min-w-0 flex-1">
@@ -671,7 +726,7 @@ export function Inventory() {
               </div>
               
               <div className="flex gap-2 mt-3 pt-3 border-t border-zinc-100">
-                {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("IN", product)}>Nhập</Button>}
+                {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openReceipt(product)}>Nhập</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("OUT", product)}>Xuất</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={startCountMode}>Kiểm</Button>}
                 {!canAdjust && canRequest && <Button variant="outline" className="flex-1 h-9 px-0 text-emerald-600 border-emerald-200" onClick={() => openAdjust("REQUEST_EXPORT", product)}>Đề nghị</Button>}
@@ -684,6 +739,17 @@ export function Inventory() {
               <p>Không tìm thấy sản phẩm nào</p>
             </div>
           )}
+        </div>
+        {filteredProducts.length > 0 && <div className="mt-3 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="text-zinc-500">{filteredProducts.length} mã hàng · Trang {stockPage}/{stockTotalPages}</span><div className="flex items-center gap-2"><select value={stockPageSize} onChange={(event) => { setStockPageSize(Number(event.target.value)); setStockPage(1); }} className="h-9 rounded-md border border-zinc-200 bg-white px-2"><option value={10}>10 / trang</option><option value={20}>20 / trang</option><option value={50}>50 / trang</option></select><Button size="sm" variant="outline" disabled={stockPage <= 1} onClick={() => setStockPage((page) => page - 1)}>Trước</Button><Button size="sm" variant="outline" disabled={stockPage >= stockTotalPages} onClick={() => setStockPage((page) => page + 1)}>Sau</Button></div></div>}
+        <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-zinc-900">Biến động kho gần đây</h2><span className="text-xs font-semibold text-zinc-500">Kho chính</span></div>
+          <div className="space-y-2">
+            {transactions.slice(0, 8).map((transaction) => {
+              const product = products.find((item) => item.id === transaction.product_id);
+              return <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm"><div className="min-w-0"><div className="truncate font-bold text-zinc-900">{product?.code ?? "Hàng hóa"} · {product?.name ?? transaction.product_id}</div><div className="truncate text-xs text-zinc-500">{transaction.source_type} · {new Date(transaction.created_at).toLocaleString("vi-VN")}</div></div><div className="shrink-0 text-right"><div className={`font-black tabular-nums ${Number(transaction.quantity_change) < 0 ? "text-red-600" : "text-emerald-700"}`}>{Number(transaction.quantity_change) > 0 ? "+" : ""}{Number(transaction.quantity_change).toLocaleString()}</div><div className="text-xs text-zinc-500">Tồn {Number(transaction.stock_after).toLocaleString()}</div></div></div>;
+            })}
+            {transactions.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có biến động kho để hiển thị.</div>}
+          </div>
         </div>
         </>
         )}
@@ -922,6 +988,8 @@ export function Inventory() {
           </div>
         </div>
       </Dialog>
+
+      <InventoryReceiptDialog isOpen={isReceiptOpen} products={products} suppliers={suppliers} initialProductId={receiptInitialProductId} onClose={() => { setIsReceiptOpen(false); setReceiptInitialProductId(undefined); }} onSaved={reloadInventory} />
 
       <Dialog isOpen={Boolean(infoPreview)} onClose={() => setInfoPreview(null)} title={infoPreview?.title ?? "Chi tiết"}>
         <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">

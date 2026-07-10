@@ -23,6 +23,7 @@ export interface Product {
   size: string;
   unit: string;
   stock: number;
+  minStockLevel?: number;
   price: number;
   cost: number;
   m2PerBox?: number;
@@ -100,7 +101,7 @@ function mapCustomer(row: any): Customer {
   };
 }
 
-function mapProduct(row: any, stockByProduct: Map<string, number>): Product {
+function mapProduct(row: any, stockByProduct: Map<string, number>, minStockByProduct: Map<string, number>): Product {
   return {
     id: row.id,
     code: row.code,
@@ -111,6 +112,7 @@ function mapProduct(row: any, stockByProduct: Map<string, number>): Product {
     size: row.size ?? "",
     unit: row.unit ?? "",
     stock: stockByProduct.get(row.id) ?? 0,
+    minStockLevel: minStockByProduct.get(row.id) ?? 0,
     price: money(row.sell_price_box_vat ?? row.price_by_m2),
     cost: money(row.cost_price),
     m2PerBox: money(row.m2_per_box),
@@ -195,12 +197,14 @@ export const useDataStore = create<DataStore>((set, get) => ({
       ]);
 
       const stockByProduct = new Map<string, number>();
+      const minStockByProduct = new Map<string, number>();
       for (const row of inventoryRows) {
         stockByProduct.set(row.product_id, (stockByProduct.get(row.product_id) ?? 0) + money(row.quantity_box));
+        minStockByProduct.set(row.product_id, Math.max(minStockByProduct.get(row.product_id) ?? 0, money(row.min_stock_level)));
       }
 
       const customers = customerRows.map(mapCustomer);
-      const products = productRows.map((row: any) => mapProduct(row, stockByProduct));
+      const products = productRows.map((row: any) => mapProduct(row, stockByProduct, minStockByProduct));
       const orders = orderRows.map((row: any) => mapOrder(row, orderItemRows, customers));
       set({ customers, products, orders, isLiveData: true, isLoadingLiveData: false });
     } catch (error) {

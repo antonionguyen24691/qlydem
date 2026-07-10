@@ -562,6 +562,24 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
   const vatAmount = Math.max(0, toNumber(body.vatAmount));
   const paidAmount = Math.max(0, toNumber(body.paidAmount));
 
+  if (mode === "OUT") {
+    const key = optionalString(body.idempotencyKey) ?? createCode("OUT");
+    const { data, error } = await supabase.rpc("create_inventory_stock_out_secure", {
+      p_actor_id: actor.id,
+      p_product_id: productId,
+      p_warehouse_code: toStringValue(body.warehouseCode, "KHO-CHINH"),
+      p_quantity: quantity,
+      p_operation_type: operationType,
+      p_note: note,
+      p_idempotency_key: key
+    });
+    if (error) throw new Error(error.message);
+    if (!data?.ok) throw new Error(data?.error ?? "Không xuất kho được.");
+    await bestEffortSyncTables(["inventory_balances", "inventory_transactions"]);
+    res.status(200).json(data);
+    return;
+  }
+
   const { data: balance, error: balanceError } = await supabase
     .from("inventory_balances")
     .select("id,quantity_box")

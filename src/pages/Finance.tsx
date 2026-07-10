@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDataStore, Customer } from "../store/data";
-import { Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle } from "lucide-react";
+import { Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle, TrendingUp, Landmark } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -18,7 +18,12 @@ type ReceiptRow = {
   note?: string;
 };
 
+type SupplierFinanceRow = { id: string; name: string; current_payable?: number };
+type CashbookRow = { id: string; account_type: string; direction: string; amount: number; payment_method: string; note?: string; created_at: string };
+type OrderDebtRow = { id: string; order_id: string; customer_id: string; remaining_amount: number; due_date?: string; status: string };
+
 type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
+type PeriodFilter = "MONTH" | "30_DAYS" | "ALL";
 
 export function Finance() {
   const { customers, orders, loadLiveData } = useDataStore();
@@ -29,20 +34,39 @@ export function Finance() {
   const [receiptAmount, setReceiptAmount] = useState<number | ''>('');
   const [receiptPaymentMethod, setReceiptPaymentMethod] = useState("CASH");
   const [receiptNote, setReceiptNote] = useState("");
+  const [receiptAllocations, setReceiptAllocations] = useState<Record<string, number>>({});
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSavingReceipt, setIsSavingReceipt] = useState(false);
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierFinanceRow[]>([]);
+  const [cashbookEntries, setCashbookEntries] = useState<CashbookRow[]>([]);
+  const [orderDebts, setOrderDebts] = useState<OrderDebtRow[]>([]);
   const [agingFilter, setAgingFilter] = useState<AgingFilter>("all");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("MONTH");
   const [debtPage, setDebtPage] = useState(1);
   const [debtPageSize, setDebtPageSize] = useState(20);
 
   const loadFinanceRows = async () => {
     try {
-      const response = await fetch("/api/data/receipts", { headers: await getAuthHeaders() });
-      const body = await response.json();
-      if (response.ok && body.ok) setReceipts(body.rows ?? []);
+      const headers = await getAuthHeaders();
+      const [receiptResponse, supplierResponse, cashbookResponse, debtResponse] = await Promise.all([
+        fetch("/api/data/receipts", { headers }),
+        fetch("/api/data/suppliers", { headers }),
+        fetch("/api/data/cashbook_entries", { headers }),
+        fetch("/api/data/order_debts", { headers })
+      ]);
+      const [receiptBody, supplierBody, cashbookBody, debtBody] = await Promise.all([
+        receiptResponse.json(), supplierResponse.json(), cashbookResponse.json(), debtResponse.json()
+      ]);
+      if (receiptResponse.ok && receiptBody.ok) setReceipts(receiptBody.rows ?? []);
+      if (supplierResponse.ok && supplierBody.ok) setSuppliers(supplierBody.rows ?? []);
+      if (cashbookResponse.ok && cashbookBody.ok) setCashbookEntries(cashbookBody.rows ?? []);
+      if (debtResponse.ok && debtBody.ok) setOrderDebts(debtBody.rows ?? []);
     } catch {
       setReceipts([]);
+      setSuppliers([]);
+      setCashbookEntries([]);
+      setOrderDebts([]);
     }
   };
 
@@ -50,25 +74,41 @@ export function Finance() {
     loadFinanceRows();
   }, []);
 
+  const isInPeriod = (value: string) => {
+    if (periodFilter === "ALL") return true;
+    const date = new Date(value);
+    const now = new Date();
+    if (periodFilter === "MONTH") return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    return date.getTime() >= now.getTime() - (30 * 86400000);
+  };
+  const periodOrders = orders.filter((order) => isInPeriod(order.date));
+  const periodReceipts = receipts.filter((receipt) => isInPeriod(receipt.receipt_date));
+  const periodCashbook = cashbookEntries.filter((entry) => isInPeriod(entry.created_at));
   const totalReceivables = customers.reduce((acc, c) => acc + c.oldDebt, 0);
-  const totalCashIn = orders.reduce((acc, order) => acc + order.paid, 0);
+  const totalPayables = suppliers.reduce((acc, supplier) => acc + Number(supplier.current_payable ?? 0), 0);
+  const periodRevenue = periodOrders.reduce((sum, order) => sum + order.total, 0);
+  const periodCollected = periodCashbook.filter((entry) => entry.direction === "IN").reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
+  const periodExpense = periodCashbook.filter((entry) => entry.direction === "OUT").reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
+  const balanceFor = (accountType: string) => cashbookEntries.filter((entry) => entry.account_type === accountType).reduce((sum, entry) => sum + (entry.direction === "OUT" ? -1 : 1) * Number(entry.amount ?? 0), 0);
+  const cashBalance = balanceFor("CASH");
+  const bankBalance = balanceFor("BANK");
   const openDebtOrders = orders.filter((order) => order.total > order.paid);
-  const transferCashIn = receipts
-    .filter((receipt) => receipt.payment_method === "TRANSFER")
-    .reduce((sum, receipt) => sum + Number(receipt.amount ?? 0), 0);
-  const cashReceipts = receipts
-    .filter((receipt) => receipt.payment_method !== "TRANSFER")
-    .reduce((sum, receipt) => sum + Number(receipt.amount ?? 0), 0);
   const debtAgeByCustomer = useMemo(() => {
     const map = new Map<string, number>();
     const today = new Date();
-    for (const order of openDebtOrders) {
-      if (!order.customerId) continue;
+    for (const debt of orderDebts.filter((item) => Number(item.remaining_amount) > 0)) {
+      const order = orders.find((item) => item.dbId === debt.order_id);
+      const anchor = debt.due_date ?? order?.date;
+      if (!anchor) continue;
+      const age = Math.max(0, Math.floor((today.getTime() - new Date(anchor).getTime()) / 86400000));
+      map.set(debt.customer_id, Math.max(map.get(debt.customer_id) ?? 0, age));
+    }
+    for (const order of openDebtOrders.filter((item) => item.customerId && !map.has(item.customerId))) {
       const age = Math.max(0, Math.floor((today.getTime() - new Date(order.date).getTime()) / 86400000));
-      map.set(order.customerId, Math.max(map.get(order.customerId) ?? 0, age));
+      map.set(order.customerId!, age);
     }
     return map;
-  }, [openDebtOrders]);
+  }, [openDebtOrders, orderDebts, orders]);
   const debtReminders = customers
     .filter((customer) => customer.oldDebt > 0)
     .sort((a, b) => b.oldDebt - a.oldDebt)
@@ -111,6 +151,8 @@ export function Finance() {
   }, [receipts, selectedCustomer]);
 
   const selectedDebtOrders = selectedCustomerOrders.filter((order) => order.total > order.paid);
+  const selectedCustomerDebtRows = orderDebts.filter((debt) => debt.customer_id === selectedCustomerForReceipt && Number(debt.remaining_amount) > 0 && ["OPEN", "PARTIAL"].includes(debt.status));
+  const allocatedReceiptAmount = Object.values(receiptAllocations).reduce<number>((sum, amount) => sum + Number(amount || 0), 0);
   const selectedTotalSales = selectedCustomerOrders.reduce((sum, order) => sum + order.total, 0);
   const selectedTotalPaid = selectedCustomerOrders.reduce((sum, order) => sum + order.paid, 0);
   const selectedOldestDebtAge = selectedCustomer ? debtAgeByCustomer.get(selectedCustomer.id) ?? 0 : 0;
@@ -120,6 +162,7 @@ export function Finance() {
     setReceiptAmount(customer.oldDebt > 0 ? customer.oldDebt : "");
     setReceiptPaymentMethod("CASH");
     setReceiptNote(`Thu nợ ${customer.name}`);
+    setReceiptAllocations({});
     setIsReceiptOpen(true);
   };
 
@@ -127,6 +170,7 @@ export function Finance() {
     setSelectedCustomerForReceipt(customerId);
     const customer = customers.find((item) => item.id === customerId);
     if (customer) setReceiptAmount(customer.oldDebt);
+    setReceiptAllocations({});
   };
 
   const handleReceiptSubmit = async (e: React.FormEvent) => {
@@ -134,6 +178,10 @@ export function Finance() {
     const amount = Number(receiptAmount);
     if (!selectedCustomerForReceipt || amount <= 0) {
       alert("Vui lòng chọn khách hàng và nhập số tiền hợp lệ");
+      return;
+    }
+    if (allocatedReceiptAmount > amount) {
+      alert("Tổng phân bổ không được lớn hơn số tiền thu.");
       return;
     }
     if (!isAuthenticated) {
@@ -153,7 +201,8 @@ export function Finance() {
           customerId: selectedCustomerForReceipt,
           amount,
           paymentMethod: receiptPaymentMethod,
-          note: receiptNote.trim() || "Thu nợ từ màn hình tài chính"
+          note: receiptNote.trim() || "Thu nợ từ màn hình tài chính",
+          allocations: Object.entries(receiptAllocations).filter(([, value]) => Number(value) > 0).map(([orderDebtId, value]) => ({ orderDebtId, amount: Number(value) }))
         })
       });
       const body = await response.json();
@@ -174,12 +223,13 @@ export function Finance() {
     setSelectedCustomerForReceipt("");
     setReceiptAmount('');
     setReceiptNote("");
+    setReceiptAllocations({});
   };
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
-        <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Tài chính & Công nợ</h1>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"><h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Tài chính & Công nợ</h1><select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="MONTH">Tháng này</option><option value="30_DAYS">30 ngày gần đây</option><option value="ALL">Tất cả thời gian</option></select></div>
         <Button onClick={() => setIsReceiptOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Lập phiếu thu
@@ -187,23 +237,30 @@ export function Finance() {
       </div>
 
       <div className="p-3 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-4 sm:space-y-6">
-        {/* Top KPI Cards (Bento Style) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
-            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><DollarSign className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Quỹ tiền mặt</span></div>
-            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{cashReceipts.toLocaleString()} ₫</div>
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Doanh thu kỳ</span></div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate tabular-nums">{periodRevenue.toLocaleString()} ₫</div>
           </div>
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
-            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Tiền gửi NH</span></div>
-            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{transferCashIn.toLocaleString()} ₫</div>
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><DollarSign className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Đã thu kỳ</span></div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate tabular-nums">{periodCollected.toLocaleString()} ₫</div>
           </div>
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải thu</span></div>
-            <div className="text-lg sm:text-2xl font-bold text-red-600 truncate">{totalReceivables.toLocaleString()} ₫</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-600 truncate tabular-nums">{totalReceivables.toLocaleString()} ₫</div>
           </div>
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải trả</span></div>
-            <div className="text-base sm:text-xl font-bold text-zinc-400 mt-1 truncate">Chờ nhập NCC</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-600 truncate tabular-nums">{totalPayables.toLocaleString()} ₫</div>
+          </div>
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Sổ quỹ tiền mặt</span></div>
+            <div className="text-lg sm:text-2xl font-bold text-zinc-900 truncate tabular-nums">{cashBalance.toLocaleString()} ₫</div>
+          </div>
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Số dư ngân hàng</span></div>
+            <div className="text-lg sm:text-2xl font-bold text-zinc-900 truncate tabular-nums">{bankBalance.toLocaleString()} ₫</div>
           </div>
         </div>
 
@@ -250,10 +307,10 @@ export function Finance() {
           <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold text-zinc-900">Phiếu thu gần nhất</h2>
-              <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{receipts.length}</span>
+              <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{periodReceipts.length}</span>
             </div>
             <div className="max-h-52 space-y-2 overflow-y-auto custom-scrollbar">
-              {receipts.slice(0, 6).map((receipt) => {
+              {periodReceipts.slice(0, 6).map((receipt) => {
                 const customer = customers.find((item) => item.id === receipt.customer_id);
                 return (
                   <div key={receipt.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
@@ -270,8 +327,9 @@ export function Finance() {
                   </div>
                 );
               })}
-              {receipts.length === 0 && <div className="py-8 text-center text-sm text-zinc-500">Chưa có phiếu thu.</div>}
+              {periodReceipts.length === 0 && <div className="py-8 text-center text-sm text-zinc-500">Chưa có phiếu thu trong kỳ.</div>}
             </div>
+            <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs"><span className="font-semibold text-zinc-500">Chi từ sổ quỹ trong kỳ</span><span className="font-black tabular-nums text-red-600">{periodExpense.toLocaleString()} ₫</span></div>
           </div>
         </div>
 
@@ -287,10 +345,11 @@ export function Finance() {
             
             <div className="space-y-3">
               {debtReminders.map(({ customer, orders: customerOrders, priority }) => (
-                <div
+                <button
                   key={customer.id}
+                  type="button"
                   onClick={() => setSelectedCustomer(customer)}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-zinc-100 bg-zinc-50 hover:border-zinc-300 cursor-pointer transition-colors active:scale-[0.98]"
+                  className="flex w-full flex-col justify-between rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-left transition-colors hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 active:scale-[0.98] sm:flex-row sm:items-center"
                 >
                   <div className="mb-2 flex min-w-0 items-start gap-3 sm:mb-0">
                     <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
@@ -307,7 +366,7 @@ export function Finance() {
                       {priority}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
               {debtReminders.length === 0 && (
                 <div className="text-center py-8 text-zinc-500">
@@ -319,7 +378,7 @@ export function Finance() {
           </div>
           
           <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5 flex flex-col justify-center items-center text-center h-full min-h-[200px]">
-            <h2 className="font-semibold text-zinc-500 uppercase tracking-wider text-sm mb-4">Tỷ lệ thu tiền</h2>
+            <h2 className="font-semibold text-zinc-500 uppercase tracking-wider text-sm mb-4">Tỷ lệ thu trong kỳ</h2>
             <div className="relative">
               <svg className="w-32 h-32 transform -rotate-90">
                 <circle cx="64" cy="64" r="56" className="text-zinc-100" strokeWidth="12" fill="none" stroke="currentColor" />
@@ -328,19 +387,19 @@ export function Finance() {
                   className="text-emerald-500 transition-all duration-1000 ease-in-out" 
                   strokeWidth="12" fill="none" stroke="currentColor"
                   strokeDasharray="351.858"
-                  strokeDashoffset={351.858 - (351.858 * (orders.reduce((sum, order) => sum + order.total, 0) > 0 ? (totalCashIn / orders.reduce((sum, order) => sum + order.total, 0)) : 0))}
+                  strokeDashoffset={351.858 - (351.858 * (periodRevenue > 0 ? Math.min(1, periodCollected / periodRevenue) : 0))}
                   strokeLinecap="round"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-bold text-zinc-900">
-                  {orders.reduce((sum, order) => sum + order.total, 0) > 0
-                    ? `${Math.round((totalCashIn / orders.reduce((sum, order) => sum + order.total, 0)) * 100)}%`
+                  {periodRevenue > 0
+                    ? `${Math.round((periodCollected / periodRevenue) * 100)}%`
                     : "0%"}
                 </span>
               </div>
             </div>
-            <p className="mt-4 text-xs text-zinc-400 px-4">Tính trên tổng đã thu / tổng doanh số (Supabase).</p>
+            <p className="mt-4 text-xs text-zinc-400 px-4">Đã thu trong kỳ / doanh thu đơn hàng trong kỳ.</p>
           </div>
         </div>
 
@@ -589,6 +648,18 @@ export function Finance() {
               </div>
             )}
 
+            {selectedCustomerForReceipt && selectedCustomerDebtRows.length > 0 && (
+              <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                <div className="mb-2 flex items-center justify-between"><div><div className="font-bold text-zinc-900">Phân bổ vào đơn nợ</div><div className="text-xs text-zinc-500">Để trống để hệ thống thu theo đơn đến hạn trước.</div></div><div className={`text-sm font-black tabular-nums ${allocatedReceiptAmount > Number(receiptAmount || 0) ? "text-red-600" : "text-emerald-700"}`}>{allocatedReceiptAmount.toLocaleString()} ₫</div></div>
+                <div className="max-h-44 space-y-2 overflow-y-auto custom-scrollbar">
+                  {selectedCustomerDebtRows.map((debt) => {
+                    const order = orders.find((item) => item.dbId === debt.order_id);
+                    return <div key={debt.id} className="grid grid-cols-[1fr_132px] items-center gap-3 rounded-lg bg-zinc-50 px-3 py-2"><div className="min-w-0"><div className="truncate font-bold text-zinc-900">{order?.id ?? debt.order_id}</div><div className="text-xs text-zinc-500">Còn {Number(debt.remaining_amount).toLocaleString()} ₫ · Hạn {debt.due_date ? new Date(debt.due_date).toLocaleDateString("vi-VN") : "chưa đặt"}</div></div><Input name={`allocation-${debt.id}`} type="number" min="0" max={Number(debt.remaining_amount)} value={receiptAllocations[debt.id] || ""} onChange={(event) => setReceiptAllocations((current) => ({ ...current, [debt.id]: Math.min(Number(event.target.value) || 0, Number(debt.remaining_amount)) }))} className="text-right font-bold" placeholder="0" /></div>;
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-bold text-zinc-700 mb-2">Số tiền thu</label>
               <Input 
@@ -602,7 +673,7 @@ export function Finance() {
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức thu</label><select value={receiptPaymentMethod} onChange={(event) => setReceiptPaymentMethod(event.target.value)} className="flex h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm"><option value="CASH">Tiền mặt</option><option value="TRANSFER">Chuyển khoản</option><option value="CARD">Thẻ</option><option value="OTHER">Khác</option></select></div>
+              <div><label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức thu</label><select value={receiptPaymentMethod} onChange={(event) => setReceiptPaymentMethod(event.target.value)} className="flex h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm"><option value="CASH">Tiền mặt</option><option value="TRANSFER">Chuyển khoản</option></select></div>
               <div><label className="mb-2 block text-sm font-bold text-zinc-700">Ngày thu</label><Input type="date" defaultValue={new Date().toISOString().slice(0, 10)} disabled /></div>
             </div>
             <div><label className="mb-2 block text-sm font-bold text-zinc-700">Nội dung / ghi chú</label><textarea value={receiptNote} onChange={(event) => setReceiptNote(event.target.value)} rows={3} placeholder="VD: Thu công nợ đơn DH..." className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" /></div>
