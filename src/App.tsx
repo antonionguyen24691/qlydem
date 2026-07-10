@@ -16,6 +16,7 @@ import { Products } from "./pages/Products";
 import { Inventory } from "./pages/Inventory";
 import { Customers } from "./pages/Customers";
 import { Finance } from "./pages/Finance";
+import { Expenses } from "./pages/Expenses";
 import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { useBrandingStore } from "./store/branding";
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="customers" element={<RequirePermission allow={canViewCustomers}><Customers /></RequirePermission>} />
           <Route path="suppliers" element={<RequirePermission allow={canViewSuppliers}><Suppliers /></RequirePermission>} />
           <Route path="finance" element={<RequirePermission allow={canViewFinance}><Finance /></RequirePermission>} />
+          <Route path="expenses" element={<RequirePermission allow={canViewFinance}><Expenses /></RequirePermission>} />
           <Route path="settings" element={<RequirePermission allow={isAdmin}><Settings /></RequirePermission>} />
         </Route>
       </Routes>

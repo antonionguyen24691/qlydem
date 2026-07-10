@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDataStore, Customer } from "../store/data";
-import { Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle, TrendingUp, Landmark } from "lucide-react";
+import { ArrowLeftRight, Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle, TrendingUp, Landmark } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { useAuthStore } from "../store/auth";
+import { isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
 
 type ReceiptRow = {
@@ -19,7 +20,19 @@ type ReceiptRow = {
 };
 
 type SupplierFinanceRow = { id: string; name: string; current_payable?: number };
-type CashbookRow = { id: string; account_type: string; direction: string; amount: number; payment_method: string; note?: string; created_at: string };
+type CashbookRow = { id: string; code?: string; account_type: string; direction: string; source_type?: string; amount: number; payment_method: string; note?: string; category?: string; person?: string; created_at: string };
+
+type FundAction = "TRANSFER" | "WITHDRAW" | "ADJUST";
+
+const CASHBOOK_SOURCE_LABEL: Record<string, string> = {
+  RECEIPT: "Thu nợ khách",
+  SALES_ORDER: "Bán hàng",
+  SUPPLIER_PAYMENT: "Trả nhà cung cấp",
+  FUND_TRANSFER: "Chuyển quỹ",
+  FUND_WITHDRAWAL: "Rút quỹ",
+  FUND_ADJUSTMENT: "Điều chỉnh quỹ",
+  EXPENSE: "Chi phí"
+};
 type OrderDebtRow = { id: string; order_id: string; customer_id: string; remaining_amount: number; due_date?: string; status: string };
 
 type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
@@ -27,7 +40,8 @@ type PeriodFilter = "MONTH" | "30_DAYS" | "ALL";
 
 export function Finance() {
   const { customers, orders, loadLiveData } = useDataStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const canAdjustFund = isAdmin(user);
   const [searchTerm, setSearchTerm] = useState("");
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedCustomerForReceipt, setSelectedCustomerForReceipt] = useState("");
@@ -45,6 +59,16 @@ export function Finance() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("MONTH");
   const [debtPage, setDebtPage] = useState(1);
   const [debtPageSize, setDebtPageSize] = useState(20);
+  const [isFundOpen, setIsFundOpen] = useState(false);
+  const [fundAction, setFundAction] = useState<FundAction>("TRANSFER");
+  const [fundAmount, setFundAmount] = useState<number | "">("");
+  const [fundFrom, setFundFrom] = useState<"CASH" | "BANK">("CASH");
+  const [fundAccount, setFundAccount] = useState<"CASH" | "BANK">("CASH");
+  const [fundDirection, setFundDirection] = useState<"IN" | "OUT">("IN");
+  const [fundPurpose, setFundPurpose] = useState("");
+  const [fundPerson, setFundPerson] = useState("");
+  const [fundNote, setFundNote] = useState("");
+  const [isSavingFund, setIsSavingFund] = useState(false);
 
   const loadFinanceRows = async () => {
     try {
@@ -157,6 +181,57 @@ export function Finance() {
   const selectedTotalPaid = selectedCustomerOrders.reduce((sum, order) => sum + order.paid, 0);
   const selectedOldestDebtAge = selectedCustomer ? debtAgeByCustomer.get(selectedCustomer.id) ?? 0 : 0;
 
+  const openFundDialog = (action: FundAction) => {
+    setFundAction(action);
+    setFundAmount("");
+    setFundFrom("CASH");
+    setFundAccount("CASH");
+    setFundDirection("IN");
+    setFundPurpose("");
+    setFundPerson("");
+    setFundNote("");
+    setIsFundOpen(true);
+  };
+
+  const handleFundSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(fundAmount);
+    if (amount <= 0) {
+      alert("Vui lòng nhập số tiền hợp lệ.");
+      return;
+    }
+    if (fundAction === "WITHDRAW" && (!fundPurpose.trim() || !fundPerson.trim())) {
+      alert("Rút quỹ phải ghi rõ mục đích rút và người rút.");
+      return;
+    }
+    setIsSavingFund(true);
+    try {
+      const payload: Record<string, unknown> = { action: fundAction, amount, note: fundNote.trim() || undefined, person: fundPerson.trim() || undefined };
+      if (fundAction === "TRANSFER") {
+        payload.fromAccount = fundFrom;
+        payload.toAccount = fundFrom === "CASH" ? "BANK" : "CASH";
+      } else {
+        payload.accountType = fundAccount;
+      }
+      if (fundAction === "WITHDRAW") payload.purpose = fundPurpose.trim();
+      if (fundAction === "ADJUST") payload.direction = fundDirection;
+
+      const response = await fetch("/api/data/cashbook-transactions", {
+        method: "POST",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không ghi được nghiệp vụ quỹ.");
+      await loadFinanceRows();
+      setIsFundOpen(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không ghi được nghiệp vụ quỹ.");
+    } finally {
+      setIsSavingFund(false);
+    }
+  };
+
   const openReceiptForCustomer = (customer: Customer) => {
     setSelectedCustomerForReceipt(customer.id);
     setReceiptAmount(customer.oldDebt > 0 ? customer.oldDebt : "");
@@ -230,10 +305,25 @@ export function Finance() {
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"><h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Tài chính & Công nợ</h1><select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="MONTH">Tháng này</option><option value="30_DAYS">30 ngày gần đây</option><option value="ALL">Tất cả thời gian</option></select></div>
-        <Button onClick={() => setIsReceiptOpen(true)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Lập phiếu thu
-        </Button>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Button variant="outline" onClick={() => openFundDialog("TRANSFER")} className="w-full sm:w-auto">
+            <ArrowLeftRight className="h-4 w-4 mr-2" />
+            Chuyển quỹ
+          </Button>
+          <Button variant="outline" onClick={() => openFundDialog("WITHDRAW")} className="w-full sm:w-auto">
+            <Wallet className="h-4 w-4 mr-2" />
+            Rút quỹ
+          </Button>
+          {canAdjustFund && (
+            <Button variant="outline" onClick={() => openFundDialog("ADJUST")} className="w-full sm:w-auto">
+              Điều chỉnh quỹ
+            </Button>
+          )}
+          <Button onClick={() => setIsReceiptOpen(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Lập phiếu thu
+          </Button>
+        </div>
       </div>
 
       <div className="p-3 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-4 sm:space-y-6">
@@ -330,6 +420,33 @@ export function Finance() {
               {periodReceipts.length === 0 && <div className="py-8 text-center text-sm text-zinc-500">Chưa có phiếu thu trong kỳ.</div>}
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs"><span className="font-semibold text-zinc-500">Chi từ sổ quỹ trong kỳ</span><span className="font-black tabular-nums text-red-600">{periodExpense.toLocaleString()} ₫</span></div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-bold text-zinc-900">Sổ quỹ gần đây</h2>
+            <span className="text-xs font-semibold text-zinc-500">Tiền mặt {cashBalance.toLocaleString()} ₫ · Ngân hàng {bankBalance.toLocaleString()} ₫</span>
+          </div>
+          <div className="space-y-2">
+            {cashbookEntries.slice(0, 10).map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <div className="truncate font-bold text-zinc-900">
+                    {CASHBOOK_SOURCE_LABEL[entry.source_type ?? ""] ?? entry.source_type ?? "Sổ quỹ"}
+                    <span className={`ml-2 rounded px-1.5 py-0.5 text-[11px] font-bold ${entry.account_type === "BANK" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>{entry.account_type === "BANK" ? "Ngân hàng" : "Tiền mặt"}</span>
+                  </div>
+                  <div className="truncate text-xs text-zinc-500">
+                    {[entry.person && `Người: ${entry.person}`, entry.note].filter(Boolean).join(" · ") || entry.code}
+                    {" · "}{new Date(entry.created_at).toLocaleString("vi-VN")}
+                  </div>
+                </div>
+                <div className={`shrink-0 font-black tabular-nums ${entry.direction === "OUT" ? "text-red-600" : "text-emerald-700"}`}>
+                  {entry.direction === "OUT" ? "-" : "+"}{Number(entry.amount ?? 0).toLocaleString()} ₫
+                </div>
+              </div>
+            ))}
+            {cashbookEntries.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có giao dịch sổ quỹ.</div>}
           </div>
         </div>
 
@@ -630,6 +747,107 @@ export function Finance() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        isOpen={isFundOpen}
+        onClose={() => setIsFundOpen(false)}
+        title={fundAction === "TRANSFER" ? "Chuyển quỹ" : fundAction === "WITHDRAW" ? "Rút quỹ" : "Điều chỉnh số dư quỹ"}
+      >
+        <form onSubmit={handleFundSubmit} className="flex h-full flex-col">
+          <div className="flex-1 space-y-5">
+            <div className="grid grid-cols-2 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn quỹ tiền mặt</div>
+                <div className="mt-1 font-black tabular-nums text-zinc-900">{cashBalance.toLocaleString()} ₫</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Số dư ngân hàng</div>
+                <div className="mt-1 font-black tabular-nums text-zinc-900">{bankBalance.toLocaleString()} ₫</div>
+              </div>
+            </div>
+
+            {fundAction === "TRANSFER" && (
+              <div>
+                <label className="mb-2 block text-sm font-bold text-zinc-700">Chiều chuyển</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setFundFrom("CASH")} className={`rounded-xl py-3 text-center text-sm font-semibold min-h-[48px] ${fundFrom === "CASH" ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
+                    Tiền mặt → Ngân hàng
+                  </button>
+                  <button type="button" onClick={() => setFundFrom("BANK")} className={`rounded-xl py-3 text-center text-sm font-semibold min-h-[48px] ${fundFrom === "BANK" ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
+                    Ngân hàng → Tiền mặt
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {fundAction !== "TRANSFER" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-zinc-700">{fundAction === "WITHDRAW" ? "Rút từ" : "Quỹ điều chỉnh"}</label>
+                  <select value={fundAccount} onChange={(event) => setFundAccount(event.target.value as "CASH" | "BANK")} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
+                    <option value="CASH">Quỹ tiền mặt</option>
+                    <option value="BANK">Tài khoản ngân hàng</option>
+                  </select>
+                </div>
+                {fundAction === "ADJUST" && (
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-zinc-700">Loại điều chỉnh</label>
+                    <select value={fundDirection} onChange={(event) => setFundDirection(event.target.value as "IN" | "OUT")} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
+                      <option value="IN">Ghi tăng (nhập số dư đầu/thiếu)</option>
+                      <option value="OUT">Ghi giảm (số dư thừa)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-zinc-700">Số tiền</label>
+              <Input
+                type="number"
+                min={1000}
+                required
+                value={fundAmount}
+                onChange={(event) => setFundAmount(Number(event.target.value) || "")}
+                placeholder="0"
+                className="text-lg font-bold text-emerald-600"
+              />
+            </div>
+
+            {fundAction === "WITHDRAW" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-zinc-700">Mục đích rút (*)</label>
+                  <Input value={fundPurpose} onChange={(event) => setFundPurpose(event.target.value)} placeholder="VD: Chi tiêu văn phòng..." required />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-zinc-700">Người rút (*)</label>
+                  <Input value={fundPerson} onChange={(event) => setFundPerson(event.target.value)} placeholder="VD: Anh Nam" required />
+                </div>
+              </div>
+            )}
+
+            {fundAction !== "WITHDRAW" && (
+              <div>
+                <label className="mb-2 block text-sm font-bold text-zinc-700">Người thực hiện</label>
+                <Input value={fundPerson} onChange={(event) => setFundPerson(event.target.value)} placeholder="VD: Kế toán Lan" />
+              </div>
+            )}
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-zinc-700">Ghi chú</label>
+              <textarea value={fundNote} onChange={(event) => setFundNote(event.target.value)} rows={2} placeholder={fundAction === "TRANSFER" ? "VD: Nộp tiền bán hàng vào tài khoản..." : "Ghi chú thêm..."} className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
+            </div>
+          </div>
+
+          <div className="mt-8 flex gap-3 border-t border-zinc-100 pt-4">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsFundOpen(false)}>Hủy</Button>
+            <Button type="submit" className="flex-1" disabled={isSavingFund}>
+              {isSavingFund ? "Đang ghi..." : fundAction === "TRANSFER" ? "Xác nhận chuyển" : fundAction === "WITHDRAW" ? "Xác nhận rút" : "Xác nhận điều chỉnh"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       <Dialog isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} title="Lập Phiếu Thu">
         <form onSubmit={handleReceiptSubmit} className="flex flex-col h-full">

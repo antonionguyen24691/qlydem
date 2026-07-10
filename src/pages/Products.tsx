@@ -159,6 +159,7 @@ export function Products() {
   const [stockFilter, setStockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
+  const [isCustomUnit, setIsCustomUnit] = useState(false);
   const selectedUnitLabel = unitOptions.find((unit) => unit.code === form.unit)?.name ?? form.unit ?? "ĐVT chính";
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -413,11 +414,13 @@ export function Products() {
 
   function openCreate() {
     setForm({ ...emptyForm });
+    setIsCustomUnit(false);
     setIsFormOpen(true);
   }
 
   function openEdit(product: Product) {
     setForm(toForm(product));
+    setIsCustomUnit(false);
     setIsFormOpen(true);
   }
 
@@ -868,25 +871,43 @@ export function Products() {
             <Field label="Tên trên hóa đơn" className="sm:col-span-2"><Input value={form.invoiceName} onChange={(event) => setForm({ ...form, invoiceName: event.target.value })} /></Field>
             <Field label="Loại hàng"><Input value={form.productType} onChange={(event) => setForm({ ...form, productType: event.target.value })} /></Field>
             <Field label="Đơn vị tính">
-              <select
-                value={form.unit}
-                onChange={(event) => setForm({ ...form, unit: event.target.value })}
-                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
-              >
-                {unitOptions.map((unit) => (
-                  <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>
-                ))}
-                {form.unit && !unitOptions.some((unit) => unit.code === form.unit) && <option value={form.unit}>{form.unit}</option>}
-              </select>
-              {canManage && (
+              {isCustomUnit ? (
+                <Input
+                  value={form.unit}
+                  onChange={(event) => setForm({ ...form, unit: event.target.value.toUpperCase() })}
+                  placeholder="HỘP, CÁI, KG, THÙNG..."
+                  className="uppercase"
+                />
+              ) : (
+                <select
+                  value={form.unit}
+                  onChange={(event) => setForm({ ...form, unit: event.target.value })}
+                  className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                >
+                  {unitOptions.map((unit) => (
+                    <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>
+                  ))}
+                  {form.unit && !unitOptions.some((unit) => unit.code === form.unit) && <option value={form.unit}>{form.unit}</option>}
+                </select>
+              )}
+              <div className="mt-2 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate("/settings?section=units")}
-                  className="mt-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  onClick={() => setIsCustomUnit((current) => !current)}
+                  className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
                 >
-                  Cấu hình danh sách đơn vị
+                  {isCustomUnit ? "Chọn từ danh sách" : "Nhập ĐVT khác"}
                 </button>
-              )}
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/settings?section=units")}
+                    className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  >
+                    Cấu hình danh sách đơn vị
+                  </button>
+                )}
+              </div>
             </Field>
             <Field label="Quy cách"><Input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} /></Field>
             <Field label="Tồn mở đầu"><Input type="number" value={form.stock || ""} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) || 0 })} /></Field>

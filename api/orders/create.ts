@@ -9,7 +9,7 @@ import { bestEffortSyncTables } from "../_lib/googleSheets.js";
 type OrderPayloadItem = {
   productId?: string;
   quantity?: number;
-  // Client price/name/code fields are intentionally ignored. The database reads the current catalog row.
+  // Price/unit are only honored when the actor has orders.price_override; otherwise the catalog row wins.
   productCode?: string;
   productName?: string;
   unit?: string;
@@ -51,11 +51,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
 
+    const canOverridePrice = hasPermission(actor.permissions, "orders.price_override");
     const normalizedItems = items.map((item) => ({
       product_id: optionalString(item.productId),
-      quantity: toNumber(item.quantity)
+      quantity: toNumber(item.quantity),
+      unit_price: canOverridePrice && item.unitPrice !== undefined && item.unitPrice !== null
+        ? Math.max(0, toNumber(item.unitPrice))
+        : null,
+      unit: canOverridePrice ? optionalString(item.unit) ?? null : null
     }));
-    const canOverridePrice = hasPermission(actor.permissions, "orders.price_override");
     const warehouseId = hasPermission(actor.permissions, "inventory.manage")
       ? optionalString(body.warehouseId)
       : undefined;
@@ -72,12 +76,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       p_discount_amount: discountAmount,
       p_due_date: optionalString(body.dueDate),
       p_note: optionalString(body.note),
-      p_idempotency_key: idempotencyKey
+      p_idempotency_key: idempotencyKey,
+      p_allow_price_override: canOverridePrice
     });
     if (error) throw new Error(error.message);
     if (!data?.ok) throw new Error(data?.error ?? "Không tạo được đơn hàng");
 
-    await bestEffortSyncTables([
+    // Sheets backup runs best-effort in the background; the daily cron guarantees consistency.
+    void bestEffortSyncTables([
       "sales_orders", "sales_order_items", "customers", "customer_debt_ledger", "order_debts",
       "receipts", "receipt_allocations", "cashbook_entries", "debt_reminders", "inventory_balances", "inventory_transactions"
     ]);

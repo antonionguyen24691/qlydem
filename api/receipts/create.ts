@@ -57,7 +57,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (error) throw new Error(error.message);
     if (!data?.ok) throw new Error(data?.error ?? "Không tạo được phiếu thu.");
 
-    await bestEffortSyncTables([
+    void bestEffortSyncTables([
       "receipts", "receipt_allocations", "customers", "customer_debt_ledger", "order_debts", "cashbook_entries"
     ]);
     res.status(200).json(data);

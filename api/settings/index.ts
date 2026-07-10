@@ -68,6 +68,24 @@ const defaultUnits: UnitSettings = {
   ]
 };
 
+type ExpenseCategorySettings = {
+  categories: Array<{
+    code: string;
+    name: string;
+  }>;
+};
+
+const defaultExpenseCategories: ExpenseCategorySettings = {
+  categories: [
+    { code: "FUEL", name: "Xăng xe" },
+    { code: "TRANSPORT", name: "Vận tải" },
+    { code: "LABOR", name: "Nhân công" },
+    { code: "UTILITY", name: "Điện nước" },
+    { code: "RENT", name: "Thuê mặt bằng" },
+    { code: "OTHER", name: "Chi phí khác" }
+  ]
+};
+
 const defaultInventoryOperations: InventoryOperationSettings = {
   operations: [
     { code: "PURCHASE_IN", name: "Nhập mua hàng", direction: "IN", costingMethod: "WEIGHTED_AVERAGE" },
@@ -136,17 +154,33 @@ function normalizeInventoryOperations(input: Record<string, unknown>): Inventory
   return { operations: operations.length > 0 ? operations : defaultInventoryOperations.operations };
 }
 
+function normalizeExpenseCategories(input: Record<string, unknown>): ExpenseCategorySettings {
+  const rawCategories = Array.isArray(input.categories) ? input.categories : defaultExpenseCategories.categories;
+  const categories = rawCategories
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      const code = toStringValue(row.code).trim().toUpperCase();
+      return {
+        code,
+        name: toStringValue(row.name, code).trim() || code
+      };
+    })
+    .filter((item) => item.code);
+  return { categories: categories.length > 0 ? categories : defaultExpenseCategories.categories };
+}
+
 function normalizeSetting(key: string, input: Record<string, unknown>) {
   if (key === "branding") return normalizeBranding(input);
   if (key === "payment") return normalizePayment(input);
   if (key === "inventoryOperations") return normalizeInventoryOperations(input);
+  if (key === "expenseCategories") return normalizeExpenseCategories(input);
   return normalizeUnits(input);
 }
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const key = getQueryValue(req.query?.key) ?? "branding";
-    if (!["branding", "payment", "units", "inventoryOperations"].includes(key)) {
+    if (!["branding", "payment", "units", "inventoryOperations", "expenseCategories"].includes(key)) {
       res.status(400).json({ ok: false, error: "Unsupported settings key." });
       return;
     }
@@ -167,7 +201,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           branding: key === "branding" ? normalizeBranding(value) : undefined,
           payment: key === "payment" ? normalizePayment(value) : undefined,
           units: key === "units" ? normalizeUnits(value) : undefined,
-          inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined
+          inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined,
+          expenseCategories: key === "expenseCategories" ? normalizeExpenseCategories(value) : undefined
         });
       } catch (error) {
         res.status(200).json({
@@ -176,6 +211,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           payment: key === "payment" ? defaultPayment : undefined,
           units: key === "units" ? defaultUnits : undefined,
           inventoryOperations: key === "inventoryOperations" ? defaultInventoryOperations : undefined,
+          expenseCategories: key === "expenseCategories" ? defaultExpenseCategories : undefined,
           warning: error instanceof Error ? error.message : "Không đọc được cấu hình Supabase."
         });
       }
@@ -212,7 +248,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         branding: key === "branding" ? normalizeBranding(value) : undefined,
         payment: key === "payment" ? normalizePayment(value) : undefined,
         units: key === "units" ? normalizeUnits(value) : undefined,
-        inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined
+        inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined,
+        expenseCategories: key === "expenseCategories" ? normalizeExpenseCategories(value) : undefined
       });
       return;
     }

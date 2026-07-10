@@ -32,7 +32,7 @@ const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   supplier_debt_ledger: ["ADMIN", "ACCOUNTANT"]
 };
 
-type InventoryReceiptItem = { productId?: string; quantity?: number; unitCost?: number };
+type InventoryReceiptItem = { productId?: string; quantity?: number; unitCost?: number; unit?: string };
 type InventoryReceiptPayload = {
   supplierId?: string;
   warehouseCode?: string;
@@ -755,7 +755,8 @@ async function createInventoryReceipt(req: ApiRequest, res: ApiResponse) {
   const items = (body.items ?? []).map((item) => ({
     product_id: optionalString(item.productId),
     quantity: toNumber(item.quantity),
-    unit_cost: toNumber(item.unitCost)
+    unit_cost: toNumber(item.unitCost),
+    unit: optionalString(item.unit)
   }));
   if (!supplierId || !key || items.length === 0) {
     const error = new Error("Thiếu nhà cung cấp, dòng hàng hoặc Idempotency-Key.");
@@ -763,7 +764,35 @@ async function createInventoryReceipt(req: ApiRequest, res: ApiResponse) {
     throw error;
   }
 
-  const { data, error } = await getSupabaseAdmin().rpc("create_inventory_receipt_secure", {
+  const supabase = getSupabaseAdmin();
+  // Bảng kê cho phép đổi đơn vị tính: cập nhật ĐVT trên danh mục trước khi RPC đọc lại catalog.
+  const unitChanges = items.filter((item) => item.product_id && item.unit);
+  if (unitChanges.length > 0) {
+    const { data: unitProducts, error: unitReadError } = await supabase
+      .from("products")
+      .select("id,unit")
+      .in("id", unitChanges.map((item) => item.product_id as string));
+    if (unitReadError) throw new Error(unitReadError.message);
+    const currentUnitById = new Map((unitProducts ?? []).map((row: any) => [row.id, String(row.unit ?? "")]));
+    for (const item of unitChanges) {
+      const nextUnit = String(item.unit).trim().toUpperCase();
+      if (!nextUnit || currentUnitById.get(item.product_id as string) === nextUnit) continue;
+      const { error: unitError } = await supabase
+        .from("products")
+        .update({ unit: nextUnit, updated_at: new Date().toISOString() })
+        .eq("id", item.product_id);
+      if (unitError) throw new Error(unitError.message);
+      await supabase.from("audit_logs").insert({
+        actor_id: actor.id,
+        action: "UPDATE_UNIT",
+        entity_type: "product",
+        entity_id: item.product_id,
+        after_json: { unit: nextUnit, source: "inventory_receipt" }
+      });
+    }
+  }
+
+  const { data, error } = await supabase.rpc("create_inventory_receipt_secure", {
     p_actor_id: actor.id,
     p_supplier_id: supplierId,
     p_warehouse_code: optionalString(body.warehouseCode) ?? "KHO-CHINH",
@@ -779,11 +808,153 @@ async function createInventoryReceipt(req: ApiRequest, res: ApiResponse) {
   });
   if (error) throw new Error(error.message);
   if (!data?.ok) throw new Error(data?.error ?? "Không tạo được phiếu nhập kho.");
-  await bestEffortSyncTables([
+  void bestEffortSyncTables([
     "inventory_balances", "inventory_transactions", "purchase_orders", "purchase_order_items",
     "suppliers", "supplier_debt_ledger", "payments", "cashbook_entries"
   ]);
   res.status(200).json(data);
+}
+
+const CASHBOOK_ACCOUNTS = ["CASH", "BANK"] as const;
+
+function cashbookCode(prefix: string) {
+  return createCode(prefix);
+}
+
+type CashbookEntryDraft = {
+  accountType: string;
+  direction: "IN" | "OUT";
+  sourceType: string;
+  amount: number;
+  note?: string | null;
+  category?: string | null;
+  person?: string | null;
+  entryDate?: string | null;
+  actorId: string;
+  codePrefix: string;
+};
+
+function cashbookRow(entry: CashbookEntryDraft, codeSuffix = "") {
+  return {
+    code: `${cashbookCode(entry.codePrefix)}${codeSuffix}`,
+    account_type: entry.accountType,
+    direction: entry.direction,
+    source_type: entry.sourceType,
+    amount: entry.amount,
+    payment_method: entry.accountType === "BANK" ? "TRANSFER" : "CASH",
+    note: entry.note ?? null,
+    category: entry.category ?? null,
+    person: entry.person ?? null,
+    entry_date: entry.entryDate ?? new Date().toISOString().slice(0, 10),
+    created_by: entry.actorId
+  };
+}
+
+// Ghi 1..n bút toán trong một câu lệnh insert duy nhất để cặp bút toán chuyển quỹ luôn nguyên tử.
+async function insertCashbookEntries(rows: ReturnType<typeof cashbookRow>[]) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("cashbook_entries")
+    .insert(rows)
+    .select("*");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+async function createCashbookTransaction(req: ApiRequest, res: ApiResponse) {
+  const actor = await requirePermission(req, "finance.receipt.create");
+  const body = getJsonBody(req);
+  const action = toStringValue(body.action).trim().toUpperCase();
+  const amount = Math.round(toNumber(body.amount));
+  const note = optionalString(body.note);
+  const person = optionalString(body.person);
+  const entryDate = optionalString(body.entryDate);
+
+  if (amount <= 0) {
+    res.status(400).json({ ok: false, error: "Số tiền phải lớn hơn 0." });
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const entries: any[] = [];
+
+  if (action === "TRANSFER") {
+    const fromAccount = toStringValue(body.fromAccount, "CASH").toUpperCase();
+    const toAccount = toStringValue(body.toAccount, "BANK").toUpperCase();
+    if (!CASHBOOK_ACCOUNTS.includes(fromAccount as any) || !CASHBOOK_ACCOUNTS.includes(toAccount as any) || fromAccount === toAccount) {
+      res.status(400).json({ ok: false, error: "Tài khoản chuyển/nhận không hợp lệ." });
+      return;
+    }
+    const transferNote = note ?? (fromAccount === "CASH" ? "Nộp tiền mặt vào ngân hàng" : "Rút ngân hàng về quỹ tiền mặt");
+    entries.push(...await insertCashbookEntries([
+      cashbookRow({
+        accountType: fromAccount, direction: "OUT", sourceType: "FUND_TRANSFER",
+        amount, note: transferNote, person, entryDate, actorId: actor.id, codePrefix: "CQ"
+      }, "-OUT"),
+      cashbookRow({
+        accountType: toAccount, direction: "IN", sourceType: "FUND_TRANSFER",
+        amount, note: transferNote, person, entryDate, actorId: actor.id, codePrefix: "CQ"
+      }, "-IN")
+    ]));
+  } else if (action === "WITHDRAW") {
+    const accountType = toStringValue(body.accountType, "CASH").toUpperCase();
+    const purpose = optionalString(body.purpose) ?? note;
+    if (!CASHBOOK_ACCOUNTS.includes(accountType as any)) {
+      res.status(400).json({ ok: false, error: "Tài khoản rút không hợp lệ." });
+      return;
+    }
+    if (!purpose || !person) {
+      res.status(400).json({ ok: false, error: "Rút quỹ phải ghi rõ mục đích và người rút." });
+      return;
+    }
+    entries.push(...await insertCashbookEntries([cashbookRow({
+      accountType, direction: "OUT", sourceType: "FUND_WITHDRAWAL",
+      amount, note: purpose, person, entryDate, actorId: actor.id, codePrefix: "RQ"
+    })]));
+  } else if (action === "EXPENSE") {
+    const accountType = toStringValue(body.accountType, "CASH").toUpperCase();
+    const category = optionalString(body.category);
+    if (!CASHBOOK_ACCOUNTS.includes(accountType as any)) {
+      res.status(400).json({ ok: false, error: "Nguồn chi không hợp lệ." });
+      return;
+    }
+    if (!category) {
+      res.status(400).json({ ok: false, error: "Chi phí phải chọn loại chi phí." });
+      return;
+    }
+    entries.push(...await insertCashbookEntries([cashbookRow({
+      accountType, direction: "OUT", sourceType: "EXPENSE",
+      amount, note, category, person, entryDate, actorId: actor.id, codePrefix: "PC"
+    })]));
+  } else if (action === "ADJUST") {
+    if (actor.role !== "ADMIN") {
+      res.status(403).json({ ok: false, error: "Chỉ admin được điều chỉnh số dư quỹ." });
+      return;
+    }
+    const accountType = toStringValue(body.accountType, "CASH").toUpperCase();
+    const direction = toStringValue(body.direction, "IN").toUpperCase();
+    if (!CASHBOOK_ACCOUNTS.includes(accountType as any) || !["IN", "OUT"].includes(direction)) {
+      res.status(400).json({ ok: false, error: "Điều chỉnh quỹ không hợp lệ." });
+      return;
+    }
+    entries.push(...await insertCashbookEntries([cashbookRow({
+      accountType, direction: direction as "IN" | "OUT", sourceType: "FUND_ADJUSTMENT",
+      amount, note: note ?? "Điều chỉnh số dư quỹ", person, entryDate, actorId: actor.id, codePrefix: "DC"
+    })]));
+  } else {
+    res.status(400).json({ ok: false, error: "Nghiệp vụ quỹ không được hỗ trợ." });
+    return;
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: `CASHBOOK_${action}`,
+    entity_type: "cashbook_entry",
+    entity_id: entries[0]?.id ?? null,
+    after_json: { action, amount, entries: entries.map((entry) => entry.id) }
+  });
+  void bestEffortSyncTables(["cashbook_entries"]);
+  res.status(200).json({ ok: true, entries });
 }
 
 type CountRow = {
@@ -1215,6 +1386,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "inventory-receipts" && req.method === "POST") {
       await createInventoryReceipt(req, res);
+      return;
+    }
+
+    if (table === "cashbook-transactions" && req.method === "POST") {
+      await createCashbookTransaction(req, res);
       return;
     }
 

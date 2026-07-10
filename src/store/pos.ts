@@ -12,6 +12,7 @@ interface POSStore {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   updatePrice: (productId: string, price: number) => void;
+  updateUnit: (productId: string, unit: string) => void;
   clearCart: () => void;
   getCartTotal: () => number;
 }
@@ -56,6 +57,13 @@ export const usePOSStore = create<POSStore>((set, get) => ({
         item.id === productId
           ? { ...item, price: safePrice, total: item.quantity * safePrice }
           : item
+      ),
+    }));
+  },
+  updateUnit: (productId, unit) => {
+    set((state) => ({
+      cart: state.cart.map((item) =>
+        item.id === productId ? { ...item, unit } : item
       ),
     }));
   },

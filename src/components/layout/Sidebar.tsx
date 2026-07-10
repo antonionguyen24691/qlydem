@@ -8,6 +8,7 @@ import {
   Store,
   FileText,
   BadgeDollarSign,
+  Coins,
   Truck,
   X
 } from "lucide-react";
@@ -26,6 +27,7 @@ const navItems = [
   { name: "Khách hàng", href: "/customers", icon: Users, visible: canViewCustomers },
   { name: "Nhà cung cấp", href: "/suppliers", icon: Truck, visible: canViewSuppliers },
   { name: "Tài chính", href: "/finance", icon: BadgeDollarSign, visible: canViewFinance },
+  { name: "Chi phí", href: "/expenses", icon: Coins, visible: canViewFinance },
   { name: "Cấu hình", href: "/settings", icon: Settings, visible: isAdmin },
 ];
 

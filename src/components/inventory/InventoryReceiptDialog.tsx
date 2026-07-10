@@ -8,7 +8,7 @@ import { getAuthHeaders } from "../../lib/supabase";
 import type { Product } from "../../store/data";
 
 type Supplier = { id: string; code?: string; name: string; phone?: string };
-type ReceiptLine = { productId: string; quantity: number; unitCost: number };
+type ReceiptLine = { productId: string; quantity: number; unitCost: number; unit: string };
 
 type InventoryReceiptDialogProps = {
   isOpen: boolean;
@@ -19,7 +19,7 @@ type InventoryReceiptDialogProps = {
   onSaved: () => Promise<void> | void;
 };
 
-const emptyLine = (): ReceiptLine => ({ productId: "", quantity: 1, unitCost: 0 });
+const emptyLine = (): ReceiptLine => ({ productId: "", quantity: 1, unitCost: 0, unit: "" });
 
 export function InventoryReceiptDialog({ isOpen, products, suppliers, initialProductId, onClose, onSaved }: InventoryReceiptDialogProps) {
   const [supplierId, setSupplierId] = useState("");
@@ -30,7 +30,9 @@ export function InventoryReceiptDialog({ isOpen, products, suppliers, initialPro
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [note, setNote] = useState("");
-  const [lines, setLines] = useState<ReceiptLine[]>(() => initialProductId ? [{ ...emptyLine(), productId: initialProductId }] : [emptyLine()]);
+  const [lines, setLines] = useState<ReceiptLine[]>(() => initialProductId
+    ? [{ ...emptyLine(), productId: initialProductId, unit: products.find((item) => item.id === initialProductId)?.unit ?? "" }]
+    : [emptyLine()]);
   const [isSaving, setIsSaving] = useState(false);
 
   const subtotal = useMemo(() => lines.reduce((sum, line) => sum + line.quantity * line.unitCost, 0), [lines]);
@@ -51,7 +53,9 @@ export function InventoryReceiptDialog({ isOpen, products, suppliers, initialPro
     setPaidAmount(0);
     setPaymentMethod("CASH");
     setNote("");
-    setLines(initialProductId ? [{ ...emptyLine(), productId: initialProductId }] : [emptyLine()]);
+    setLines(initialProductId
+      ? [{ ...emptyLine(), productId: initialProductId, unit: products.find((item) => item.id === initialProductId)?.unit ?? "" }]
+      : [emptyLine()]);
   };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -97,12 +101,13 @@ export function InventoryReceiptDialog({ isOpen, products, suppliers, initialPro
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="min-w-[760px] w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs font-bold uppercase tracking-wide text-zinc-500"><tr><th className="px-3 py-3">Hàng hóa</th><th className="w-32 px-3 py-3 text-right">Số lượng</th><th className="w-40 px-3 py-3 text-right">Giá nhập</th><th className="w-40 px-3 py-3 text-right">Thành tiền</th><th className="w-12 px-3 py-3" /></tr></thead>
+        <table className="min-w-[880px] w-full text-sm">
+          <thead className="bg-zinc-50 text-left text-xs font-bold uppercase tracking-wide text-zinc-500"><tr><th className="px-3 py-3">Hàng hóa</th><th className="w-32 px-3 py-3 text-right">Số lượng</th><th className="w-28 px-3 py-3">ĐVT</th><th className="w-40 px-3 py-3 text-right">Giá nhập</th><th className="w-40 px-3 py-3 text-right">Thành tiền</th><th className="w-12 px-3 py-3" /></tr></thead>
           <tbody className="divide-y divide-zinc-100">
             {lines.map((line, index) => {
               const product = products.find((item) => item.id === line.productId);
-              return <tr key={`${index}-${line.productId}`}><td className="px-3 py-2"><SearchableSelect value={line.productId} onChange={(value) => updateLine(index, { productId: value, unitCost: Number(products.find((item) => item.id === value)?.cost ?? 0) })} placeholder="Chọn hàng hóa" searchPlaceholder="Tìm mã hoặc tên hàng…" options={products.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}`, description: `Tồn ${item.stock.toLocaleString()} ${item.unit}` }))} /></td><td className="px-3 py-2"><Input name={`quantity-${index}`} type="number" min="0.001" step="any" value={line.quantity || ""} onChange={(event) => updateLine(index, { quantity: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2"><Input name={`cost-${index}`} type="number" min="0" value={line.unitCost || ""} onChange={(event) => updateLine(index, { unitCost: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2 text-right font-bold tabular-nums text-zinc-900">{(line.quantity * line.unitCost).toLocaleString()} ₫<div className="text-xs font-normal text-zinc-500">{product?.unit ?? ""}</div></td><td className="px-3 py-2 text-right"><Button type="button" aria-label="Xóa dòng hàng" variant="ghost" size="sm" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}><Trash2 className="h-4 w-4" /></Button></td></tr>;
+              const unitChanged = Boolean(product && line.unit && line.unit !== product.unit);
+              return <tr key={`${index}-${line.productId}`}><td className="px-3 py-2"><SearchableSelect value={line.productId} onChange={(value) => { const picked = products.find((item) => item.id === value); updateLine(index, { productId: value, unitCost: Number(picked?.cost ?? 0), unit: picked?.unit ?? "" }); }} placeholder="Chọn hàng hóa" searchPlaceholder="Tìm mã hoặc tên hàng…" options={products.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}`, description: `Tồn ${item.stock.toLocaleString()} ${item.unit}` }))} /></td><td className="px-3 py-2"><Input name={`quantity-${index}`} type="number" min="0.001" step="any" value={line.quantity || ""} onChange={(event) => updateLine(index, { quantity: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2"><Input name={`unit-${index}`} value={line.unit} onChange={(event) => updateLine(index, { unit: event.target.value.toUpperCase() })} placeholder={product?.unit ?? "ĐVT"} className={`uppercase ${unitChanged ? "border-amber-400 bg-amber-50" : ""}`} title={unitChanged ? `ĐVT sẽ đổi từ ${product?.unit} sang ${line.unit}` : undefined} />{unitChanged && <div className="mt-1 text-[11px] font-semibold text-amber-700">Đổi từ {product?.unit}</div>}</td><td className="px-3 py-2"><Input name={`cost-${index}`} type="number" min="0" value={line.unitCost || ""} onChange={(event) => updateLine(index, { unitCost: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2 text-right font-bold tabular-nums text-zinc-900">{(line.quantity * line.unitCost).toLocaleString()} ₫<div className="text-xs font-normal text-zinc-500">{line.unit || product?.unit || ""}</div></td><td className="px-3 py-2 text-right"><Button type="button" aria-label="Xóa dòng hàng" variant="ghost" size="sm" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}><Trash2 className="h-4 w-4" /></Button></td></tr>;
             })}
           </tbody>
         </table>

@@ -22,7 +22,7 @@ function normalizeSearch(value: string) {
 }
 
 export function POS() {
-  const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, clearCart, getCartTotal } = usePOSStore();
+  const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, updateUnit, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
@@ -189,7 +189,10 @@ export function POS() {
           idempotencyKey,
           items: cart.map((item) => ({
             productId: item.id,
-            quantity: item.quantity
+            quantity: item.quantity,
+            // Chỉ có tác dụng khi tài khoản có quyền sửa giá bán (orders.price_override).
+            unitPrice: canDiscount ? item.price : undefined,
+            unit: canDiscount ? item.unit : undefined
           }))
         })
       });
@@ -218,7 +221,8 @@ export function POS() {
           total: Number(item.line_total ?? 0)
         }))
       };
-      await loadLiveData();
+      // Đơn đã ghi thành công: in bill ngay, dữ liệu nền tự làm mới để không chặn người bán.
+      void loadLiveData();
       window.localStorage.removeItem(POS_DRAFT_KEY);
     } catch (error) {
       alert(`Không ghi được đơn lên server.\n\n${error instanceof Error ? error.message : "Lỗi không xác định"}`);
@@ -425,7 +429,18 @@ export function POS() {
                           <div className="line-clamp-3 break-words" title={item.name}>{item.name}</div>
                           {item.size && <div className="mt-1 text-xs font-medium text-zinc-500">{item.size}</div>}
                         </td>
-                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500">{item.unit}</td>
+                        <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500">
+                          {canDiscount ? (
+                            <input
+                              value={item.unit}
+                              onChange={(event) => updateUnit(item.id, event.target.value.toUpperCase())}
+                              className="h-9 w-full rounded-md border border-zinc-200 px-2 text-sm uppercase outline-none focus:ring-2 focus:ring-emerald-600"
+                              placeholder="ĐVT"
+                            />
+                          ) : (
+                            item.unit
+                          )}
+                        </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500 text-center">
                           <div className="flex items-center justify-center gap-1 bg-zinc-100 rounded-md p-0.5 w-fit mx-auto">
                             <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="p-1.5 rounded hover:bg-white hover:shadow-sm text-zinc-600 transition-all"><Minus size={14}/></button>
@@ -436,9 +451,11 @@ export function POS() {
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-600 text-right">
                           <Input
                             type="number"
+                            min="0"
                             value={item.price || ""}
-                            readOnly
-                            className="h-9 text-right font-semibold bg-zinc-50 text-zinc-500"
+                            readOnly={!canDiscount}
+                            onChange={(event) => canDiscount && updatePrice(item.id, Number(event.target.value) || 0)}
+                            className={`h-9 text-right font-semibold ${canDiscount ? "" : "bg-zinc-50 text-zinc-500"}`}
                           />
                         </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm font-bold text-zinc-900 text-right">{item.total.toLocaleString()}đ</td>
@@ -476,14 +493,27 @@ export function POS() {
                       <Trash2 size={18} />
                     </button>
                   </div>
+                  {canDiscount && (
+                    <div>
+                      <div className="mb-1 text-xs font-bold uppercase tracking-wider text-zinc-400">Đơn vị tính</div>
+                      <input
+                        value={item.unit}
+                        onChange={(event) => updateUnit(item.id, event.target.value.toUpperCase())}
+                        className="h-10 w-full rounded-lg border border-zinc-200 px-3 text-[16px] uppercase outline-none focus:ring-2 focus:ring-emerald-600"
+                        placeholder="HỘP, VIÊN, KG..."
+                      />
+                    </div>
+                  )}
                   <div className="grid grid-cols-[1fr_auto] items-end gap-3 pt-2 border-t border-zinc-100">
                     <div>
                       <div className="mb-1 text-xs font-bold uppercase tracking-wider text-zinc-400">Giá bán</div>
                       <Input
                         type="number"
+                        min="0"
                         value={item.price || ""}
-                        readOnly
-                        className="h-10 text-right font-semibold bg-zinc-50 text-zinc-500"
+                        readOnly={!canDiscount}
+                        onChange={(event) => canDiscount && updatePrice(item.id, Number(event.target.value) || 0)}
+                        className={`h-10 text-right font-semibold ${canDiscount ? "" : "bg-zinc-50 text-zinc-500"}`}
                       />
                     </div>
                     <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1 w-fit">
