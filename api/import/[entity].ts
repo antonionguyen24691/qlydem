@@ -42,11 +42,25 @@ function isDryRun(req: ApiRequest) {
   return value === "true" || req.query?.dryRun === "true";
 }
 
-function toNumber(value: unknown) {
+export function parsePriceNumber(value: unknown) {
   if (value === null || value === undefined || value === "") return 0;
   if (typeof value === "number") return value;
-  const normalized = String(value).replace(/[^\d.-]/g, "");
-  return normalized ? Number(normalized) : 0;
+  const raw = String(value).trim().replace(/[^\d,.-]/g, "");
+  if (!raw) return 0;
+
+  const lastDot = raw.lastIndexOf(".");
+  const lastComma = raw.lastIndexOf(",");
+  let normalized = raw;
+  if (lastDot >= 0 && lastComma >= 0) {
+    // Chọn dấu xuất hiện sau cùng làm phần thập phân; hỗ trợ cả 193.778,50 và 193,778.50.
+    normalized = lastComma > lastDot ? raw.replaceAll(".", "").replace(",", ".") : raw.replaceAll(",", "");
+  } else if (lastComma >= 0) {
+    normalized = /,\d{1,2}$/.test(raw) ? raw.replace(",", ".") : raw.replaceAll(",", "");
+  } else if (lastDot >= 0) {
+    normalized = /\.\d{1,2}$/.test(raw) ? raw : raw.replaceAll(".", "");
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function textValue(value: unknown) {
@@ -68,7 +82,8 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
 
   const headerMap = rows[0].map((header) => normalizeHeader(header));
   const codeIndex = headerMap.findIndex((header) => ["ma hang", "code", "sku"].includes(header));
-  const priceIndex = headerMap.findIndex((header) => ["gia ban moi", "new price", "sell price", "gia ban", "sell price box vat", "sell price box"].includes(header));
+  const priceIndex = headerMap.findIndex((header) => ["gia ban moi", "gia moi", "don gia moi", "gia ban sau cap nhat", "gia ban sau thay doi", "new price", "sell price", "gia ban", "sell price box vat", "sell price box"].includes(header));
+  const unitIndex = headerMap.findIndex((header) => ["dvt", "don vi tinh", "don vi", "unit", "uom"].includes(header));
   const noteIndex = headerMap.findIndex((header) => ["ghi chu", "note"].includes(header));
   if (codeIndex < 0 || priceIndex < 0) {
     res.status(400).json({ ok: false, error: "File cần có cột Mã hàng và Giá bán mới." });
@@ -78,8 +93,9 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
   const parsedRows = rows.slice(1)
     .map((row, index) => ({
       rowNumber: index + 2,
-      code: textValue(row[codeIndex]),
-      newPrice: Math.max(0, toNumber(row[priceIndex])),
+      code: textValue(row[codeIndex]).toUpperCase(),
+      newPrice: Math.max(0, parsePriceNumber(row[priceIndex])),
+      unit: unitIndex >= 0 ? textValue(row[unitIndex]).toUpperCase() : "",
       note: noteIndex >= 0 ? textValue(row[noteIndex]) : ""
     }))
     .filter((row) => row.code || row.newPrice > 0);
@@ -102,11 +118,11 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
   const codes = parsedRows.map((row) => row.code).filter(Boolean);
   const { data: products, error: productError } = await supabase
     .from("products")
-    .select("id,code,product_name,cost_price,sell_price_box_vat")
+    .select("id,code,product_name,unit,cost_price,sell_price_box_vat")
     .in("code", codes);
   if (productError) throw new Error(productError.message);
 
-  const productByCode = new Map((products ?? []).map((product: any) => [product.code, product]));
+  const productByCode = new Map((products ?? []).map((product: any) => [String(product.code ?? "").trim().toUpperCase(), product]));
   const errors = parsedRows
     .filter((row) => !row.code || !productByCode.has(row.code))
     .map((row) => ({
@@ -125,39 +141,65 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
         product,
         code: row.code,
         newPrice: row.newPrice,
+        unit: row.unit,
         note: row.note,
-        oldPrice: toNumber(product.sell_price_box_vat),
-        costPrice: toNumber(product.cost_price)
+        oldPrice: parsePriceNumber(product.sell_price_box_vat),
+        costPrice: parsePriceNumber(product.cost_price),
+        oldUnit: String(product.unit ?? "").trim().toUpperCase()
       };
     })
-    .filter((row) => row.newPrice !== row.oldPrice);
+    .map((row) => ({
+      ...row,
+      priceChanged: row.newPrice !== row.oldPrice,
+      unitChanged: Boolean(row.unit) && row.unit !== row.oldUnit
+    }))
+    .filter((row) => row.priceChanged || row.unitChanged);
 
   if (errors.length > 0) await supabase.from("import_errors").insert(errors);
 
   let status = "NO_CHANGE";
+  const updatedPriceRows = validRows.filter((row) => row.priceChanged).length;
+  const updatedUnitRows = validRows.filter((row) => row.unitChanged).length;
+  const approvalRows = validRows.filter((row) => row.priceChanged);
+  const skippedUnitRows = user.role === "ADMIN" ? 0 : validRows.filter((row) => row.unitChanged).length;
   if (validRows.length > 0 && user.role === "ADMIN") {
     for (const row of validRows) {
       const now = new Date().toISOString();
+      const updatePayload: Record<string, unknown> = { updated_at: now };
+      if (row.priceChanged) updatePayload.sell_price_box_vat = row.newPrice;
+      if (row.unitChanged) updatePayload.unit = row.unit;
       const { error } = await supabase
         .from("products")
-        .update({ sell_price_box_vat: row.newPrice, updated_at: now })
+        .update(updatePayload)
         .eq("id", row.product.id);
       if (error) throw new Error(error.message);
-      const { error: logError } = await supabase.from("price_edit_logs").insert({
-        product_id: row.product.id,
-        old_sell_price: row.oldPrice,
-        new_sell_price: row.newPrice,
-        old_cost_price: row.costPrice,
-        source_type: "IMPORT_PRICE_LIST",
-        edited_by: user.id,
-        approved_by: user.id,
-        approved_at: now,
-        note: row.note
-      });
-      if (logError) throw new Error(logError.message);
+      if (row.priceChanged) {
+        const { error: logError } = await supabase.from("price_edit_logs").insert({
+          product_id: row.product.id,
+          old_sell_price: row.oldPrice,
+          new_sell_price: row.newPrice,
+          old_cost_price: row.costPrice,
+          source_type: "IMPORT_PRICE_LIST",
+          edited_by: user.id,
+          approved_by: user.id,
+          approved_at: now,
+          note: row.note
+        });
+        if (logError) throw new Error(logError.message);
+      }
+      if (row.unitChanged) {
+        const { error: unitLogError } = await supabase.from("audit_logs").insert({
+          actor_id: user.id,
+          action: "UPDATE_UNIT",
+          entity_type: "product",
+          entity_id: row.product.id,
+          after_json: { oldUnit: row.oldUnit, unit: row.unit, source: "IMPORT_PRICE_LIST" }
+        });
+        if (unitLogError) throw new Error(unitLogError.message);
+      }
     }
     status = "APPLIED";
-  } else if (validRows.length > 0) {
+  } else if (approvalRows.length > 0) {
     const { data: request, error: requestError } = await supabase
       .from("price_update_requests")
       .insert({
@@ -170,7 +212,7 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
       .single();
     if (requestError) throw new Error(requestError.message);
 
-    const { error: itemError } = await supabase.from("price_update_request_items").insert(validRows.map((row) => ({
+    const { error: itemError } = await supabase.from("price_update_request_items").insert(approvalRows.map((row) => ({
       request_id: request.id,
       product_id: row.product.id,
       old_sell_price: row.oldPrice,
@@ -186,7 +228,7 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
     .from("import_batches")
     .update({
       total_rows: parsedRows.length,
-      success_rows: validRows.length,
+      success_rows: status === "APPLIED" ? validRows.length : approvalRows.length,
       failed_rows: errors.length,
       status: errors.length > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED",
       completed_at: new Date().toISOString()
@@ -199,8 +241,11 @@ async function importPriceList(req: ApiRequest, res: ApiResponse) {
     entity: "price-list",
     status,
     totalRows: parsedRows.length,
-    successRows: validRows.length,
-    failedRows: errors.length
+    successRows: status === "APPLIED" ? validRows.length : approvalRows.length,
+    failedRows: errors.length,
+    updatedPriceRows: status === "APPLIED" ? updatedPriceRows : 0,
+    updatedUnitRows: status === "APPLIED" ? updatedUnitRows : 0,
+    skippedUnitRows
   });
 }
 

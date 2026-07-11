@@ -401,7 +401,11 @@ export function Products() {
       });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không nhập được bảng giá.");
-      setMessage(body.status === "PENDING_APPROVAL" ? `Đã nhập ${body.successRows} dòng và gửi chờ duyệt.` : `Đã nhập ${body.successRows} dòng bảng giá.`);
+      setMessage(body.status === "PENDING_APPROVAL"
+        ? `Đã nhập ${body.successRows} dòng giá và gửi chờ duyệt.${body.skippedUnitRows ? ` ${body.skippedUnitRows} đơn vị tính cần Admin cập nhật.` : ""}`
+        : body.skippedUnitRows
+          ? `${body.skippedUnitRows} đơn vị tính cần Admin cập nhật.`
+          : `Đã cập nhật ${body.updatedPriceRows ?? 0} giá, ${body.updatedUnitRows ?? 0} đơn vị tính.`);
       await loadLiveData();
       setPriceRows(buildPriceRows(products));
       await loadPriceRequests();
@@ -747,21 +751,17 @@ export function Products() {
         )}
       </Dialog>
 
-      <Dialog isOpen={isPriceSheetOpen} onClose={() => setIsPriceSheetOpen(false)} title="Bảng giá bán" className="sm:max-w-6xl">
-        <div className="flex h-full flex-col gap-4">
-          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {canApprovePrices ? "Admin lưu bảng giá sẽ cập nhật ngay và ghi log." : "Kế toán lưu bảng giá sẽ tạo lệnh chờ admin duyệt."}
-          </div>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <Input value={priceNote} onChange={(event) => setPriceNote(event.target.value)} placeholder="Ghi chú cho đợt cập nhật giá..." className="lg:max-w-xl" />
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" variant="outline" onClick={exportPriceList} disabled={isExportingPrices}>
-                <Download className="mr-2 h-4 w-4" />
-                {isExportingPrices ? "Đang xuất..." : "Xuất XLSX"}
-              </Button>
-              <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50">
-                <Upload className="mr-2 h-4 w-4" />
-                {isImportingPrices ? "Đang nhập..." : "Nhập XLSX"}
+      <Dialog isOpen={isPriceSheetOpen} onClose={() => setIsPriceSheetOpen(false)} title="Bảng giá bán" className="sm:max-w-5xl">
+        <div className="flex h-full flex-col gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_44px_44px] gap-2 sm:flex sm:items-center">
+            <Input value={priceNote} onChange={(event) => setPriceNote(event.target.value)} placeholder="Ghi chú đợt giá..." />
+            <Button type="button" variant="outline" onClick={exportPriceList} disabled={isExportingPrices} className="h-11 w-11 px-0 sm:h-10 sm:w-auto sm:px-3" title="Xuất XLSX" aria-label="Xuất XLSX">
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{isExportingPrices ? "Đang xuất..." : "Xuất XLSX"}</span>
+            </Button>
+            <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50 sm:h-10 sm:w-auto sm:px-3" title="Nhập XLSX">
+              <Upload className="h-4 w-4 sm:mr-2" />
+              <span className="hidden text-sm font-semibold sm:inline">{isImportingPrices ? "Đang nhập..." : "Nhập XLSX"}</span>
                 <input
                   type="file"
                   accept=".xlsx,.xls"
@@ -774,8 +774,21 @@ export function Products() {
                 />
               </label>
             </div>
+          <div className="space-y-2 md:hidden">
+            {priceRows.map((row) => {
+              const changed = row.newPrice !== row.currentPrice;
+              return (
+                <div key={row.productId} className={`rounded-lg border p-3 ${changed ? "border-emerald-200 bg-emerald-50/40" : "border-zinc-200 bg-white"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><div className="font-semibold text-emerald-700">{row.code}</div><div className="line-clamp-2 text-sm font-semibold text-zinc-900">{row.name}</div></div>
+                    <span className="shrink-0 text-xs font-medium text-zinc-500">{row.unit}</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2"><div className="text-xs text-zinc-500">Hiện tại<br /><span className="font-semibold text-zinc-700">{row.currentPrice.toLocaleString()} đ</span></div><Input type="number" value={row.newPrice || ""} onChange={(event) => updatePriceRow(row.productId, { newPrice: Number(event.target.value) || 0 })} className="h-10 text-right font-semibold" aria-label={`Giá bán mới ${row.code}`} /></div>
+                </div>
+              );
+            })}
           </div>
-          <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+          <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 bg-white md:block">
             <table className="min-w-[980px] w-full text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500">
                 <tr>
