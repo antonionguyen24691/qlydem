@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useDataStore, Customer } from "../store/data";
 import { ArrowLeftRight, Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle, TrendingUp, Landmark } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -40,6 +40,7 @@ type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
 type PeriodFilter = "MONTH" | "30_DAYS" | "ALL";
 
 export function Finance() {
+  const location = useLocation();
   const { customers, orders, loadLiveData } = useDataStore();
   const { isAuthenticated, user } = useAuthStore();
   const canAdjustFund = isAdmin(user);
@@ -70,6 +71,11 @@ export function Finance() {
   const [fundPerson, setFundPerson] = useState("");
   const [fundNote, setFundNote] = useState("");
   const [isSavingFund, setIsSavingFund] = useState(false);
+
+  useEffect(() => {
+    if (location.hash !== "#cong-no") return;
+    window.setTimeout(() => document.getElementById("cong-no")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }, [location.hash]);
 
   const loadFinanceRows = async () => {
     try {
@@ -362,7 +368,7 @@ export function Finance() {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div id="cong-no" className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="font-bold text-zinc-900">Tuổi nợ</h2>
               <div className="flex gap-2 overflow-x-auto hide-scrollbar">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useDataStore, Product } from "../store/data";
 import { ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, ClipboardCheck, MoreHorizontal, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -82,6 +83,7 @@ const defaultInventoryOperations: InventoryOperation[] = [
 ];
 
 export function Inventory() {
+  const location = useLocation();
   const { products, loadLiveData } = useDataStore();
   const user = useAuthStore((state) => state.user);
   const canAdjust = canManageInventory(user);
@@ -161,6 +163,13 @@ export function Inventory() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("filter") === "LOW") {
+      setStockStatusFilter("LOW");
+      setStockPage(1);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     void loadUnitOptions().then(setUnitOptions).catch(() => setUnitOptions(defaultUnitOptions));

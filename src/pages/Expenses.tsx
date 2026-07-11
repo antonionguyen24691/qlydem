@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useDataStore } from "../store/data";
 import { Coins, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -42,6 +42,7 @@ function entryDateOf(entry: CashbookRow) {
 }
 
 export function Expenses() {
+  const location = useLocation();
   const { orders, products, loadLiveData } = useDataStore();
   const user = useAuthStore((state) => state.user);
   const canManageCategories = isAdmin(user);
@@ -90,6 +91,10 @@ export function Expenses() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("tab") === "REPORT") setTab("REPORT");
+  }, [location.search]);
 
   const isInPeriod = (value: string) => {
     if (periodFilter === "ALL") return true;

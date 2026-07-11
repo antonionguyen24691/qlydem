@@ -83,15 +83,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const tableHeader = { borderColor: "#475569", borderStyle: "thin", fontWeight: "bold", align: "center", alignVertical: "center", backgroundColor: "#E2E8F0", wrap: true };
     const tableCell = { ...thinBorder, alignVertical: "center", wrap: true };
     const rows = [
-      [text(companyName, { fontWeight: "bold", fontSize: 16, columnSpan: 4, height: 24 }), null, null, null, text("Số phiếu:", { ...infoLabel, align: "right" }), text(order.code, { ...infoValue, columnSpan: 2, fontWeight: "bold" }), null],
-      [text(`Địa chỉ: ${branding.address || "-"}`, { columnSpan: 4, height: 20 }), null, null, null, text("Ngày:", { ...infoLabel, align: "right" }), text(new Date(order.order_date ?? order.created_at).toLocaleDateString("vi-VN"), { ...infoValue, columnSpan: 2 }), null],
+      [text(companyName, { fontWeight: "bold", fontSize: 14, columnSpan: 7, height: 22, wrap: true }), null, null, null, null, null, null],
+      [text(`Địa chỉ: ${branding.address || "-"}`, { columnSpan: 7, height: 20, wrap: true }), null, null, null, null, null, null],
       [],
       [text("PHIẾU XUẤT BÁN HÀNG", { fontWeight: "bold", fontSize: 16, align: "center", columnSpan: 7, height: 28 }), null, null, null, null, null, null],
       [],
-      [text("Bên bán:", infoLabel), text(companyName, { ...infoValue, columnSpan: 3 }), null, null, text("SĐT:", infoLabel), text(branding.hotline || "-", { ...infoValue, columnSpan: 2 }), null],
-      [text("Địa chỉ:", infoLabel), text(branding.address || "-", { ...infoValue, columnSpan: 6 }), null, null, null, null, null],
-      [text("Bên mua:", infoLabel), text(customer?.name ?? "Khách lẻ", { ...infoValue, columnSpan: 3 }), null, null, text("SĐT:", infoLabel), text(customer?.phone ?? "-", { ...infoValue, columnSpan: 2 }), null],
-      [text("Địa chỉ:", infoLabel), text(customer?.address ?? "-", { ...infoValue, columnSpan: 6 }), null, null, null, null, null],
+      [text(`Số phiếu: ${order.code}`, { ...infoValue, columnSpan: 7, fontWeight: "bold", height: 20, wrap: true }), null, null, null, null, null, null],
+      [text(`Ngày: ${new Date(order.order_date ?? order.created_at).toLocaleDateString("vi-VN")}`, { ...infoValue, columnSpan: 7, height: 20 }), null, null, null, null, null, null],
+      [text("Bên bán:", infoLabel), text(`${companyName}${branding.hotline ? ` | SĐT: ${branding.hotline}` : ""}`, { ...infoValue, columnSpan: 6, height: 24, wrap: true }), null, null, null, null, null],
+      [text("Địa chỉ:", infoLabel), text(branding.address || "-", { ...infoValue, columnSpan: 6, height: 30, wrap: true }), null, null, null, null, null],
+      [text("Bên mua:", infoLabel), text(`${customer?.name ?? "Khách lẻ"}${customer?.phone ? ` | SĐT: ${customer.phone}` : ""}`, { ...infoValue, columnSpan: 6, height: 24, wrap: true }), null, null, null, null, null],
+      [text("Địa chỉ:", infoLabel), text(customer?.address || "-", { ...infoValue, columnSpan: 6, height: 30, wrap: true }), null, null, null, null, null],
       [],
       [
         text("STT", tableHeader), text("Mã hàng", tableHeader), text("Tên hàng", tableHeader), text("ĐVT", tableHeader),
@@ -124,7 +126,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       showGridLines: false,
       zoomScale: 1.05,
       columns: [
-        { width: 7 }, { width: 16 }, { width: 34 }, { width: 10 }, { width: 10 }, { width: 15 }, { width: 17 }
+        { width: 12 }, { width: 15 }, { width: 26 }, { width: 8 }, { width: 8 }, { width: 13 }, { width: 15 }
       ]
     }], { fontFamily: "Arial", fontSize: 10 });
     const buffer = await workbook.toBuffer();
