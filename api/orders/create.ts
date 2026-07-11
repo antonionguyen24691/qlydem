@@ -66,7 +66,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const discountAmount = canOverridePrice ? toNumber(body.discountAmount) : 0;
 
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase.rpc("create_sales_order_secure", {
+    const rpcPayload = {
       p_actor_id: actor.id,
       p_customer_id: optionalString(body.customerId),
       p_warehouse_id: warehouseId,
@@ -76,9 +76,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       p_discount_amount: discountAmount,
       p_due_date: optionalString(body.dueDate),
       p_note: optionalString(body.note),
-      p_idempotency_key: idempotencyKey,
+      p_idempotency_key: idempotencyKey
+    };
+    let usedLegacyOrderRpc = false;
+    let { data, error } = await supabase.rpc("create_sales_order_secure", {
+      ...rpcPayload,
       p_allow_price_override: canOverridePrice
     });
+    // The earlier secure RPC has the same transactional guarantees but no price/unit override argument.
+    // Keep POS available while a production database is catching up with its migration.
+    if (error?.message.includes("p_allow_price_override")) {
+      usedLegacyOrderRpc = true;
+      ({ data, error } = await supabase.rpc("create_sales_order_secure", rpcPayload));
+    }
     if (error) throw new Error(error.message);
     if (!data?.ok) throw new Error(data?.error ?? "Không tạo được đơn hàng");
 
@@ -91,7 +101,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({
       ...data,
       priceSource: "catalog",
-      priceOverrideApplied: canOverridePrice && discountAmount > 0
+      priceOverrideApplied: !usedLegacyOrderRpc && canOverridePrice && discountAmount > 0,
+      legacyOrderRpc: usedLegacyOrderRpc
     });
   } catch (error) {
     sendError(res, error);

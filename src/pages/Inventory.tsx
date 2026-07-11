@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDataStore, Product } from "../store/data";
-import { ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, ClipboardCheck, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, ClipboardCheck, MoreHorizontal, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -105,6 +105,7 @@ export function Inventory() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isInventorySummaryOpen, setIsInventorySummaryOpen] = useState(false);
   const [isInventoryActionsOpen, setIsInventoryActionsOpen] = useState(false);
+  const [mobileExpandedProductId, setMobileExpandedProductId] = useState<string | null>(null);
   const [receiptInitialProductId, setReceiptInitialProductId] = useState<string | undefined>();
   const [stockPage, setStockPage] = useState(1);
   const [stockPageSize, setStockPageSize] = useState(20);
@@ -724,10 +725,10 @@ export function Inventory() {
         </div>
 
         {/* Mobile Card View */}
-        <div className="md:hidden flex-1 overflow-y-auto space-y-3 pb-20 custom-scrollbar">
+        <div className="space-y-2 md:hidden">
           {pagedProducts.map((product) => (
-            <div key={product.id} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200">
-              <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
+            <div key={product.id} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-sm">
+              <div className="flex min-w-0 items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <button
                     type="button"
@@ -735,33 +736,32 @@ export function Inventory() {
                     className="block w-full text-left"
                     title={product.name}
                   >
-                    <h3 className="line-clamp-2 break-words text-base font-semibold leading-tight text-zinc-900">{product.name}</h3>
+                    <h3 className="truncate text-sm font-semibold leading-5 text-zinc-900">{product.name}</h3>
                   </button>
-                  <div className="text-sm font-medium text-emerald-600">{product.code}</div>
-                  {product.name.length > 34 && (
-                    <button
-                      type="button"
-                      onClick={() => setInfoPreview({ title: product.code, content: product.name })}
-                      className="mt-1 text-xs font-semibold text-zinc-500 underline decoration-zinc-300"
-                    >
-                      Xem đầy đủ
-                    </button>
-                  )}
+                  <div className="text-xs font-bold text-emerald-600">{product.code}</div>
                 </div>
-                <div className="max-w-[92px] shrink-0 text-right">
-                  <div className={`mb-1 truncate text-xl font-bold leading-none ${product.stock <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                <div className="shrink-0 text-right">
+                  <div className={`truncate text-lg font-bold leading-none ${product.stock <= 0 ? "text-red-600" : "text-emerald-600"}`}>
                     {product.stock.toLocaleString()}
                   </div>
-                  <div className="inline-block max-w-full truncate rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">{product.unit}</div>
+                  <div className="mt-1 inline-block max-w-full truncate rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500">{product.unit}</div>
                 </div>
+                {(canAdjust || canRequest) && <button
+                  type="button"
+                  onClick={() => setMobileExpandedProductId((current) => current === product.id ? null : product.id)}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
+                  aria-label={`Thao tác với ${product.name}`}
+                  aria-expanded={mobileExpandedProductId === product.id}
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>}
               </div>
-              
-              <div className="flex gap-2 mt-3 pt-3 border-t border-zinc-100">
+              {mobileExpandedProductId === product.id && <div className="mt-2 flex gap-2 border-t border-zinc-100 pt-2">
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openReceipt(product)}>Nhập</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={() => openAdjust("OUT", product)}>Xuất</Button>}
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={startCountMode}>Kiểm</Button>}
                 {!canAdjust && canRequest && <Button variant="outline" className="flex-1 h-9 px-0 text-emerald-600 border-emerald-200" onClick={() => openAdjust("REQUEST_EXPORT", product)}>Đề nghị</Button>}
-              </div>
+              </div>}
             </div>
           ))}
           {filteredProducts.length === 0 && (
