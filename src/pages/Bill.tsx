@@ -49,6 +49,8 @@ export function Bill() {
   }
 
   const debt = Math.max(0, order.total - order.paid);
+  const subtotal = order.items.reduce((sum, item) => sum + item.total, 0);
+  const discount = Math.max(0, subtotal - order.total);
   const downloadXlsx = () => {
     void exportSalesOrderXlsx(order).catch((error) => {
       alert(error instanceof Error ? error.message : "Không xuất được file XLSX.");
@@ -103,11 +105,10 @@ export function Bill() {
               </div>
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm">
                 <div><span className="text-zinc-500">Số phiếu:</span> <span className="font-bold text-zinc-900">{order.id}</span></div>
-                <div className="mt-1"><span className="text-zinc-500">Trạng thái:</span> <span className="font-bold text-zinc-900">{order.status}</span></div>
               </div>
             </div>
             <div className="mt-6 grid gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-[120px_1fr]">
-              <div className="font-bold text-zinc-500">Bên mua</div>
+              <div className="font-bold text-zinc-500">Bên mua:</div>
               <div className="font-black uppercase text-zinc-900">{order.customerName}</div>
             </div>
           </div>
@@ -152,9 +153,11 @@ export function Bill() {
               ))}
             </div>
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <div className="flex justify-between py-2"><span>Tạm tính</span><span className="font-semibold">{money(subtotal)}</span></div>
+              <div className="flex justify-between border-t border-zinc-200 py-2"><span>Chiết khấu</span><span className="font-semibold text-red-600">-{money(discount)}</span></div>
               <div className="flex justify-between py-2"><span>Tổng cộng</span><span className="font-black">{money(order.total)}</span></div>
               <div className="flex justify-between border-t border-zinc-200 py-2"><span>Đã thu</span><span className="font-black text-emerald-600">{money(order.paid)}</span></div>
-              <div className="flex justify-between border-t border-zinc-200 py-2"><span>Còn nợ</span><span className="font-black text-red-600">{money(debt)}</span></div>
+              <div className="flex justify-between border-t border-zinc-200 py-2"><span>Còn phải thu</span><span className={`font-black ${debt > 0 ? "text-red-600" : "text-emerald-600"}`}>{money(debt)}</span></div>
             </div>
           </div>
         </div>

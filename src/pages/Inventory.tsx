@@ -9,6 +9,7 @@ import { InventoryReceiptDialog } from "../components/inventory/InventoryReceipt
 import { useAuthStore } from "../store/auth";
 import { canCountInventory, canManageInventory, canRequestStockOut, isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
+import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
 
 type InventoryMode = "IN" | "OUT" | "COUNT" | "REQUEST_EXPORT";
 
@@ -111,6 +112,7 @@ export function Inventory() {
   const [stockPageSize, setStockPageSize] = useState(20);
   const [stockStatusFilter, setStockStatusFilter] = useState<"ALL" | "LOW" | "AVAILABLE">("ALL");
   const [inventoryOperations, setInventoryOperations] = useState<InventoryOperation[]>(defaultInventoryOperations);
+  const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
   const [supplierId, setSupplierId] = useState("");
   const [documentCode, setDocumentCode] = useState("");
   const [operationType, setOperationType] = useState("PURCHASE_IN");
@@ -158,6 +160,10 @@ export function Inventory() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    void loadUnitOptions().then(setUnitOptions).catch(() => setUnitOptions(defaultUnitOptions));
   }, []);
 
   const stockInTotal = Math.max(0, quantity * unitCost - discountAmount + vatAmount);
@@ -876,7 +882,9 @@ export function Inventory() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-1.5">Đơn vị tính</label>
-                  <Input value={newProduct.unit} onChange={(event) => setNewProduct((current) => ({ ...current, unit: event.target.value }))} placeholder="HỘP, CÁI, KG..." />
+                  <select value={newProduct.unit} onChange={(event) => setNewProduct((current) => ({ ...current, unit: event.target.value }))} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm">
+                    {unitOptions.map((unit) => <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>)}
+                  </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-zinc-700 mb-1.5">Tên hàng hóa mới (*)</label>

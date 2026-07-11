@@ -5,6 +5,7 @@ import { type Order, useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
 import { getAuthHeaders } from "../lib/supabase";
 import { canEditSalePrices } from "../lib/permissions";
+import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
 import { Search, Trash2, Plus, Minus, X, ChevronDown, Package } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -53,6 +54,7 @@ export function POS() {
     creditLimit: "",
     note: ""
   });
+  const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
 
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
@@ -78,6 +80,10 @@ export function POS() {
   useEffect(() => {
     setSearchResults(products);
   }, [products]);
+
+  useEffect(() => {
+    void loadUnitOptions().then(setUnitOptions).catch(() => setUnitOptions(defaultUnitOptions));
+  }, []);
 
   useEffect(() => {
     if (!canDiscount && discountPercent !== 0) setDiscountPercent(0);
@@ -141,10 +147,10 @@ export function POS() {
       alert("Chiết khấu phải nằm trong khoảng 0-100%.");
       return;
     }
-    const amountPaid = customerPaid ? Number(customerPaid.replace(/\D/g, "")) : 0;
-    const debtAmount = selectedCustomer ? Math.max(0, finalTotal - amountPaid) : 0;
+    const amountPaid = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal;
+    const debtAmount = Math.max(0, finalTotal - amountPaid);
     if (!selectedCustomer && debtAmount > 0) {
-      alert("Đơn ghi nợ phải chọn khách hàng.");
+      alert(`Khách còn thiếu ${debtAmount.toLocaleString("vi-VN")} đ. Hãy chọn hoặc tạo khách hàng trước khi hoàn tất để ghi nhận công nợ đúng.`);
       return;
     }
 
@@ -154,7 +160,7 @@ export function POS() {
       customerName: selectedCustomer ? selectedCustomer.name : "Khách lẻ",
       customerId: selectedCustomer ? selectedCustomer.id : undefined,
       total: finalTotal,
-      paid: selectedCustomer ? amountPaid : finalTotal,
+      paid: amountPaid,
       status: (debtAmount > 0) ? "Nợ" : "Đã thanh toán",
       items: cart.map(item => ({
         id: item.id,
@@ -186,7 +192,7 @@ export function POS() {
         body: JSON.stringify({
           customerId: selectedCustomer?.id,
           paymentMethod,
-          paidAmount: selectedCustomer ? amountPaid : finalTotal,
+          paidAmount: amountPaid,
           discountAmount: canDiscount ? discountAmount : 0,
           idempotencyKey,
           items: cart.map((item) => ({
@@ -211,7 +217,7 @@ export function POS() {
         customerName: selectedCustomer?.name ?? "Khách lẻ",
         customerId: selectedCustomer?.id,
         total: Number(savedOrder.total_amount ?? finalTotal),
-        paid: Number(savedOrder.paid_amount ?? (selectedCustomer ? amountPaid : finalTotal)),
+        paid: Number(savedOrder.paid_amount ?? amountPaid),
         status: Number(savedOrder.debt_amount ?? 0) > 0 ? "Nợ" : "Đã thanh toán",
         items: (body.items ?? []).map((item: any) => ({
           id: item.product_id,
@@ -433,12 +439,14 @@ export function POS() {
                         </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500">
                           {canDiscount ? (
-                            <input
+                            <select
                               value={item.unit}
-                              onChange={(event) => updateUnit(item.id, event.target.value.toUpperCase())}
+                              onChange={(event) => updateUnit(item.id, event.target.value)}
                               className="h-9 w-full rounded-md border border-zinc-200 px-2 text-sm uppercase outline-none focus:ring-2 focus:ring-emerald-600"
-                              placeholder="ĐVT"
-                            />
+                            >
+                              {unitOptions.map((unit) => <option key={unit.code} value={unit.code}>{unit.code}</option>)}
+                              {!unitOptions.some((unit) => unit.code === item.unit) && <option value={item.unit}>{item.unit}</option>}
+                            </select>
                           ) : (
                             item.unit
                           )}
@@ -498,12 +506,14 @@ export function POS() {
                   {canDiscount && (
                     <div>
                       <div className="mb-1 text-xs font-bold uppercase tracking-wider text-zinc-400">Đơn vị tính</div>
-                      <input
+                      <select
                         value={item.unit}
-                        onChange={(event) => updateUnit(item.id, event.target.value.toUpperCase())}
+                        onChange={(event) => updateUnit(item.id, event.target.value)}
                         className="h-10 w-full rounded-lg border border-zinc-200 px-3 text-[16px] uppercase outline-none focus:ring-2 focus:ring-emerald-600"
-                        placeholder="HỘP, VIÊN, KG..."
-                      />
+                      >
+                        {unitOptions.map((unit) => <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>)}
+                        {!unitOptions.some((unit) => unit.code === item.unit) && <option value={item.unit}>ĐVT cũ: {item.unit}</option>}
+                      </select>
                     </div>
                   )}
                   <div className="grid grid-cols-[1fr_auto] items-end gap-3 pt-2 border-t border-zinc-100">

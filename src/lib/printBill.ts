@@ -99,6 +99,8 @@ function vietQrUrl(payment: PaymentSettings, order: Order) {
 
 function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSettings = {}) {
   const info = { ...defaultCompany, ...company };
+  const subtotal = order.items.reduce((sum, item) => sum + item.total, 0);
+  const discount = Math.max(0, subtotal - order.total);
   const debt = Math.max(0, order.total - order.paid);
   const qrUrl = vietQrUrl(payment, order);
   const content = transferContent(payment, order);
@@ -179,7 +181,6 @@ function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSetti
     <div class="meta">
       <div><strong>Số phiếu:</strong> ${escapeHtml(order.id)}</div>
       <div><strong>Ngày:</strong> ${orderDate(order)}</div>
-      <div><strong>Trạng thái:</strong> ${escapeHtml(order.status)}</div>
     </div>
   </div>
 
@@ -188,7 +189,7 @@ function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSetti
 
   <div class="customer">
     <strong>Bên mua:</strong><div class="line">${escapeHtml(order.customerName)}</div>
-    <strong>Địa chỉ:</strong><div class="line"></div>
+    <strong>Địa chỉ:</strong><div class="line">-</div>
   </div>
 
   <table>
@@ -206,9 +207,11 @@ function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSetti
   </table>
 
   <div class="totals">
+    <div class="totals-row"><div>Tạm tính</div><div>${money(subtotal)}</div></div>
+    <div class="totals-row"><div>Chiết khấu</div><div>${money(discount)}</div></div>
     <div class="totals-row"><div>Tổng cộng</div><div>${money(order.total)}</div></div>
     <div class="totals-row"><div>Đã trả</div><div>${money(order.paid)}</div></div>
-    <div class="totals-row"><div>Còn nợ</div><div>${money(debt)}</div></div>
+    <div class="totals-row"><div>Còn phải thu</div><div>${money(debt)}</div></div>
   </div>
 
   ${qrUrl ? `
@@ -306,6 +309,8 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
 
 export async function shareSalesOrderImage(order: Order) {
   const company = { ...defaultCompany, ...(await loadCompanySettings()) };
+  const subtotal = order.items.reduce((sum, item) => sum + item.total, 0);
+  const discount = Math.max(0, subtotal - order.total);
   const canvas = document.createElement("canvas");
   canvas.width = 1080;
   canvas.height = Math.max(1500, 780 + order.items.length * 86);
@@ -367,12 +372,17 @@ export async function shareSalesOrderImage(order: Order) {
   y += 28;
   ctx.font = "700 28px Arial";
   ctx.textAlign = "right";
+  ctx.fillText(`Tạm tính: ${money(subtotal)}`, 1024, y);
+  y += 42;
+  ctx.fillText(`Chiết khấu: ${money(discount)}`, 1024, y);
+  y += 42;
   ctx.fillText(`Tổng cộng: ${money(order.total)}`, 1024, y);
   y += 42;
+  ctx.fillStyle = "#047857";
   ctx.fillText(`Đã thu: ${money(order.paid)}`, 1024, y);
   y += 42;
   ctx.fillStyle = "#dc2626";
-  ctx.fillText(`Còn nợ: ${money(Math.max(0, order.total - order.paid))}`, 1024, y);
+  ctx.fillText(`Còn phải thu: ${money(Math.max(0, order.total - order.paid))}`, 1024, y);
   ctx.fillStyle = "#111827";
   ctx.textAlign = "left";
 

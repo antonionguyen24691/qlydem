@@ -9,6 +9,7 @@ import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
 import { useAuthStore } from "../store/auth";
 import { canEditSalePrices, canManageProducts, canSell, isAdmin } from "../lib/permissions";
+import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
 
 type ProductForm = {
   id?: string;
@@ -48,12 +49,6 @@ const emptyForm: ProductForm = {
   status: "ACTIVE",
   lifecycleStatus: "ACTIVE"
 };
-
-const defaultUnitOptions = [
-  { code: "HỘP", name: "Hộp" },
-  { code: "VIÊN", name: "Viên" },
-  { code: "M2", name: "Mét vuông" }
-];
 
 type PriceSheetRow = {
   productId: string;
@@ -159,7 +154,6 @@ export function Products() {
   const [stockFilter, setStockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
-  const [isCustomUnit, setIsCustomUnit] = useState(false);
   const selectedUnitLabel = unitOptions.find((unit) => unit.code === form.unit)?.name ?? form.unit ?? "ĐVT chính";
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -175,16 +169,8 @@ export function Products() {
     let mounted = true;
     void (async () => {
       try {
-        const response = await fetch("/api/settings?key=units", { headers: await getAuthHeaders() });
-        const body = await response.json();
-        const units = Array.isArray(body?.units?.units) ? body.units.units : [];
-        const normalized = units
-          .map((unit: any) => ({
-            code: String(unit.code ?? "").trim(),
-            name: String(unit.name ?? unit.code ?? "").trim()
-          }))
-          .filter((unit: { code: string; name: string }) => unit.code && unit.name);
-        if (mounted && normalized.length > 0) setUnitOptions(normalized);
+        const units = await loadUnitOptions();
+        if (mounted) setUnitOptions(units);
       } catch {
         if (mounted) setUnitOptions(defaultUnitOptions);
       }
@@ -418,13 +404,11 @@ export function Products() {
 
   function openCreate() {
     setForm({ ...emptyForm });
-    setIsCustomUnit(false);
     setIsFormOpen(true);
   }
 
   function openEdit(product: Product) {
     setForm(toForm(product));
-    setIsCustomUnit(false);
     setIsFormOpen(true);
   }
 
@@ -883,33 +867,17 @@ export function Products() {
             <Field label="Tên trên hóa đơn" className="sm:col-span-2"><Input value={form.invoiceName} onChange={(event) => setForm({ ...form, invoiceName: event.target.value })} /></Field>
             <Field label="Loại hàng"><Input value={form.productType} onChange={(event) => setForm({ ...form, productType: event.target.value })} /></Field>
             <Field label="Đơn vị tính">
-              {isCustomUnit ? (
-                <Input
-                  value={form.unit}
-                  onChange={(event) => setForm({ ...form, unit: event.target.value.toUpperCase() })}
-                  placeholder="HỘP, CÁI, KG, THÙNG..."
-                  className="uppercase"
-                />
-              ) : (
-                <select
-                  value={form.unit}
-                  onChange={(event) => setForm({ ...form, unit: event.target.value })}
-                  className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
-                >
-                  {unitOptions.map((unit) => (
-                    <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>
-                  ))}
-                  {form.unit && !unitOptions.some((unit) => unit.code === form.unit) && <option value={form.unit}>{form.unit}</option>}
-                </select>
-              )}
+              <select
+                value={form.unit}
+                onChange={(event) => setForm({ ...form, unit: event.target.value })}
+                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+              >
+                {unitOptions.map((unit) => (
+                  <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>
+                ))}
+                {form.unit && !unitOptions.some((unit) => unit.code === form.unit) && <option value={form.unit}>ĐVT cũ: {form.unit}</option>}
+              </select>
               <div className="mt-2 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsCustomUnit((current) => !current)}
-                  className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
-                >
-                  {isCustomUnit ? "Chọn từ danh sách" : "Nhập ĐVT khác"}
-                </button>
                 {canManage && (
                   <button
                     type="button"

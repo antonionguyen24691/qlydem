@@ -15,6 +15,15 @@ function text(value: unknown, options: Record<string, unknown> = {}) {
   };
 }
 
+function amount(value: unknown, options: Record<string, unknown> = {}) {
+  return {
+    value: Number(value ?? 0),
+    type: Number,
+    format: '#,##0 "đ"',
+    ...options
+  };
+}
+
 async function loadSetting(key: string) {
   const supabase = getSupabaseAdmin();
   const { data } = await supabase.from("settings").select("value").eq("key", key).maybeSingle();
@@ -63,66 +72,61 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (itemError) throw new Error(itemError.message);
 
     const companyName = branding.companyName || branding.appName || "PMQL";
-    const debt = Math.max(0, Number(order.total_amount ?? 0) - Number(order.paid_amount ?? 0));
+    const subtotal = Number(order.subtotal ?? order.total_amount ?? 0);
+    const discount = Math.max(0, Number(order.discount_amount ?? 0));
+    const total = Number(order.total_amount ?? 0);
+    const paid = Math.min(total, Math.max(0, Number(order.paid_amount ?? 0)));
+    const debt = Math.max(0, total - paid);
+    const thinBorder = { borderColor: "#94A3B8", borderStyle: "thin" };
+    const infoLabel = { ...thinBorder, fontWeight: "bold", backgroundColor: "#F8FAFC", alignVertical: "center" };
+    const infoValue = { ...thinBorder, alignVertical: "center", wrap: true };
+    const tableHeader = { borderColor: "#475569", borderStyle: "thin", fontWeight: "bold", align: "center", alignVertical: "center", backgroundColor: "#E2E8F0", wrap: true };
+    const tableCell = { ...thinBorder, alignVertical: "center", wrap: true };
     const rows = [
-      [text(companyName, { fontWeight: "bold", fontSize: 16 }), null, null, null, null, text(`Số phiếu: ${order.code}`, { fontWeight: "bold" })],
-      [text(branding.address ? `Địa chỉ: ${branding.address}` : ""), null, null, null, null, text(`Ngày: ${new Date(order.order_date ?? order.created_at).toLocaleDateString("vi-VN")}`)],
-      [text(branding.hotline ? `Hotline: ${branding.hotline}` : ""), null, null, null, null, text(`Trạng thái: ${order.status ?? ""}`)],
+      [text(companyName, { fontWeight: "bold", fontSize: 16, columnSpan: 4, height: 24 }), null, null, null, text("Số phiếu:", { ...infoLabel, align: "right" }), text(order.code, { ...infoValue, columnSpan: 2, fontWeight: "bold" }), null],
+      [text(`Địa chỉ: ${branding.address || "-"}`, { columnSpan: 4, height: 20 }), null, null, null, text("Ngày:", { ...infoLabel, align: "right" }), text(new Date(order.order_date ?? order.created_at).toLocaleDateString("vi-VN"), { ...infoValue, columnSpan: 2 }), null],
       [],
-      [text("PHIẾU XUẤT BÁN HÀNG", { fontWeight: "bold", fontSize: 18, align: "center" })],
+      [text("PHIẾU XUẤT BÁN HÀNG", { fontWeight: "bold", fontSize: 16, align: "center", columnSpan: 7, height: 28 }), null, null, null, null, null, null],
       [],
-      [text("Bên mua", { fontWeight: "bold" }), text(customer?.name ?? "Khách lẻ"), null, text("SĐT", { fontWeight: "bold" }), text(customer?.phone ?? "")],
-      [text("Địa chỉ", { fontWeight: "bold" }), text(customer?.address ?? "")],
+      [text("Bên bán:", infoLabel), text(companyName, { ...infoValue, columnSpan: 3 }), null, null, text("SĐT:", infoLabel), text(branding.hotline || "-", { ...infoValue, columnSpan: 2 }), null],
+      [text("Địa chỉ:", infoLabel), text(branding.address || "-", { ...infoValue, columnSpan: 6 }), null, null, null, null, null],
+      [text("Bên mua:", infoLabel), text(customer?.name ?? "Khách lẻ", { ...infoValue, columnSpan: 3 }), null, null, text("SĐT:", infoLabel), text(customer?.phone ?? "-", { ...infoValue, columnSpan: 2 }), null],
+      [text("Địa chỉ:", infoLabel), text(customer?.address ?? "-", { ...infoValue, columnSpan: 6 }), null, null, null, null, null],
       [],
       [
-        text("STT", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" }),
-        text("Mã hàng", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" }),
-        text("Tên hàng", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" }),
-        text("ĐVT", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" }),
-        text("SL", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" }),
-        text("Đơn giá", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" }),
-        text("Thành tiền", { fontWeight: "bold", align: "center", backgroundColor: "#E5E7EB" })
+        text("STT", tableHeader), text("Mã hàng", tableHeader), text("Tên hàng", tableHeader), text("ĐVT", tableHeader),
+        text("SL", tableHeader), text("Đơn giá", tableHeader), text("Thành tiền", tableHeader)
       ],
       ...(items ?? []).map((item: any, index: number) => [
-        text(index + 1, { align: "center" }),
-        text(item.product_code ?? ""),
-        text(item.product_name ?? ""),
-        text(item.unit ?? "", { align: "center" }),
-        text(money(item.quantity), { align: "right" }),
-        text(money(item.unit_price), { align: "right" }),
-        text(money(item.line_total), { align: "right", fontWeight: "bold" })
+        text(index + 1, { ...tableCell, align: "center" }), text(item.product_code ?? "", tableCell), text(item.product_name ?? "", tableCell),
+        text(item.unit ?? "", { ...tableCell, align: "center" }), amount(item.quantity, { ...tableCell, align: "right", format: "#,##0.##" }),
+        amount(item.unit_price, { ...tableCell, align: "right" }), amount(item.line_total, { ...tableCell, align: "right", fontWeight: "bold" })
       ]),
+      [null, null, null, null, null, text("Tạm tính", infoLabel), amount(subtotal, { ...infoValue, align: "right", fontWeight: "bold" })],
+      [null, null, null, null, null, text("Chiết khấu", infoLabel), amount(discount, { ...infoValue, align: "right", textColor: "#DC2626" })],
+      [null, null, null, null, null, text("Tổng cộng", { ...infoLabel, fontWeight: "bold" }), amount(total, { ...infoValue, align: "right", fontWeight: "bold" })],
+      [null, null, null, null, null, text("Đã thu", infoLabel), amount(paid, { ...infoValue, align: "right", fontWeight: "bold", textColor: "#047857" })],
+      [null, null, null, null, null, text("Còn phải thu", infoLabel), amount(debt, { ...infoValue, align: "right", fontWeight: "bold", textColor: debt > 0 ? "#DC2626" : "#047857" })],
       [],
-      [null, null, null, null, null, text("Tổng cộng", { fontWeight: "bold" }), text(`${money(order.total_amount)} đ`, { align: "right", fontWeight: "bold" })],
-      [null, null, null, null, null, text("Đã thu", { fontWeight: "bold" }), text(`${money(order.paid_amount)} đ`, { align: "right", fontWeight: "bold" })],
-      [null, null, null, null, null, text("Còn nợ", { fontWeight: "bold" }), text(`${money(debt)} đ`, { align: "right", fontWeight: "bold" })],
+      [text("Thông tin thanh toán", { ...infoLabel, columnSpan: 7 }), null, null, null, null, null, null],
+      [text(payment.enabled ? `Ngân hàng: ${payment.bankBin ?? "-"} | STK: ${payment.accountNumber ?? "-"} | Chủ TK: ${payment.accountName ?? "-"}` : "Chưa bật QR thanh toán", { ...infoValue, columnSpan: 7, wrap: true }), null, null, null, null, null, null],
+      [text(`Nội dung CK: ${(payment.transferTemplate || "Thanh toan {orderCode}").replaceAll("{orderCode}", order.code).replaceAll("{customerName}", customer?.name ?? "Khach le")}`, { ...infoValue, columnSpan: 7, wrap: true }), null, null, null, null, null, null],
       [],
-      [text("Thông tin thanh toán", { fontWeight: "bold" })],
-      [text(payment.enabled ? `Ngân hàng/BIN: ${payment.bankBin ?? ""} | STK: ${payment.accountNumber ?? ""} | Chủ TK: ${payment.accountName ?? ""}` : "Chưa bật QR thanh toán")],
-      [text(`Nội dung CK: ${(payment.transferTemplate || "Thanh toan {orderCode}").replaceAll("{orderCode}", order.code).replaceAll("{customerName}", customer?.name ?? "Khach le")}`)],
-      [],
-      [],
-      [text("Kế toán/Bên giao hàng", { fontWeight: "bold", align: "center" }), null, text("Người giao hàng", { fontWeight: "bold", align: "center" }), null, text("Bên nhận hàng", { fontWeight: "bold", align: "center" })],
-      [text("(Ký, ghi rõ họ tên)", { align: "center" }), null, text("(Ký, ghi rõ họ tên)", { align: "center" }), null, text("(Ký, ghi rõ họ tên)", { align: "center" })],
-      [],
-      [],
-      [],
-      [text("................................", { align: "center" }), null, text("................................", { align: "center" }), null, text("................................", { align: "center" })]
+      [text("Người lập phiếu", { fontWeight: "bold", align: "center", columnSpan: 2 }), null, text("Người giao hàng", { fontWeight: "bold", align: "center", columnSpan: 3 }), null, null, text("Bên nhận hàng", { fontWeight: "bold", align: "center", columnSpan: 2 }), null],
+      [text("(Ký, ghi rõ họ tên)", { align: "center", columnSpan: 2 }), null, text("(Ký, ghi rõ họ tên)", { align: "center", columnSpan: 3 }), null, null, text("(Ký, ghi rõ họ tên)", { align: "center", columnSpan: 2 }), null],
+      [], [],
+      [text("........................", { align: "center", columnSpan: 2 }), null, text("........................", { align: "center", columnSpan: 3 }), null, null, text("........................", { align: "center", columnSpan: 2 }), null]
     ];
 
     const workbook = await writeXlsxFile([{
       sheet: "phieu-xuat-kho",
       data: rows,
+      showGridLines: false,
+      zoomScale: 1.05,
       columns: [
-        { width: 8 },
-        { width: 16 },
-        { width: 36 },
-        { width: 10 },
-        { width: 12 },
-        { width: 16 },
-        { width: 18 }
+        { width: 7 }, { width: 16 }, { width: 34 }, { width: 10 }, { width: 10 }, { width: 15 }, { width: 17 }
       ]
-    }]);
+    }], { fontFamily: "Arial", fontSize: 10 });
     const buffer = await workbook.toBuffer();
     const filename = `phieu-xuat-${order.code}.xlsx`;
 
