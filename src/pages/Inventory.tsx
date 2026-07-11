@@ -104,6 +104,7 @@ export function Inventory() {
   const [transactions, setTransactions] = useState<InventoryTransactionRow[]>([]);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isInventorySummaryOpen, setIsInventorySummaryOpen] = useState(false);
+  const [isInventoryActionsOpen, setIsInventoryActionsOpen] = useState(false);
   const [receiptInitialProductId, setReceiptInitialProductId] = useState<string | undefined>();
   const [stockPage, setStockPage] = useState(1);
   const [stockPageSize, setStockPageSize] = useState(20);
@@ -435,17 +436,24 @@ export function Inventory() {
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-        <div>
+        <div className="hidden sm:block">
           <h1 className="text-xl font-bold text-zinc-900">Quản lý tồn kho</h1>
-          <p className="text-sm text-zinc-500 hidden sm:block mt-1">Nhập, xuất, kiểm kê và đề nghị xuất kho.</p>
+          <p className="mt-1 text-sm text-zinc-500">Nhập, xuất, kiểm kê và đề nghị xuất kho.</p>
         </div>
-        <div className={`grid gap-2 sm:flex sm:flex-wrap ${canAdjust ? "grid-cols-4" : "grid-cols-1"}`}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsInventoryActionsOpen((value) => !value)}
+          className="flex w-full sm:hidden"
+          aria-expanded={isInventoryActionsOpen}
+        >
+          Tác nghiệp kho
+          {isInventoryActionsOpen ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
+        </Button>
+        <div className={`hidden gap-2 sm:flex sm:flex-wrap ${canAdjust ? "sm:grid-cols-4" : "sm:grid-cols-1"}`}>
           <Button variant="outline" onClick={reloadInventory} size="sm" className="hidden sm:flex">
             <RefreshCw className="h-4 w-4 mr-2" />
             Tải lại
-          </Button>
-          <Button variant="outline" onClick={reloadInventory} aria-label="Tải lại tồn kho" className="sm:hidden flex-1">
-            <RefreshCw className="h-4 w-4" />
           </Button>
           {canAdjust && (
             <>
@@ -482,6 +490,23 @@ export function Inventory() {
             </Button>
           )}
         </div>
+        {isInventoryActionsOpen && (
+          <div className={`grid w-full gap-2 sm:hidden ${canAdjust ? "grid-cols-4" : "grid-cols-1"}`}>
+            <Button variant="outline" onClick={reloadInventory} aria-label="Tải lại tồn kho" className="min-w-0 px-0">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            {canAdjust && (
+              <>
+                {canCount && <Button variant={isCountMode ? "default" : "outline"} onClick={startCountMode} aria-label="Kiểm kê" className="min-w-0 px-0"><ClipboardCheck className="h-4 w-4" /></Button>}
+                <Button variant="outline" onClick={() => openAdjust("OUT")} aria-label="Xuất kho" className="min-w-0 px-0"><ArrowUpFromLine className="h-4 w-4" /></Button>
+                <Button onClick={() => openReceipt()} aria-label="Nhập kho" className="min-w-0 px-0"><ArrowDownToLine className="h-4 w-4" /></Button>
+              </>
+            )}
+            {!canAdjust && canCount && <Button variant={isCountMode ? "default" : "outline"} onClick={startCountMode} aria-label="Kiểm kê"><ClipboardCheck className="h-4 w-4" /></Button>}
+            {canApproveInventory && <Button variant="outline" onClick={loadApprovalRequests} disabled={isLoadingApprovals} className="col-span-full"><Check className="mr-2 h-4 w-4" />Duyệt lệnh</Button>}
+            {!canAdjust && canRequest && <Button onClick={() => openAdjust("REQUEST_EXPORT")} className="w-full"><Send className="mr-2 h-4 w-4" />Đề nghị xuất kho</Button>}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden p-3 sm:p-6 custom-scrollbar">
@@ -634,11 +659,11 @@ export function Inventory() {
           </button>
         </div>
 
-        <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-3 flex items-center gap-2 sm:mb-4 sm:justify-between">
           <h2 className="font-bold text-zinc-900 text-lg hidden sm:block">Chi tiết tồn kho</h2>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <select value={stockStatusFilter} onChange={(event) => { setStockStatusFilter(event.target.value as "ALL" | "LOW" | "AVAILABLE"); setStockPage(1); }} className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="ALL">Tất cả tồn kho</option><option value="LOW">Cần nhập thêm</option><option value="AVAILABLE">Đủ tồn</option></select>
-          <div className="relative w-full sm:w-80">
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+          <select value={stockStatusFilter} onChange={(event) => { setStockStatusFilter(event.target.value as "ALL" | "LOW" | "AVAILABLE"); setStockPage(1); }} className="h-11 w-[142px] shrink-0 rounded-lg border border-zinc-200 bg-white px-2 text-sm sm:h-10 sm:w-auto sm:px-3"><option value="ALL">Tất cả tồn kho</option><option value="LOW">Cần nhập thêm</option><option value="AVAILABLE">Đủ tồn</option></select>
+          <div className="relative min-w-0 flex-1 sm:w-80 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <Input 
               value={searchTerm} 

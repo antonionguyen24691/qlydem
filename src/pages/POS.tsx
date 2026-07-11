@@ -337,7 +337,6 @@ export function POS() {
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
-        <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Bán hàng mới</h1>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Button data-testid="pos-product-picker-open" variant="primary" size="sm" onClick={() => setShowProductPicker(true)}>
             <Package className="mr-1.5 h-4 w-4" />

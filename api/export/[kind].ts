@@ -81,6 +81,40 @@ async function priceListXlsx(req: ApiRequest, res: ApiResponse) {
   }
 }
 
+async function supplierListXlsx(req: ApiRequest, res: ApiResponse) {
+  if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
+
+  try {
+    await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
+    const supabase = getSupabaseAdmin();
+    const { data: suppliers, error } = await supabase
+      .from("suppliers")
+      .select("code,name,short_name,phone,address,tax_code,contact_person,payment_terms,status,note")
+      .order("code", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const data = [
+      [
+        cell("Mã nhà cung cấp", "bold"), cell("Tên nhà cung cấp", "bold"), cell("Tên ngắn", "bold"),
+        cell("Số điện thoại", "bold"), cell("Địa chỉ", "bold"), cell("Mã số thuế", "bold"),
+        cell("Người liên hệ", "bold"), cell("Điều khoản thanh toán", "bold"), cell("Trạng thái", "bold"), cell("Ghi chú", "bold")
+      ],
+      ...(suppliers ?? []).map((supplier: any) => [
+        cell(supplier.code), cell(supplier.name), cell(supplier.short_name), cell(supplier.phone), cell(supplier.address),
+        cell(supplier.tax_code), cell(supplier.contact_person), cell(supplier.payment_terms), cell(supplier.status), cell(supplier.note)
+      ])
+    ];
+
+    const workbook = await writeXlsxFile([{ sheet: "Nha cung cap", data }]);
+    const buffer = await workbook.toBuffer();
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="pmql-nha-cung-cap-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    res.send(buffer);
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
 async function tablesXlsx(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
@@ -116,5 +150,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (kind === "xlsx") return tablesXlsx(req, res);
   if (kind === "bill-xlsx") return billXlsx(req, res);
   if (kind === "price-list") return priceListXlsx(req, res);
+  if (kind === "supplier-list") return supplierListXlsx(req, res);
   res.status(400).json({ ok: false, error: "Unsupported export kind." });
 }

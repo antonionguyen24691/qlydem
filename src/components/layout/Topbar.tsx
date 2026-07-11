@@ -26,8 +26,8 @@ export function Topbar() {
   const notificationRef = useRef<HTMLDivElement>(null);
   const pageTitle = {
     "/": "Tổng quan",
-    "/pos": "Bán hàng",
-    "/orders": "Đơn hàng",
+    "/pos": "Bán hàng mới",
+    "/orders": "Nhật ký bán hàng",
     "/products": "Danh mục hàng hóa",
     "/inventory": "Quản lý tồn kho",
     "/customers": "Khách hàng",

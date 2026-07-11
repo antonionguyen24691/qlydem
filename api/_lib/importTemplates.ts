@@ -32,6 +32,7 @@ export const IMPORT_TEMPLATES: Record<ImportEntity, TemplateColumn[]> = {
     { key: "contact_person", label: "Người liên hệ", sample: "Anh A", aliases: ["nguoi lien he"] },
     { key: "payment_terms", label: "Điều khoản thanh toán", sample: "Thanh toán trong 15 ngày", aliases: ["dieu khoan thanh toan"] },
     { key: "current_payable", label: "Phải trả đầu kỳ", sample: 0, aliases: ["phai tra dau ky", "no nha cung cap"] },
+    { key: "status", label: "Trạng thái", sample: "ACTIVE", aliases: ["trang thai"] },
     { key: "note", label: "Ghi chú", sample: "NCC chính", aliases: ["ghi chu"] }
   ],
   products: [

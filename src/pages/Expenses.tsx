@@ -266,7 +266,7 @@ export function Expenses() {
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+        <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto hide-scrollbar">
           <div className="flex shrink-0 rounded-lg bg-zinc-100 p-1 text-sm font-bold">
             <Link to="/finance" className="rounded-md px-3 py-1.5 text-zinc-600 hover:text-zinc-900">Tổng quan & công nợ</Link>
             <span className="rounded-md bg-white px-3 py-1.5 text-emerald-700 shadow-sm">Chi phí & kết quả</span>
@@ -290,8 +290,8 @@ export function Expenses() {
         </div>
       </div>
 
-      <div className="border-b border-zinc-200 bg-white px-4 sm:px-6">
-        <div className="flex gap-1">
+      <div className="min-w-0 border-b border-zinc-200 bg-white px-4 sm:px-6">
+        <div className="flex min-w-0 gap-1 overflow-x-auto hide-scrollbar">
           {[
             ["EXPENSES", "Chi phí"],
             ["REPORT", "Báo cáo doanh thu - chi phí"]
@@ -300,7 +300,7 @@ export function Expenses() {
               key={key}
               type="button"
               onClick={() => setTab(key as "EXPENSES" | "REPORT")}
-              className={`border-b-2 px-4 py-3 text-sm font-bold transition-colors ${tab === key ? "border-emerald-600 text-emerald-700" : "border-transparent text-zinc-500 hover:text-zinc-900"}`}
+              className={`shrink-0 border-b-2 px-4 py-3 text-sm font-bold transition-colors ${tab === key ? "border-emerald-600 text-emerald-700" : "border-transparent text-zinc-500 hover:text-zinc-900"}`}
             >
               {label}
             </button>
@@ -308,7 +308,7 @@ export function Expenses() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar space-y-4">
+      <div className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-3 sm:p-6 custom-scrollbar space-y-4">
         {tab === "EXPENSES" ? (
           <>
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -411,8 +411,8 @@ export function Expenses() {
               <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Lợi nhuận ròng ước tính" value={`${netProfit.toLocaleString()} ₫`} tone={netProfit >= 0 ? "green" : "red"} />
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-              <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm">
                 <div className="border-b border-zinc-200 p-4">
                   <h2 className="font-bold text-zinc-900">Chi tiết theo ngày ({periodLabel})</h2>
                   <p className="mt-1 text-sm text-zinc-500">Doanh thu theo đơn hàng, thực thu và chi phí ghi nhận từng ngày.</p>
@@ -448,7 +448,7 @@ export function Expenses() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
                   <h2 className="mb-3 font-bold text-zinc-900">Kết quả kinh doanh ({periodLabel})</h2>
                   <div className="space-y-2 text-sm">
@@ -573,9 +573,9 @@ function StatCard({ icon, label, value, tone }: { icon: React.ReactNode; label: 
 
 function ReportRow({ label, value, bold = false, highlight = false }: { label: string; value: number; bold?: boolean; highlight?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className={`${bold ? "font-bold text-zinc-900" : "text-zinc-600"}`}>{label}</span>
-      <span className={`tabular-nums ${bold ? "font-black" : "font-semibold"} ${highlight ? (value >= 0 ? "text-emerald-700" : "text-red-600") : value < 0 ? "text-red-600" : "text-zinc-900"}`}>
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <span className={`min-w-0 truncate ${bold ? "font-bold text-zinc-900" : "text-zinc-600"}`}>{label}</span>
+      <span className={`shrink-0 tabular-nums ${bold ? "font-black" : "font-semibold"} ${highlight ? (value >= 0 ? "text-emerald-700" : "text-red-600") : value < 0 ? "text-red-600" : "text-zinc-900"}`}>
         {value < 0 ? "-" : ""}{Math.abs(value).toLocaleString()} ₫
       </span>
     </div>

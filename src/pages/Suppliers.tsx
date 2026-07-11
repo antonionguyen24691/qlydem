@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Edit3, Plus, Search, Truck } from "lucide-react";
+import { Download, Edit3, Plus, Search, Truck, Upload } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
 import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
-import { canManageInventory } from "../lib/permissions";
+import { canManageInventory, isAdmin } from "../lib/permissions";
 import { useAuthStore } from "../store/auth";
 
 type Supplier = {
@@ -34,6 +34,10 @@ export function Suppliers() {
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
+  const [importError, setImportError] = useState("");
 
   const loadRows = async () => {
     const response = await fetch("/api/data/suppliers", { headers: await getAuthHeaders() });
@@ -73,13 +77,71 @@ export function Suppliers() {
     } finally { setSaving(false); }
   };
 
+  const exportSuppliers = async () => {
+    setIsExporting(true);
+    setImportError("");
+    try {
+      const response = await fetch("/api/export/supplier-list", { headers: await getAuthHeaders() });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? "Không xuất được danh sách nhà cung cấp.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `pmql-nha-cung-cap-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Không xuất được danh sách nhà cung cấp.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const importSuppliers = async (file?: File) => {
+    if (!file) return;
+    setIsImporting(true);
+    setImportMessage("");
+    setImportError("");
+    try {
+      const response = await fetch("/api/import/suppliers", {
+        method: "POST",
+        headers: { ...(await getAuthHeaders()), "x-file-name": encodeURIComponent(file.name) },
+        body: await file.arrayBuffer()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không nhập được nhà cung cấp.");
+      setImportMessage(`Đã nhập ${body.successRows ?? 0}/${body.totalRows ?? 0} nhà cung cấp.${body.failedRows ? ` ${body.failedRows} dòng cần kiểm tra.` : ""}`);
+      await loadRows();
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Không nhập được nhà cung cấp.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return <div className="flex h-full flex-col bg-zinc-50">
     <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <div><h1 className="text-xl font-bold text-zinc-900">Nhà cung cấp</h1><p className="mt-1 text-sm text-zinc-500">Quản lý NCC, công nợ phải trả và thông tin dùng khi nhập kho.</p></div>
-      {canManageInventory(user) && <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Thêm nhà cung cấp</Button>}
+      {canManageInventory(user) && <div className="grid grid-cols-[minmax(0,1fr)_44px_44px] gap-2 sm:flex sm:items-center">
+        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Thêm nhà cung cấp</Button>
+        {isAdmin(user) && <>
+          <Button type="button" variant="outline" onClick={exportSuppliers} disabled={isExporting} className="h-11 w-11 px-0 sm:h-10 sm:w-auto sm:px-3" title="Xuất XLSX" aria-label="Xuất XLSX">
+            <Download className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Xuất XLSX</span>
+          </Button>
+          <label className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50 sm:h-10 sm:w-auto sm:px-3 ${isImporting ? "pointer-events-none opacity-50" : ""}`} title="Nhập XLSX">
+            <Upload className="h-4 w-4 sm:mr-2" /><span className="hidden text-sm font-semibold sm:inline">Nhập XLSX</span>
+            <input type="file" accept=".xlsx,.xls" className="hidden" disabled={isImporting} onChange={(event) => { void importSuppliers(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+          </label>
+        </>}
+      </div>}
     </div>
     <div className="flex-1 overflow-y-auto p-4 sm:p-6">
       <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+        {(importMessage || importError) && <div className={`border-b p-3 text-sm font-medium ${importError ? "border-red-100 bg-red-50 text-red-700" : "border-emerald-100 bg-emerald-50 text-emerald-700"}`}>{importError || importMessage}</div>}
         <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-zinc-500">{filtered.length} nhà cung cấp</div>
           <div className="relative w-full sm:w-96"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" /><Input value={term} onChange={(event) => { setTerm(event.target.value); setPage(1); }} placeholder="Tìm mã, tên, SĐT, mã số thuế..." className="pl-9" /></div>
