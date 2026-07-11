@@ -41,6 +41,13 @@ function escapeHtml(value: unknown) {
     .replace(/"/g, "&quot;");
 }
 
+// Chỉ cho phép ảnh https / data:image; ngăn scheme lạ (javascript:, file:...) lọt vào src của bill in.
+function safeImageSrc(value: unknown) {
+  const url = String(value ?? "").trim();
+  if (/^https:\/\//i.test(url) || /^data:image\//i.test(url)) return escapeHtml(url);
+  return "";
+}
+
 function orderDate(order: Order) {
   const parsed = new Date(order.date);
   if (Number.isNaN(parsed.getTime())) return escapeHtml(order.date);
@@ -161,7 +168,7 @@ function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSetti
   </div>
   <div class="header">
     <div class="company">
-      ${info.logoUrl ? `<img class="logo" src="${escapeHtml(info.logoUrl)}" alt="Logo" />` : ""}
+      ${safeImageSrc(info.logoUrl) ? `<img class="logo" src="${safeImageSrc(info.logoUrl)}" alt="Logo" />` : ""}
       <div>
         <div class="company-name">${escapeHtml(info.name)}</div>
         <div>${escapeHtml(info.address)}</div>

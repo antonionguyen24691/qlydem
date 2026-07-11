@@ -35,6 +35,8 @@ export function sendError(res: ApiResponse, error: unknown) {
       ? 403
       : error instanceof Error && error.name === "BAD_REQUEST"
         ? 400
-        : 500;
+        : error instanceof Error && error.name === "RATE_LIMITED"
+          ? 429
+          : 500;
   res.status(code).json({ ok: false, error: message });
 }

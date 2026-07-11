@@ -96,6 +96,15 @@ const defaultInventoryOperations: InventoryOperationSettings = {
   ]
 };
 
+// Chỉ chấp nhận ảnh https hoặc data URI ảnh; loại bỏ javascript:/http:/URL lạ để tránh SSRF/lộ IP khi in bill.
+function safeImageUrl(value: unknown) {
+  const url = toStringValue(value).trim();
+  if (!url) return "";
+  if (/^https:\/\//i.test(url)) return url;
+  if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);/i.test(url)) return url;
+  return "";
+}
+
 function normalizeBranding(input: Record<string, unknown>): BrandingSettings {
   return {
     appName: toStringValue(input.appName, defaultBranding.appName).trim() || defaultBranding.appName,
@@ -104,8 +113,8 @@ function normalizeBranding(input: Record<string, unknown>): BrandingSettings {
     address: toStringValue(input.address).trim(),
     hotline: toStringValue(input.hotline).trim(),
     taxCode: toStringValue(input.taxCode).trim(),
-    logoUrl: toStringValue(input.logoUrl).trim(),
-    faviconUrl: toStringValue(input.faviconUrl).trim()
+    logoUrl: safeImageUrl(input.logoUrl),
+    faviconUrl: safeImageUrl(input.faviconUrl)
   };
 }
 

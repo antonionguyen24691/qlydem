@@ -100,12 +100,14 @@ export function POS() {
       const shouldRestore = window.confirm(`Có đơn nháp chưa thanh toán (${draft.cart.length} mặt hàng). Bạn có muốn khôi phục không?`);
       if (!shouldRestore) return;
 
+      // Giải quyết lại từ dữ liệu sống để lấy giá/ĐVT/tồn hiện tại; nháp chỉ giữ id + số lượng.
       draft.cart.forEach((item: any) => {
-        if (item?.id && item?.name) {
-          addToCart(item, Number(item.quantity) || 1);
-        }
+        if (!item?.id) return;
+        const product = products.find((candidate) => candidate.id === item.id);
+        if (product) addToCart(product, Number(item.quantity) || 1);
       });
-      setSelectedCustomer(draft.selectedCustomer ?? null);
+      const draftCustomerId = draft.customerId ?? draft.selectedCustomer?.id;
+      setSelectedCustomer(draftCustomerId ? customers.find((candidate) => candidate.id === draftCustomerId) ?? null : null);
       setDiscountPercent(Number(draft.discountPercent) || 0);
       setPaymentMethod(draft.paymentMethod === "TRANSFER" ? "TRANSFER" : "CASH");
       setCustomerPaid(draft.customerPaid ?? "");
@@ -259,9 +261,10 @@ export function POS() {
       return;
     }
 
+    // Chỉ lưu id khách trên thiết bị (máy bán hàng thường dùng chung), không lưu SĐT/nợ/hạn mức.
     window.localStorage.setItem(POS_DRAFT_KEY, JSON.stringify({
-      cart,
-      selectedCustomer,
+      cart: cart.map((item) => ({ id: item.id, name: item.name, quantity: item.quantity })),
+      customerId: selectedCustomer?.id,
       discountPercent,
       paymentMethod,
       customerPaid,

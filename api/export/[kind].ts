@@ -3,6 +3,7 @@ import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { fetchTableRows, parseTables } from "../_lib/supabase.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { requireAuth } from "../_lib/auth.js";
+import { enforceRateLimit } from "../_lib/rateLimit.js";
 import writeXlsxFile from "write-excel-file/node";
 import billXlsx from "../_lib/exportBillXlsx.js";
 
@@ -84,6 +85,8 @@ async function tablesXlsx(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   try {
+    // Export toàn bộ bảng tốn tài nguyên: giới hạn 10 lần / phút.
+    enforceRateLimit(req, "export-tables", 10, 60_000);
     await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
     const tables = parseTables(getQueryValue(req.query?.tables));
     const sheets = [];

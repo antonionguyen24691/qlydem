@@ -5,6 +5,7 @@ import { requireAuth, requirePermission } from "../_lib/auth.js";
 import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { bestEffortSyncTables } from "../_lib/googleSheets.js";
+import { enforceRateLimit } from "../_lib/rateLimit.js";
 
 const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   customers: ["ADMIN", "ACCOUNTANT", "SALE"],
@@ -861,17 +862,55 @@ async function insertCashbookEntries(rows: ReturnType<typeof cashbookRow>[]) {
   return data ?? [];
 }
 
+const MAX_CASHBOOK_AMOUNT = 100_000_000_000; // 100 tỷ: chặn số nhập lỗi/tràn, vẫn dư cho nghiệp vụ thật.
+
+// Mỗi nghiệp vụ quỹ cần quyền riêng: chi phí = finance.expense.create; chuyển/rút/điều chỉnh = finance.fund.manage.
+const CASHBOOK_PERMISSION: Record<string, string> = {
+  EXPENSE: "finance.expense.create",
+  TRANSFER: "finance.fund.manage",
+  WITHDRAW: "finance.fund.manage",
+  ADJUST: "finance.fund.manage"
+};
+
+function normalizeEntryDate(input: unknown, res: ApiResponse): string | null | false {
+  const value = optionalString(input);
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    res.status(400).json({ ok: false, error: "Ngày ghi sổ không hợp lệ." });
+    return false;
+  }
+  // Chặn ngày tương lai (cho phép trễ tối đa 1 ngày do lệch múi giờ client).
+  if (date.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+    res.status(400).json({ ok: false, error: "Không được ghi sổ quỹ với ngày trong tương lai." });
+    return false;
+  }
+  return value.slice(0, 10);
+}
+
 async function createCashbookTransaction(req: ApiRequest, res: ApiResponse) {
-  const actor = await requirePermission(req, "finance.receipt.create");
   const body = getJsonBody(req);
   const action = toStringValue(body.action).trim().toUpperCase();
+  const permission = CASHBOOK_PERMISSION[action];
+  if (!permission) {
+    res.status(400).json({ ok: false, error: "Nghiệp vụ quỹ không được hỗ trợ." });
+    return;
+  }
+
+  enforceRateLimit(req, "cashbook", 30, 60_000);
+  const actor = await requirePermission(req, permission);
   const amount = Math.round(toNumber(body.amount));
   const note = optionalString(body.note);
   const person = optionalString(body.person);
-  const entryDate = optionalString(body.entryDate);
+  const entryDate = normalizeEntryDate(body.entryDate, res);
+  if (entryDate === false) return;
 
   if (amount <= 0) {
     res.status(400).json({ ok: false, error: "Số tiền phải lớn hơn 0." });
+    return;
+  }
+  if (amount > MAX_CASHBOOK_AMOUNT) {
+    res.status(400).json({ ok: false, error: "Số tiền vượt giới hạn cho phép." });
     return;
   }
 
@@ -941,9 +980,6 @@ async function createCashbookTransaction(req: ApiRequest, res: ApiResponse) {
       accountType, direction: direction as "IN" | "OUT", sourceType: "FUND_ADJUSTMENT",
       amount, note: note ?? "Điều chỉnh số dư quỹ", person, entryDate, actorId: actor.id, codePrefix: "DC"
     })]));
-  } else {
-    res.status(400).json({ ok: false, error: "Nghiệp vụ quỹ không được hỗ trợ." });
-    return;
   }
 
   await supabase.from("audit_logs").insert({

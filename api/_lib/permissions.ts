@@ -17,6 +17,8 @@ export const PERMISSION_CATALOG = [
   { key: "inventory.manage", label: "Nhập/xuất/kiểm kho" },
   { key: "finance.view", label: "Xem tài chính/công nợ" },
   { key: "finance.receipt.create", label: "Lập phiếu thu" },
+  { key: "finance.expense.create", label: "Ghi chi phí" },
+  { key: "finance.fund.manage", label: "Chuyển/rút/điều chỉnh quỹ" },
   { key: "finance.export", label: "Xuất báo cáo" },
   { key: "settings.manage", label: "Cấu hình hệ thống" },
   { key: "users.manage", label: "Quản lý người dùng/quyền" },
@@ -29,7 +31,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   ACCOUNTANT: {
     "dashboard.view": "all", "pos.use": "all", "orders.view": "all", "orders.create": "all", "orders.price_override": "all",
     "customers.view": "all", "customers.create": "all", "customers.update": "all", "products.view": "all",
-    "inventory.view": "all", "finance.view": "all", "finance.receipt.create": "all", "finance.export": "all"
+    "inventory.view": "all", "finance.view": "all", "finance.receipt.create": "all", "finance.expense.create": "all",
+    "finance.fund.manage": "all", "finance.export": "all"
   },
   SALE: {
     "dashboard.view": "own", "pos.use": "own", "orders.view": "own", "orders.create": "own",

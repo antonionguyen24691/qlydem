@@ -6,7 +6,7 @@ import { getJsonBody, toStringValue } from "../_lib/body.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
-    await requirePermission(req, "users.manage");
+    const actor = await requirePermission(req, "users.manage");
     const supabase = getSupabaseAdmin();
 
     if (req.method === "GET") {
@@ -31,6 +31,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .select("*")
         .single();
       if (error) throw new Error(error.message);
+
+      // Đổi ma trận quyền là hành vi nhạy cảm — luôn ghi audit.
+      await supabase.from("audit_logs").insert({
+        actor_id: actor.id,
+        action: "UPDATE_ROLE_PERMISSIONS",
+        entity_type: "role",
+        entity_id: role,
+        after_json: data
+      });
+
       res.status(200).json({ ok: true, role: data });
       return;
     }

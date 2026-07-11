@@ -12,3 +12,4 @@ coverage/
 *.xlsm
 *.csv
 *.zip
+firebase-applet-config.json
