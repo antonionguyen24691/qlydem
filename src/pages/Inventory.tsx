@@ -527,7 +527,7 @@ export function Inventory() {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden p-3 sm:p-6 custom-scrollbar">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 custom-scrollbar sm:p-6 md:overflow-hidden">
         {isCountMode ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm font-medium text-amber-800 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">

@@ -478,7 +478,7 @@ export function Products() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50">
+    <div className="flex h-full min-h-0 flex-col bg-zinc-50">
       <div className="flex items-center justify-end border-b border-zinc-200 bg-white px-3 py-3 sm:px-6 sm:py-4">
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           {canEditPrices && (
@@ -496,7 +496,7 @@ export function Products() {
         </div>
       </div>
 
-      <div className="p-3 sm:p-6 flex-1 overflow-hidden flex flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-6">
         {errorMessage && <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{errorMessage}</div>}
         {message && <div className="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{message}</div>}
         <div className="flex items-center gap-2 mb-3 sm:mb-6">
@@ -604,7 +604,7 @@ export function Products() {
           </div>
         </div>
 
-        <div className="md:hidden flex-1 overflow-y-auto space-y-3 custom-scrollbar pb-20">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-20 custom-scrollbar md:hidden">
           {filteredProducts.map((product) => {
             const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
             return (
