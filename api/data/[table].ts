@@ -33,6 +33,29 @@ const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   supplier_debt_ledger: ["ADMIN", "ACCOUNTANT"]
 };
 
+const TABLE_READ_PERMISSIONS: Partial<Record<ExportableTable, string>> = {
+  customers: "customers.view",
+  products: "products.view",
+  warehouses: "inventory.view",
+  inventory_balances: "inventory.view",
+  inventory_transactions: "inventory.view",
+  inventory_adjustment_requests: "inventory.manage",
+  inventory_adjustment_request_items: "inventory.manage",
+  inventory_edit_logs: "inventory.manage",
+  price_update_requests: "orders.price_override",
+  price_update_request_items: "orders.price_override",
+  price_edit_logs: "orders.price_override",
+  sales_orders: "orders.view",
+  sales_order_items: "orders.view",
+  receipts: "finance.view",
+  customer_debt_ledger: "finance.view",
+  order_debts: "finance.view",
+  receipt_allocations: "finance.view",
+  cashbook_entries: "finance.view",
+  audit_logs: "settings.manage",
+  supplier_debt_ledger: "finance.view"
+};
+
 type InventoryReceiptItem = { productId?: string; quantity?: number; unitCost?: number; unit?: string };
 type InventoryReceiptPayload = {
   supplierId?: string;
@@ -118,7 +141,6 @@ function customerPayload(body: Record<string, unknown>) {
     customer_group: toStringValue(body.customerGroup ?? body.customer_group, "RETAIL"),
     credit_limit: toNumber(body.creditLimit ?? body.credit_limit),
     credit_days: toNumber(body.creditDays ?? body.credit_days),
-    current_debt: toNumber(body.oldDebt ?? body.currentDebt ?? body.current_debt),
     status: toStringValue(body.status, "ACTIVE").toUpperCase(),
     note: optionalString(body.note),
     updated_at: new Date().toISOString()
@@ -766,33 +788,6 @@ async function createInventoryReceipt(req: ApiRequest, res: ApiResponse) {
   }
 
   const supabase = getSupabaseAdmin();
-  // Bảng kê cho phép đổi đơn vị tính: cập nhật ĐVT trên danh mục trước khi RPC đọc lại catalog.
-  const unitChanges = items.filter((item) => item.product_id && item.unit);
-  if (unitChanges.length > 0) {
-    const { data: unitProducts, error: unitReadError } = await supabase
-      .from("products")
-      .select("id,unit")
-      .in("id", unitChanges.map((item) => item.product_id as string));
-    if (unitReadError) throw new Error(unitReadError.message);
-    const currentUnitById = new Map((unitProducts ?? []).map((row: any) => [row.id, String(row.unit ?? "")]));
-    for (const item of unitChanges) {
-      const nextUnit = String(item.unit).trim().toUpperCase();
-      if (!nextUnit || currentUnitById.get(item.product_id as string) === nextUnit) continue;
-      const { error: unitError } = await supabase
-        .from("products")
-        .update({ unit: nextUnit, updated_at: new Date().toISOString() })
-        .eq("id", item.product_id);
-      if (unitError) throw new Error(unitError.message);
-      await supabase.from("audit_logs").insert({
-        actor_id: actor.id,
-        action: "UPDATE_UNIT",
-        entity_type: "product",
-        entity_id: item.product_id,
-        after_json: { unit: nextUnit, source: "inventory_receipt" }
-      });
-    }
-  }
-
   const { data, error } = await supabase.rpc("create_inventory_receipt_secure", {
     p_actor_id: actor.id,
     p_supplier_id: supplierId,
@@ -1042,67 +1037,89 @@ async function applyInventoryCountRows({
   note?: string | null;
 }) {
   const supabase = getSupabaseAdmin();
-  const productIds = rows.map((row) => row.productId);
-  const currentByProduct = await loadCurrentBalances(warehouseId, productIds);
-  const now = new Date().toISOString();
-  const changedRows = rows
-    .map((row) => {
-      const current = toNumber(currentByProduct.get(row.productId)?.quantity_box);
-      const quantityChange = row.quantity - current;
-      return { ...row, current, quantityChange };
-    })
-    .filter((row) => row.quantityChange !== 0);
+  const { data: warehouse, error: warehouseError } = await supabase
+    .from("warehouses")
+    .select("code")
+    .eq("id", warehouseId)
+    .single();
+  if (warehouseError) throw new Error(warehouseError.message);
+  const { data, error } = await supabase.rpc("apply_inventory_count_secure", {
+    p_actor_id: approverId ?? actorId,
+    p_warehouse_code: warehouse.code,
+    p_rows: rows.map((row) => ({ product_id: row.productId, quantity: row.quantity, note: row.note })),
+    p_note: [sourceType, note].filter(Boolean).join(" - ") || null,
+    p_idempotency_key: requestId ?? crypto.randomUUID()
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error ?? "Không áp dụng được kiểm kê.");
+  return Array.from({ length: Number(data.changedRows ?? 0) }, () => ({}));
+}
 
-  for (const row of changedRows) {
-    const balance = currentByProduct.get(row.productId);
-    const balancePayload = {
-      warehouse_id: warehouseId,
-      product_id: row.productId,
-      quantity_box: row.quantity,
-      quantity_piece: 0,
-      updated_at: now
-    };
-
-    if (balance?.id) {
-      const { error } = await supabase.from("inventory_balances").update(balancePayload).eq("id", balance.id);
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await supabase.from("inventory_balances").insert(balancePayload);
-      if (error) throw new Error(error.message);
-    }
-
-    const { data: transaction, error: transactionError } = await supabase
-      .from("inventory_transactions")
-      .insert({
-        warehouse_id: warehouseId,
-        product_id: row.productId,
-        source_type: sourceType,
-        source_id: null,
-        quantity_change: row.quantityChange,
-        stock_after: row.quantity,
-        note: row.note ?? note ?? "Kiểm kê sheet"
-      })
-      .select("id")
-      .single();
-    if (transactionError) throw new Error(transactionError.message);
-
-    const { error: logError } = await supabase.from("inventory_edit_logs").insert({
-      product_id: row.productId,
-      warehouse_id: warehouseId,
-      old_quantity_box: row.current,
-      new_quantity_box: row.quantity,
-      quantity_change: row.quantityChange,
-      source_type: requestId ? "APPROVED_STOCK_COUNT" : "DIRECT_STOCK_COUNT",
-      source_id: requestId ?? transaction.id,
-      edited_by: actorId,
-      approved_by: approverId ?? actorId,
-      approved_at: now,
-      note: row.note ?? note
-    });
-    if (logError) throw new Error(logError.message);
+async function adjustCustomerDebt(req: ApiRequest, res: ApiResponse) {
+  const actor = await requirePermission(req, "finance.fund.manage");
+  const body = getJsonBody(req);
+  const customerId = optionalString(body.customerId);
+  const delta = toNumber(body.delta);
+  const note = optionalString(body.note);
+  const key = optionalString(body.idempotencyKey);
+  if (!customerId || !delta || !note || !key) {
+    res.status(400).json({ ok: false, error: "Thiếu khách hàng, số điều chỉnh, lý do hoặc Idempotency-Key." });
+    return;
   }
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("adjust_customer_debt_secure", {
+    p_actor_id: actor.id, p_customer_id: customerId, p_delta: delta, p_note: note, p_idempotency_key: key
+  });
+  if (error) throw new Error(error.message);
+  await bestEffortSyncTables(["customers", "customer_debt_ledger"]);
+  res.status(200).json(data);
+}
 
-  return changedRows;
+async function createSupplierPayment(req: ApiRequest, res: ApiResponse) {
+  const actor = await requirePermission(req, "finance.expense.create");
+  const body = getJsonBody(req);
+  const supplierId = optionalString(body.supplierId);
+  const amount = toNumber(body.amount);
+  const key = optionalString(body.idempotencyKey);
+  if (!supplierId || amount <= 0 || !key) {
+    res.status(400).json({ ok: false, error: "Thiếu nhà cung cấp, số tiền hoặc Idempotency-Key." });
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("create_supplier_payment_secure", {
+    p_actor_id: actor.id,
+    p_supplier_id: supplierId,
+    p_amount: amount,
+    p_payment_method: optionalString(body.paymentMethod) ?? "CASH",
+    p_note: optionalString(body.note),
+    p_idempotency_key: key
+  });
+  if (error) throw new Error(error.message);
+  await bestEffortSyncTables(["suppliers", "purchase_orders", "payments", "supplier_debt_ledger", "cashbook_entries"]);
+  res.status(200).json(data);
+}
+
+async function cancelSalesOrder(req: ApiRequest, res: ApiResponse) {
+  const actor = await requirePermission(req, "orders.create");
+  if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
+    res.status(403).json({ ok: false, error: "Chỉ admin hoặc kế toán được hủy đơn đã ghi nhận." });
+    return;
+  }
+  const body = getJsonBody(req);
+  const orderId = optionalString(body.orderId);
+  const reason = optionalString(body.reason);
+  const key = optionalString(body.idempotencyKey);
+  if (!orderId || !reason || !key) {
+    res.status(400).json({ ok: false, error: "Thiếu đơn hàng, lý do hoặc Idempotency-Key." });
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("cancel_sales_order_secure", {
+    p_actor_id: actor.id, p_order_id: orderId, p_reason: reason, p_idempotency_key: key
+  });
+  if (error) throw new Error(error.message);
+  await bestEffortSyncTables(["sales_orders", "customers", "customer_debt_ledger", "order_debts", "inventory_balances", "inventory_transactions", "cashbook_entries"]);
+  res.status(200).json(data);
 }
 
 async function saveInventoryCountSheet(req: ApiRequest, res: ApiResponse) {
@@ -1430,6 +1447,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
 
+    if (table === "customer-debt-adjustments" && req.method === "POST") {
+      await adjustCustomerDebt(req, res);
+      return;
+    }
+
+    if (table === "supplier-payments" && req.method === "POST") {
+      await createSupplierPayment(req, res);
+      return;
+    }
+
+    if (table === "sales-order-cancellations" && req.method === "POST") {
+      await cancelSalesOrder(req, res);
+      return;
+    }
+
     if (table === "inventory-count-sheet" && req.method === "POST") {
       await saveInventoryCountSheet(req, res);
       return;
@@ -1491,7 +1523,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (req.method !== "GET") return methodNotAllowed(res, ["GET", "POST", "PATCH"]);
 
-    const actor = await requireAuth(req, TABLE_READ_ROLES[table as ExportableTable]);
+    const readPermission = TABLE_READ_PERMISSIONS[table as ExportableTable];
+    const actor = readPermission
+      ? await requirePermission(req, readPermission)
+      : await requireAuth(req, TABLE_READ_ROLES[table as ExportableTable]);
     const rows = await fetchTableRows(table as ExportableTable, actor);
     res.status(200).json({ ok: true, table, rows });
   } catch (error) {

@@ -8,6 +8,7 @@ type AuthUser = {
   fullName: string;
   role: string;
   status: string;
+  permissions: Record<string, "none" | "own" | "department" | "all">;
 };
 
 type AuthStore = {

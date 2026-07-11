@@ -17,7 +17,9 @@
     "import:cua-hang": "node scripts/import-cua-hang-customers.mjs",
     "sheets:create": "node scripts/create-google-sheets-backup.mjs",
     "sheets:sync": "node scripts/sync-supabase-to-google-sheets.mjs",
-    "verify:hardening": "node scripts/verify-security-hardening.mjs"
+    "verify:hardening": "node scripts/verify-security-hardening.mjs",
+    "verify:finance-integrity": "node scripts/verify-finance-integrity.mjs",
+    "verify:finance-integrity:remote": "node scripts/verify-finance-integrity-remote.mjs"
   },
   "dependencies": {
     "@fontsource/geist-sans": "^5.2.5",

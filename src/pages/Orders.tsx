@@ -1,11 +1,13 @@
 import { useState, useMemo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDataStore, Order } from "../store/data";
-import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText } from "lucide-react";
+import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText, Trash2 } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
+import { getAuthHeaders } from "../lib/supabase";
+import { useAuthStore } from "../store/auth";
 
 type DateFilterMode = "single" | "range" | "week" | "month" | "year" | "all";
 type DebtFilter = "all" | "debt" | "paid";
@@ -27,7 +29,8 @@ function startOfWeek(date: Date) {
 }
 
 export function Orders() {
-  const { orders, products, customers } = useDataStore();
+  const { orders, products, customers, loadLiveData } = useDataStore();
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -45,6 +48,25 @@ export function Orders() {
     void exportSalesOrderXlsx(order).catch((error) => {
       alert(error instanceof Error ? error.message : "Không xuất được file XLSX.");
     });
+  };
+
+  const cancelOrder = async (order: Order) => {
+    if (!order.dbId || order.status === "Đã hủy") return;
+    const reason = window.prompt(`Nhập lý do hủy đơn ${order.id}:`);
+    if (!reason?.trim()) return;
+    const idempotencyKey = crypto.randomUUID();
+    const response = await fetch("/api/data/sales-order-cancellations", {
+      method: "POST",
+      headers: { ...(await getAuthHeaders()), "content-type": "application/json", "idempotency-key": idempotencyKey },
+      body: JSON.stringify({ orderId: order.dbId, reason: reason.trim(), idempotencyKey })
+    });
+    const body = await response.json();
+    if (!response.ok || !body.ok) {
+      alert(body.error ?? "Không hủy được đơn hàng.");
+      return;
+    }
+    setSelectedOrder(null);
+    await loadLiveData();
   };
 
   // Lấy các ngày duy nhất từ orders
@@ -121,7 +143,7 @@ export function Orders() {
   }, [currentDate, dateFrom, dateMode, dateTo, debtFilter, orders, productById, searchTerm, selectedCategory, selectedCustomerId, selectedProductType]);
 
   const totals = useMemo(() => {
-    return filteredOrders.reduce((acc, order) => ({
+    return filteredOrders.filter((order) => order.status !== "Đã hủy").reduce((acc, order) => ({
       revenue: acc.revenue + order.total,
       paid: acc.paid + order.paid,
       debt: acc.debt + Math.max(order.total - order.paid, 0)
@@ -502,7 +524,7 @@ export function Orders() {
                     <div className={`font-bold inline-flex items-center px-2.5 py-0.5 rounded-full text-xs ${
                       selectedOrder.status === 'Đã thanh toán' 
                         ? 'bg-emerald-100 text-emerald-800' 
-                        : 'bg-red-100 text-red-800'
+                        : selectedOrder.status === 'Đã hủy' ? 'bg-zinc-200 text-zinc-700' : 'bg-red-100 text-red-800'
                     }`}>
                       {selectedOrder.status}
                     </div>
@@ -576,6 +598,11 @@ export function Orders() {
               >
                 Share ảnh bill
               </Button>
+              {["ADMIN", "ACCOUNTANT"].includes(user?.role ?? "") && selectedOrder.status !== "Đã hủy" && (
+                <Button onClick={() => void cancelOrder(selectedOrder)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+                  <Trash2 className="mr-2 h-4 w-4" /> Hủy đơn
+                </Button>
+              )}
             </div>
           </div>
         )}

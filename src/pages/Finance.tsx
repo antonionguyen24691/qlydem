@@ -112,14 +112,14 @@ export function Finance() {
     if (periodFilter === "MONTH") return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
     return date.getTime() >= now.getTime() - (30 * 86400000);
   };
-  const periodOrders = orders.filter((order) => isInPeriod(order.date));
+  const periodOrders = orders.filter((order) => order.status !== "Đã hủy" && isInPeriod(order.date));
   const periodReceipts = receipts.filter((receipt) => isInPeriod(receipt.receipt_date));
   const periodCashbook = cashbookEntries.filter((entry) => isInPeriod(entry.created_at));
   const totalReceivables = customers.reduce((acc, c) => acc + c.oldDebt, 0);
   const totalPayables = suppliers.reduce((acc, supplier) => acc + Number(supplier.current_payable ?? 0), 0);
   const periodRevenue = periodOrders.reduce((sum, order) => sum + order.total, 0);
-  const periodCollected = periodCashbook.filter((entry) => entry.direction === "IN").reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
-  const periodExpense = periodCashbook.filter((entry) => entry.direction === "OUT").reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
+  const periodCollected = periodCashbook.filter((entry) => entry.direction === "IN" && ["RECEIPT", "SALES_ORDER"].includes(entry.source_type ?? "")).reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
+  const periodExpense = periodCashbook.filter((entry) => entry.direction === "OUT" && ["EXPENSE", "SUPPLIER_PAYMENT", "SALES_REFUND"].includes(entry.source_type ?? "")).reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
   const balanceFor = (accountType: string) => cashbookEntries.filter((entry) => entry.account_type === accountType).reduce((sum, entry) => sum + (entry.direction === "OUT" ? -1 : 1) * Number(entry.amount ?? 0), 0);
   const cashBalance = balanceFor("CASH");
   const bankBalance = balanceFor("BANK");
@@ -246,6 +246,31 @@ export function Finance() {
     setReceiptNote(`Thu nợ ${customer.name}`);
     setReceiptAllocations({});
     setIsReceiptOpen(true);
+  };
+
+  const adjustCustomerDebt = async (customer: Customer) => {
+    if (!isAdmin(user)) return;
+    const rawDelta = window.prompt(`Nhập số điều chỉnh công nợ cho ${customer.name}. Tăng nợ nhập số dương, giảm nợ nhập số âm:`);
+    if (!rawDelta) return;
+    const delta = Number(rawDelta.replace(/[^0-9-]/g, ""));
+    if (!Number.isFinite(delta) || delta === 0) {
+      alert("Số điều chỉnh không hợp lệ.");
+      return;
+    }
+    const note = window.prompt("Nhập lý do điều chỉnh công nợ:");
+    if (!note?.trim()) return;
+    const idempotencyKey = crypto.randomUUID();
+    const response = await fetch("/api/data/customer-debt-adjustments", {
+      method: "POST",
+      headers: { ...(await getAuthHeaders()), "content-type": "application/json", "idempotency-key": idempotencyKey },
+      body: JSON.stringify({ customerId: customer.id, delta, note: note.trim(), idempotencyKey })
+    });
+    const body = await response.json();
+    if (!response.ok || !body.ok) {
+      alert(body.error ?? "Không điều chỉnh được công nợ.");
+      return;
+    }
+    await Promise.all([loadLiveData(), loadFinanceRows()]);
   };
 
   const selectReceiptCustomer = (customerId: string) => {
@@ -685,6 +710,11 @@ export function Finance() {
                       <div className="mt-1 text-xl font-black text-zinc-900">{selectedDebtOrders.length}</div>
                     </div>
                   </div>
+                  {isAdmin(user) && (
+                    <Button type="button" variant="outline" className="w-full" onClick={() => void adjustCustomerDebt(selectedCustomer)}>
+                      Điều chỉnh công nợ có ghi sổ
+                    </Button>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
                     <div>

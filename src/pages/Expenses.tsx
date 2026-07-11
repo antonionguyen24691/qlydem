@@ -129,15 +129,13 @@ export function Expenses() {
   }, [periodExpenses]);
 
   // ===== Báo cáo doanh thu - chi phí =====
-  const periodOrders = orders.filter((order) => isInPeriod(order.date));
+  const periodOrders = orders.filter((order) => order.status !== "Đã hủy" && isInPeriod(order.date));
   const periodRevenue = periodOrders.reduce((sum, order) => sum + order.total, 0);
   const periodCollected = cashbookEntries
     .filter((entry) => entry.direction === "IN" && isInPeriod(entryDateOf(entry)) && ["RECEIPT", "SALES_ORDER"].includes(entry.source_type ?? ""))
     .reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
-  const costByProduct = useMemo(() => new Map(products.map((product) => [product.id, product.cost])), [products]);
-  // Giá vốn ước tính theo giá vốn hiện tại của từng mã hàng (chưa phải giá vốn tại thời điểm bán).
   const periodCogs = periodOrders.reduce(
-    (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity * (costByProduct.get(item.id) ?? 0), 0),
+    (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity * Number(item.unitCostSnapshot ?? 0), 0),
     0
   );
   const grossProfit = periodRevenue - periodCogs;
@@ -465,7 +463,7 @@ export function Expenses() {
                       <ReportRow label="Lợi nhuận ròng ước tính" value={netProfit} bold highlight />
                     </div>
                   </div>
-                  <p className="mt-3 text-xs text-zinc-400">Giá vốn tính theo giá vốn hiện tại của từng mã hàng (bình quân gia quyền), chỉ mang tính ước tính.</p>
+                  <p className="mt-3 text-xs text-zinc-400">Giá vốn được chốt theo từng dòng hàng tại thời điểm bán.</p>
                 </div>
 
                 <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">

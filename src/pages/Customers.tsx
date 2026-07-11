@@ -676,10 +676,13 @@ function CustomerFormDialog({
             <label className="block text-sm font-medium text-zinc-700 mb-1.5">Địa chỉ</label>
             <Input value={form.address} onChange={(event) => onChange({ ...form, address: event.target.value })} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1.5">Nợ hiện tại</label>
-            <Input type="number" value={form.oldDebt || ""} onChange={(event) => onChange({ ...form, oldDebt: Number(event.target.value) || 0 })} />
-          </div>
+          {form.id && (
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+              <div className="text-xs font-semibold text-zinc-500">Công nợ hiện tại</div>
+              <div className="mt-1 font-bold text-red-600">{form.oldDebt.toLocaleString()} ₫</div>
+              <div className="mt-1 text-xs text-zinc-500">Điều chỉnh công nợ tại màn Tài chính để luôn có bút toán đối ứng.</div>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-zinc-700 mb-1.5">Ghi chú / lưu ý</label>
             <textarea

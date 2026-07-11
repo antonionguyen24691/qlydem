@@ -42,6 +42,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   total: number;
+  unitCostSnapshot?: number;
 }
 
 export interface Order {
@@ -133,7 +134,8 @@ function mapOrder(row: any, items: any[], customers: Customer[]): Order {
     unit: item.unit ?? "",
     quantity: money(item.quantity),
     price: money(item.unit_price),
-    total: money(item.line_total)
+    total: money(item.line_total),
+    unitCostSnapshot: money(item.unit_cost_snapshot)
   }));
 
   return {
@@ -145,7 +147,7 @@ function mapOrder(row: any, items: any[], customers: Customer[]): Order {
     items: orderItems,
     total: money(row.total_amount),
     paid: money(row.paid_amount),
-    status: money(row.debt_amount) > 0 ? "Nợ" : "Đã thanh toán"
+    status: row.status === "CANCELLED" ? "Đã hủy" : money(row.debt_amount) > 0 ? "Nợ" : "Đã thanh toán"
   };
 }
 
