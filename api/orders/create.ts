@@ -68,14 +68,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const supabase = getSupabaseAdmin();
     const rpcPayload = {
       p_actor_id: actor.id,
-      p_customer_id: optionalString(body.customerId),
-      p_warehouse_id: warehouseId,
+      // PostgREST omits undefined keys from an RPC payload. These parameters are required
+      // by the deployed secure function even when their values are intentionally empty.
+      p_customer_id: optionalString(body.customerId) ?? null,
+      p_warehouse_id: warehouseId ?? null,
       p_items: normalizedItems,
       p_payment_method: optionalString(body.paymentMethod) ?? "CASH",
       p_paid_amount: toNumber(body.paidAmount),
       p_discount_amount: discountAmount,
-      p_due_date: optionalString(body.dueDate),
-      p_note: optionalString(body.note),
+      p_due_date: optionalString(body.dueDate) ?? null,
+      p_note: optionalString(body.note) ?? null,
       p_idempotency_key: idempotencyKey
     };
     let usedLegacyOrderRpc = false;
