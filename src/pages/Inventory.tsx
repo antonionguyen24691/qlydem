@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDataStore, Product } from "../store/data";
 import { ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, ClipboardCheck, MoreHorizontal, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -84,6 +85,7 @@ const defaultInventoryOperations: InventoryOperation[] = [
 
 export function Inventory() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { products, loadLiveData } = useDataStore();
   const user = useAuthStore((state) => state.user);
   const canAdjust = canManageInventory(user);
@@ -653,7 +655,7 @@ export function Inventory() {
                   <button
                     type="button"
                     key={product.id}
-                    onClick={() => setInfoPreview({ title: product.code, content: `${product.name}\nTồn: ${product.stock.toLocaleString()} ${product.unit}` })}
+                    onClick={() => navigate(`/products?product=${encodeURIComponent(product.id)}`)}
                     className="min-w-[150px] max-w-[150px] rounded-md bg-white px-3 py-2 text-left ring-1 ring-red-100 sm:min-w-[170px] sm:max-w-none"
                   >
                     <div className="truncate text-xs font-bold text-red-700">{product.code}</div>
@@ -747,7 +749,7 @@ export function Inventory() {
                 <div className="min-w-0 flex-1">
                   <button
                     type="button"
-                    onClick={() => setInfoPreview({ title: product.code, content: product.name })}
+                    onClick={() => navigate(`/products?product=${encodeURIComponent(product.id)}`)}
                     className="block w-full text-left"
                     title={product.name}
                   >
@@ -1039,11 +1041,6 @@ export function Inventory() {
 
       <InventoryReceiptDialog isOpen={isReceiptOpen} products={products} suppliers={suppliers} initialProductId={receiptInitialProductId} onClose={() => { setIsReceiptOpen(false); setReceiptInitialProductId(undefined); }} onSaved={reloadInventory} />
 
-      <Dialog isOpen={Boolean(infoPreview)} onClose={() => setInfoPreview(null)} title={infoPreview?.title ?? "Chi tiết"}>
-        <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
-          {infoPreview?.content}
-        </div>
-      </Dialog>
 
       <Dialog isOpen={isApprovalOpen} onClose={() => setIsApprovalOpen(false)} title="Duyệt lệnh kiểm kê" className="sm:max-w-4xl">
         <div className="space-y-4">

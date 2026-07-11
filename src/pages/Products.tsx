@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, ClipboardList, Download, Edit3, Filter, Package, Plus, ShoppingCart, Trash2, Upload, XCircle, Search } from "lucide-react";
 import { useDataStore, Product } from "../store/data";
 import { usePOSStore } from "../store/pos";
@@ -139,6 +139,7 @@ export function Products() {
   const addToCart = usePOSStore((state) => state.addToCart);
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const canManage = canManageProducts(user);
   const canEditPrices = canEditSalePrices(user);
   const canApprovePrices = isAdmin(user);
@@ -179,6 +180,13 @@ export function Products() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const productId = new URLSearchParams(location.search).get("product");
+    if (!productId) return;
+    const product = products.find((item) => item.id === productId);
+    if (product) setSelectedProduct(product);
+  }, [location.search, products]);
 
   const categories = useMemo(() => {
     return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort();

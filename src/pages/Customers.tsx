@@ -566,7 +566,7 @@ export function Customers() {
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setInfoPreview({ title: shortCode(customer), content: customer.name });
+                      setSelectedCustomerId(customer.id);
                     }}
                     className="block w-full text-left"
                     title={customer.name}
