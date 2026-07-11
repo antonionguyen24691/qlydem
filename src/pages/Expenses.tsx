@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useDataStore } from "../store/data";
 import { Coins, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -265,8 +266,11 @@ export function Expenses() {
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Chi phí &amp; Báo cáo</h1>
+        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+          <div className="flex shrink-0 rounded-lg bg-zinc-100 p-1 text-sm font-bold">
+            <Link to="/finance" className="rounded-md px-3 py-1.5 text-zinc-600 hover:text-zinc-900">Tổng quan & công nợ</Link>
+            <span className="rounded-md bg-white px-3 py-1.5 text-emerald-700 shadow-sm">Chi phí & kết quả</span>
+          </div>
           <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm">
             <option value="MONTH">Tháng này</option>
             <option value="LAST_MONTH">Tháng trước</option>

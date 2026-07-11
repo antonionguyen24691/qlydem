@@ -483,9 +483,8 @@ export function Products() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
-        <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Danh mục hàng hóa</h1>
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex items-center justify-end border-b border-zinc-200 bg-white px-3 py-3 sm:px-6 sm:py-4">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           {canEditPrices && (
             <Button onClick={openPriceSheet} variant="outline" className="w-full sm:w-auto">
               <ClipboardList className="h-4 w-4 mr-2" />
@@ -504,7 +503,7 @@ export function Products() {
       <div className="p-3 sm:p-6 flex-1 overflow-hidden flex flex-col">
         {errorMessage && <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{errorMessage}</div>}
         {message && <div className="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{message}</div>}
-        <div className="flex flex-col sm:flex-row gap-3 mb-3 sm:mb-6">
+        <div className="flex items-center gap-2 mb-3 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
             <Input
@@ -515,9 +514,9 @@ export function Products() {
               className="pl-10"
             />
           </div>
-          <Button variant="outline" className="shrink-0 w-full sm:w-auto" onClick={() => setIsFilterOpen(true)}>
-            <Filter className="h-4 w-4 mr-2" />
-            Bộ lọc{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+          <Button variant="outline" className="h-11 w-11 shrink-0 px-0 sm:h-10 sm:w-auto sm:px-3" onClick={() => setIsFilterOpen(true)} title="Bộ lọc" aria-label="Bộ lọc hàng hóa">
+            <Filter className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Bộ lọc{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}</span>
           </Button>
         </div>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-zinc-500 sm:mb-4">

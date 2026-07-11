@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useDataStore, Customer } from "../store/data";
 import { ArrowLeftRight, Bell, DollarSign, Wallet, FileText, Search, Plus, UserCircle, AlertCircle, TrendingUp, Landmark } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -304,7 +305,13 @@ export function Finance() {
   return (
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"><h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Tài chính & Công nợ</h1><select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="MONTH">Tháng này</option><option value="30_DAYS">30 ngày gần đây</option><option value="ALL">Tất cả thời gian</option></select></div>
+        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+          <div className="flex shrink-0 rounded-lg bg-zinc-100 p-1 text-sm font-bold">
+            <span className="rounded-md bg-white px-3 py-1.5 text-emerald-700 shadow-sm">Tổng quan & công nợ</span>
+            <Link to="/expenses" className="rounded-md px-3 py-1.5 text-zinc-600 hover:text-zinc-900">Chi phí & kết quả</Link>
+          </div>
+          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 shrink-0 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="MONTH">Tháng này</option><option value="30_DAYS">30 ngày gần đây</option><option value="ALL">Tất cả thời gian</option></select>
+        </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <Button variant="outline" onClick={() => openFundDialog("TRANSFER")} className="w-full sm:w-auto">
             <ArrowLeftRight className="h-4 w-4 mr-2" />
@@ -327,7 +334,7 @@ export function Finance() {
       </div>
 
       <div className="p-3 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-4 sm:space-y-6">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 min-[480px]:grid-cols-4 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Doanh thu kỳ</span></div>
             <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate tabular-nums">{periodRevenue.toLocaleString()} ₫</div>

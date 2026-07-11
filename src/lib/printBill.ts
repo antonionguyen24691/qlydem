@@ -18,8 +18,8 @@ type PaymentSettings = {
 };
 
 const defaultCompany: Required<CompanyInfo> = {
-  name: "CÔNG TY GẠCH MEN SANG PHÁT",
-  address: "07 Lê Trọng Tấn",
+  name: "PMQL",
+  address: "",
   phone: "",
   logoUrl: "",
   taxCode: ""
@@ -305,6 +305,7 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
 }
 
 export async function shareSalesOrderImage(order: Order) {
+  const company = { ...defaultCompany, ...(await loadCompanySettings()) };
   const canvas = document.createElement("canvas");
   canvas.width = 1080;
   canvas.height = Math.max(1500, 780 + order.items.length * 86);
@@ -315,9 +316,9 @@ export async function shareSalesOrderImage(order: Order) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#111827";
   ctx.font = "700 34px Arial";
-  ctx.fillText(defaultCompany.name, 56, 70);
+  ctx.fillText(company.name, 56, 70);
   ctx.font = "400 24px Arial";
-  ctx.fillText(defaultCompany.address, 56, 108);
+  if (company.address) ctx.fillText(company.address, 56, 108);
 
   ctx.textAlign = "right";
   ctx.font = "700 28px Arial";

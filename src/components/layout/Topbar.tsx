@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Bell, Search, User, Menu, CheckCheck } from "lucide-react";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
@@ -15,6 +16,7 @@ type NotificationItem = {
 };
 
 export function Topbar() {
+  const location = useLocation();
   const { toggleSidebar } = useUIStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -22,6 +24,18 @@ export function Topbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
   const notificationRef = useRef<HTMLDivElement>(null);
+  const pageTitle = {
+    "/": "Tổng quan",
+    "/pos": "Bán hàng",
+    "/orders": "Đơn hàng",
+    "/products": "Danh mục hàng hóa",
+    "/inventory": "Quản lý tồn kho",
+    "/customers": "Khách hàng",
+    "/suppliers": "Nhà cung cấp",
+    "/finance": "Báo cáo tài chính",
+    "/expenses": "Báo cáo tài chính",
+    "/settings": "Cấu hình"
+  }[location.pathname] ?? (location.pathname.startsWith("/orders/") ? "Phiếu xuất bán hàng" : "PMQL");
 
   async function loadNotifications() {
     if (!isAuthenticated) return;
@@ -68,7 +82,10 @@ export function Topbar() {
   }, []);
   
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-4 shrink-0">
+    <header className="relative flex h-16 items-center justify-between border-b bg-white px-4 shrink-0">
+      <div className="pointer-events-none absolute inset-x-16 flex justify-center sm:inset-x-48">
+        <h1 className="max-w-full truncate text-center text-base font-bold text-zinc-900 sm:text-lg">{pageTitle}</h1>
+      </div>
       <div className="flex flex-1 items-center gap-4">
         <button 
           onClick={toggleSidebar}

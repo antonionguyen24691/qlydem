@@ -1,7 +1,7 @@
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { methodNotAllowed, sendError } from "./http.js";
 import { requirePermission } from "./auth.js";
-import { getJsonBody, toStringValue } from "./body.js";
+import { getJsonBody, optionalString, toStringValue } from "./body.js";
 import { getSupabaseAdmin } from "./supabase.js";
 
 type ClearGroup = {
@@ -83,35 +83,35 @@ function uniqueTables(groups: ClearGroup[]) {
   return tables;
 }
 
-async function countRows(table: string) {
+// Chỉ xóa dữ liệu tạo trước mốc này (nếu có) để tránh lỡ tay xóa cả lịch sử gần đây.
+async function countRows(table: string, beforeDate?: string) {
   const supabase = getSupabaseAdmin();
-  const { count, error } = await supabase
-    .from(table)
-    .select("id", { count: "exact", head: true });
+  let query: any = supabase.from(table).select("id", { count: "exact", head: true });
+  if (beforeDate) query = query.lte("created_at", beforeDate);
+  const { count, error } = await query;
   if (error) throw new Error(`${table}: ${error.message}`);
   return count ?? 0;
 }
 
-async function clearTable(table: string) {
+async function clearTable(table: string, beforeDate?: string) {
   const supabase = getSupabaseAdmin();
-  const before = await countRows(table);
+  const before = await countRows(table, beforeDate);
   if (before === 0) return 0;
-  const { error } = await supabase
-    .from(table)
-    .delete()
-    .not("id", "is", null);
+  let query: any = supabase.from(table).delete().not("id", "is", null);
+  if (beforeDate) query = query.lte("created_at", beforeDate);
+  const { error } = await query;
   if (error) throw new Error(`${table}: ${error.message}`);
   return before;
 }
 
-async function createArchive(actorId: string, groups: ClearGroup[], tables: string[]) {
+async function createArchive(actorId: string, groups: ClearGroup[], tables: string[], beforeDate?: string) {
   const supabase = getSupabaseAdmin();
   const rowCounts: Record<string, number> = {};
   const snapshot: Record<string, unknown[]> = {};
   let totalRows = 0;
 
   for (const table of tables) {
-    const count = await countRows(table);
+    const count = await countRows(table, beforeDate);
     rowCounts[table] = count;
     totalRows += count;
     if (totalRows > MAX_ARCHIVE_ROWS) {
@@ -121,7 +121,9 @@ async function createArchive(actorId: string, groups: ClearGroup[], tables: stri
       snapshot[table] = [];
       continue;
     }
-    const { data, error } = await supabase.from(table).select("*");
+    let selectQuery: any = supabase.from(table).select("*");
+    if (beforeDate) selectQuery = selectQuery.lte("created_at", beforeDate);
+    const { data, error } = await selectQuery;
     if (error) throw new Error(`${table}: ${error.message}`);
     snapshot[table] = data ?? [];
   }
@@ -166,12 +168,24 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
 
+    // Tùy chọn: chỉ xóa dữ liệu cũ hơn ngày này (ISO). Bỏ trống = xóa toàn bộ như cũ.
+    const beforeRaw = optionalString(body.beforeDate);
+    let beforeDate: string | undefined;
+    if (beforeRaw) {
+      const parsed = new Date(beforeRaw);
+      if (Number.isNaN(parsed.getTime())) {
+        res.status(400).json({ ok: false, error: "Ngày giới hạn xóa không hợp lệ." });
+        return;
+      }
+      beforeDate = parsed.toISOString();
+    }
+
     const supabase = getSupabaseAdmin();
     const tables = uniqueTables(selectedGroups);
-    const archive = await createArchive(actor.id, selectedGroups, tables);
+    const archive = await createArchive(actor.id, selectedGroups, tables, beforeDate);
     const deleted: Record<string, number> = {};
     for (const table of tables) {
-      deleted[table] = await clearTable(table);
+      deleted[table] = await clearTable(table, beforeDate);
     }
 
     await supabase.from("audit_logs").insert({
@@ -181,6 +195,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       entity_id: selectedGroups.map((group) => group.key).join(","),
       after_json: {
         groups: selectedGroups.map((group) => group.label),
+        beforeDate: beforeDate ?? null,
         deleted,
         archiveId: archive.id,
         archiveRows: archive.rowCounts
@@ -190,6 +205,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({
       ok: true,
       groups: selectedGroups.map((group) => group.key),
+      beforeDate: beforeDate ?? null,
       deleted,
       archiveId: archive.id,
       totalDeleted: Object.values(deleted).reduce((sum, value) => sum + value, 0)

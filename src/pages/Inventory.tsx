@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDataStore, Product } from "../store/data";
-import { ArrowDownToLine, ArrowUpFromLine, Check, ClipboardCheck, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, ClipboardCheck, Plus, RefreshCw, Search, Send, X, PackageSearch } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -103,6 +103,7 @@ export function Inventory() {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [transactions, setTransactions] = useState<InventoryTransactionRow[]>([]);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isInventorySummaryOpen, setIsInventorySummaryOpen] = useState(false);
   const [receiptInitialProductId, setReceiptInitialProductId] = useState<string | undefined>();
   const [stockPage, setStockPage] = useState(1);
   const [stockPageSize, setStockPageSize] = useState(20);
@@ -581,13 +582,14 @@ export function Inventory() {
         <>
         <div className="mb-3 max-w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:mb-4 sm:p-3">
           <div className="grid min-w-0 gap-2 xl:grid-cols-[0.9fr_1.1fr_1.4fr] xl:gap-3">
-            <div className="grid min-w-0 grid-cols-3 gap-2">
+            <div className="grid min-w-0 grid-cols-4 gap-2">
               <CompactStat label="Giá trị tồn" value={`${totalValue.toLocaleString()} ₫`} tone="green" />
               <CompactStat label="Hết/âm" value={String(lowStock.length)} tone="red" />
+              <CompactStat label="Gần hết" value={String(nearLowStock.length)} tone="red" />
               <CompactStat label="Mã hàng" value={String(products.length)} tone="dark" />
             </div>
 
-            <div className="min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3">
+            <div className={`${isInventorySummaryOpen ? "block" : "hidden"} min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3 xl:block`}>
               <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn theo danh mục</div>
               <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar">
                 {inventoryByCategory.map(([category, summary]) => (
@@ -600,7 +602,7 @@ export function Inventory() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-lg border border-red-100 bg-red-50 p-2 sm:p-3">
+            <div className={`${isInventorySummaryOpen ? "block" : "hidden"} min-w-0 rounded-lg border border-red-100 bg-red-50 p-2 sm:p-3 xl:block`}>
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-xs font-bold uppercase tracking-wider text-red-700">Lưu ý tồn kho</div>
                 <div className="ml-2 shrink-0 text-xs font-semibold text-red-600">{lowStock.length} hết/âm, {nearLowStock.length} gần hết</div>
@@ -626,6 +628,10 @@ export function Inventory() {
               </div>
             </div>
           </div>
+          <button type="button" onClick={() => setIsInventorySummaryOpen((value) => !value)} className="mt-2 flex w-full items-center justify-center gap-1 border-t border-zinc-100 pt-2 text-xs font-bold text-zinc-600 xl:hidden">
+            {isInventorySummaryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isInventorySummaryOpen ? "Thu gọn danh mục và cảnh báo" : "Xem danh mục và cảnh báo"}
+          </button>
         </div>
 
         <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">

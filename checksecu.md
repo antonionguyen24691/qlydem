@@ -1,8 +1,27 @@
 # CHECKSECU — Rà soát bảo mật & lỗi còn lại của app PMQL
 
 Ngày rà soát: 2026-07-10
+Cập nhật: 2026-07-11 — đã sửa toàn bộ các mục code-actionable (xem cột "Trạng thái" và mục 7).
 Phạm vi: toàn bộ `api/`, `src/`, `supabase/`, cấu hình deploy (`vercel.json`, `.env*`).
 Người thực hiện: rà soát tự động theo yêu cầu, sau đợt nâng cấp kho/chi phí/quỹ/POS ngày 2026-07-10.
+
+## ⭐ Trạng thái xử lý (2026-07-11)
+
+Đã sửa bằng code (build + typecheck sạch):
+- ✅ P0-3 Xóa `firebase-applet-config.json` khỏi repo + thêm `.gitignore`.
+- ✅ P1-2 Thêm rate-limit (`api/_lib/rateLimit.ts`) cho nghiệp vụ quỹ (30/phút) và export toàn bảng (10/phút); thêm mã lỗi 429.
+- ✅ P1-3 Tách quyền `finance.expense.create` (ghi chi phí) và `finance.fund.manage` (chuyển/rút/điều chỉnh quỹ); gate riêng từng nghiệp vụ; ADJUST vẫn chỉ ADMIN.
+- ✅ P1-4/P1-5 Validate `logoUrl`/`faviconUrl` chỉ nhận `https:`/`data:image` (backend `normalizeBranding` + `safeImageSrc` trong bill in).
+- ✅ P1-6 Clear-history hỗ trợ lọc `beforeDate` (chỉ xóa dữ liệu cũ hơn mốc), ghi `beforeDate` vào audit.
+- ✅ P2-1 POS draft chỉ lưu `customerId` + id/số lượng hàng, không còn lưu SĐT/nợ/hạn mức khách.
+- ✅ P2-4 Chặn ngày ghi sổ quỹ/chi phí trong tương lai + validate ngày hợp lệ.
+- ✅ P2-6 Ghi audit `UPDATE_ROLE_PERMISSIONS` khi đổi ma trận quyền.
+- ✅ (kèm) Cặp bút toán chuyển quỹ gộp 1 insert (nguyên tử) + chặn số tiền > 100 tỷ.
+
+Còn lại (thao tác vận hành, không sửa được bằng code):
+- ⚠️ P0-1 Xác nhận RLS/grants trên Supabase Dashboard (xem mục 1).
+- ⚠️ P0-2 Apply migration `20260711` trước khi deploy.
+- 🟠 P1-1 Chạy kịch bản kiểm thử override giá / tồn âm (mục 6).
 
 ## 0. Tóm tắt điều hành
 
