@@ -527,6 +527,10 @@ async function reviewPriceUpdateRequest(req: ApiRequest, res: ApiResponse) {
     res.status(400).json({ ok: false, error: "Lệnh này không còn ở trạng thái chờ duyệt." });
     return;
   }
+  if (request.requested_by === actor.id) {
+    res.status(403).json({ ok: false, error: "Không thể tự duyệt lệnh giá bán do chính mình tạo." });
+    return;
+  }
 
   const now = new Date().toISOString();
   if (decision === "REJECT") {
@@ -618,141 +622,61 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
     return;
   }
 
-  const { data: balance, error: balanceError } = await supabase
-    .from("inventory_balances")
-    .select("id,quantity_box")
-    .eq("warehouse_id", warehouseId)
-    .eq("product_id", productId)
-    .maybeSingle();
-  if (balanceError) throw new Error(balanceError.message);
-
-  const current = toNumber(balance?.quantity_box);
-  let quantityChange = quantity;
-  let stockAfter = current + quantity;
-  let sourceType = "STOCK_IN";
-
-  if (mode === "OUT") {
-    quantityChange = -quantity;
-    stockAfter = current - quantity;
-    sourceType = "STOCK_OUT";
-  } else if (mode === "COUNT") {
-    stockAfter = quantity;
-    quantityChange = stockAfter - current;
-    sourceType = "STOCK_COUNT";
-  } else if (mode === "REQUEST_EXPORT") {
-    quantityChange = 0;
-    stockAfter = current;
-    sourceType = "STOCK_EXPORT_REQUEST";
-  }
-
-  let purchaseId: string | null = null;
   if (mode === "IN") {
-    const lineTotal = quantity * unitCost;
-    const totalAmount = Math.max(0, lineTotal - discountAmount + vatAmount);
-    const payableAmount = Math.max(0, totalAmount - paidAmount);
-
-    if (unitCost > 0 || supplierId || documentCode) {
-      const { data: purchase, error: purchaseError } = await supabase
-        .from("purchase_orders")
-        .insert({
-          code: documentCode ?? createCode("PNK"),
-          purchase_date: receivedAt,
-          supplier_id: supplierId,
-          warehouse_id: warehouseId,
-          subtotal: lineTotal,
-          discount_amount: discountAmount,
-          vat_amount: vatAmount,
-          total_amount: totalAmount,
-          paid_amount: Math.min(paidAmount, totalAmount),
-          payable_amount: payableAmount,
-          status: "RECEIVED",
-          note: [operationType, note].filter(Boolean).join(" - ")
-        })
-        .select("id")
-        .single();
-      if (purchaseError) throw new Error(purchaseError.message);
-      purchaseId = purchase.id as string;
-
-      const { data: product } = await supabase
-        .from("products")
-        .select("code,product_name,unit,cost_price")
-        .eq("id", productId)
-        .maybeSingle();
-
-      const { error: itemError } = await supabase.from("purchase_order_items").insert({
-        purchase_id: purchaseId,
-        product_id: productId,
-        product_code: product?.code,
-        product_name: product?.product_name ?? "Hàng hóa",
-        unit: product?.unit,
-        quantity,
-        unit_cost: unitCost,
-        line_total: lineTotal
-      });
-      if (itemError) throw new Error(itemError.message);
-
-      if (unitCost > 0 && stockAfter > 0) {
-        const oldCost = toNumber(product?.cost_price);
-        const weightedCost = Math.round(((current * oldCost) + (quantity * unitCost)) / stockAfter);
-        const { error: costError } = await supabase
-          .from("products")
-          .update({ cost_price: weightedCost, updated_at: new Date().toISOString() })
-          .eq("id", productId);
-        if (costError) throw new Error(costError.message);
-      }
-
-      if (supplierId && payableAmount > 0) {
-        const { data: supplier } = await supabase
-          .from("suppliers")
-          .select("current_payable")
-          .eq("id", supplierId)
-          .maybeSingle();
-        const balanceAfter = toNumber(supplier?.current_payable) + payableAmount;
-        const { error: supplierError } = await supabase
-          .from("suppliers")
-          .update({ current_payable: balanceAfter, updated_at: new Date().toISOString() })
-          .eq("id", supplierId);
-        if (supplierError) throw new Error(supplierError.message);
-        const { error: ledgerError } = await supabase.from("supplier_debt_ledger").insert({
-          supplier_id: supplierId,
-          source_type: "PURCHASE_ORDER",
-          source_id: purchaseId,
-          debit: payableAmount,
-          credit: 0,
-          balance_after: balanceAfter,
-          status: "OPEN",
-          note: documentCode ?? "Phiếu nhập kho"
-        });
-        if (ledgerError) throw new Error(ledgerError.message);
-      }
-    }
+    const key = optionalString(body.idempotencyKey) ?? createCode("IN");
+    const { data, error } = await supabase.rpc("create_inventory_stock_in_secure", {
+      p_actor_id: actor.id,
+      p_product_id: productId,
+      p_warehouse_id: warehouseId,
+      p_quantity: quantity,
+      p_operation_type: operationType,
+      p_transaction_note: note ?? `${operationType} bởi ${actor.email}`,
+      p_supplier_id: supplierId ?? null,
+      p_document_code: documentCode ?? null,
+      p_purchase_note: [operationType, note].filter(Boolean).join(" - "),
+      p_received_at: receivedAt,
+      p_unit_cost: unitCost,
+      p_discount_amount: discountAmount,
+      p_vat_amount: vatAmount,
+      p_paid_amount: paidAmount,
+      p_idempotency_key: key
+    });
+    if (error) throw new Error(error.message);
+    if (!data?.ok) throw new Error(data?.error ?? "Không nhập kho được.");
+    await bestEffortSyncTables(["inventory_balances", "inventory_transactions", "purchase_orders", "purchase_order_items"]);
+    res.status(200).json(data);
+    return;
   }
 
-  const balancePayload = {
-    warehouse_id: warehouseId,
-    product_id: productId,
-    quantity_box: stockAfter,
-    quantity_piece: 0,
-    updated_at: new Date().toISOString()
-  };
-
-  if (balance?.id) {
-    await supabase.from("inventory_balances").update(balancePayload).eq("id", balance.id);
-  } else {
-    await supabase.from("inventory_balances").insert(balancePayload);
+  if (mode === "COUNT") {
+    const key = optionalString(body.idempotencyKey) ?? createCode("COUNT");
+    const { data, error } = await supabase.rpc("apply_inventory_count_secure", {
+      p_actor_id: actor.id,
+      p_warehouse_code: toStringValue(body.warehouseCode, "KHO-CHINH"),
+      p_rows: [{ product_id: productId, quantity, note: note ?? null }],
+      p_note: note,
+      p_idempotency_key: key
+    });
+    if (error) throw new Error(error.message);
+    if (!data?.ok) throw new Error(data?.error ?? "Không kiểm kê được.");
+    await bestEffortSyncTables(["inventory_balances", "inventory_transactions"]);
+    res.status(200).json({ ok: true, transaction: null, stockAfter: quantity, purchaseId: null });
+    return;
   }
 
+  // REQUEST_EXPORT: chỉ ghi lại một yêu cầu, không đổi tồn kho — giữ nguyên đường ghi trực tiếp cũ.
   const { data: transaction, error: transactionError } = await supabase
-      .from("inventory_transactions")
-      .insert({
-        warehouse_id: warehouseId,
-        product_id: productId,
-        source_type: mode === "IN" ? operationType : sourceType,
-        source_id: purchaseId,
-        quantity_change: quantityChange,
-        stock_after: stockAfter,
-        note: note ?? `${mode === "IN" ? operationType : sourceType} bởi ${actor.email}`
-      })
+    .from("inventory_transactions")
+    .insert({
+      warehouse_id: warehouseId,
+      product_id: productId,
+      source_type: "STOCK_EXPORT_REQUEST",
+      quantity_change: 0,
+      stock_after: toNumber((
+        await supabase.from("inventory_balances").select("quantity_box").eq("warehouse_id", warehouseId).eq("product_id", productId).maybeSingle()
+      ).data?.quantity_box),
+      note: note ?? `STOCK_EXPORT_REQUEST bởi ${actor.email}`
+    })
     .select("*")
     .single();
   if (transactionError) throw new Error(transactionError.message);
@@ -765,8 +689,8 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
     after_json: transaction
   });
 
-  await bestEffortSyncTables(["inventory_balances", "inventory_transactions", "purchase_orders", "purchase_order_items"]);
-  res.status(200).json({ ok: true, transaction, stockAfter, purchaseId });
+  await bestEffortSyncTables(["inventory_balances", "inventory_transactions"]);
+  res.status(200).json({ ok: true, transaction, stockAfter: transaction.stock_after, purchaseId: null });
 }
 
 async function createInventoryReceipt(req: ApiRequest, res: ApiResponse) {
@@ -1251,6 +1175,10 @@ async function reviewInventoryApprovalRequest(req: ApiRequest, res: ApiResponse)
   if (requestError) throw new Error(requestError.message);
   if (request.status !== "PENDING") {
     res.status(400).json({ ok: false, error: "Lệnh này không còn ở trạng thái chờ duyệt." });
+    return;
+  }
+  if (request.requested_by === actor.id) {
+    res.status(403).json({ ok: false, error: "Không thể tự duyệt lệnh kiểm kê do chính mình tạo." });
     return;
   }
 

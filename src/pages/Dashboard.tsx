@@ -57,7 +57,7 @@ export function Dashboard() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Tổng quan</h1>
         <p className="mt-1 text-sm text-zinc-500">Số liệu được đồng bộ theo đơn hàng, tồn kho và công nợ.</p>
-        {isLoadingLiveData && <p className="mt-2 text-sm text-blue-600">Đang đồng bộ dữ liệu...</p>}
+        {isLoadingLiveData && <p className="mt-2 text-sm text-emerald-600">Đang đồng bộ dữ liệu...</p>}
         {liveDataError && <p className="mt-2 text-sm text-red-600">Lỗi dữ liệu: {liveDataError}</p>}
       </div>
 
@@ -133,7 +133,7 @@ export function Dashboard() {
 
       <Link
         to="/pos"
-        className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-4 ring-white transition-transform active:scale-95 hover:bg-emerald-700"
+        className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-4 ring-white transition-transform active:scale-95 hover:bg-emerald-700 lg:bottom-5 lg:z-40"
         title="Bán hàng nhanh"
       >
         <Plus className="h-7 w-7" />

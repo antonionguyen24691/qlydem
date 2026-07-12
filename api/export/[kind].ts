@@ -34,6 +34,8 @@ async function priceListXlsx(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   try {
+    // Export toàn bộ bảng giá tốn tài nguyên: giới hạn 10 lần / phút.
+    enforceRateLimit(req, "export-price-list", 10, 60_000);
     await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
     const supabase = getSupabaseAdmin();
     const { data: products, error } = await supabase
@@ -85,6 +87,8 @@ async function supplierListXlsx(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   try {
+    // Export toàn bộ bảng NCC tốn tài nguyên: giới hạn 10 lần / phút.
+    enforceRateLimit(req, "export-supplier-list", 10, 60_000);
     await requireAuth(req, ["ADMIN", "ACCOUNTANT"]);
     const supabase = getSupabaseAdmin();
     const { data: suppliers, error } = await supabase

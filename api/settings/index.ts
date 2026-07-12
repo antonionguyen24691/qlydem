@@ -4,6 +4,7 @@ import { requireAuth, requirePermission } from "../_lib/auth.js";
 import { getJsonBody, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { getEntitlementSnapshot } from "../_lib/entitlements.js";
+import { enforceRateLimit } from "../_lib/rateLimit.js";
 
 type BrandingSettings = {
   appName: string;
@@ -219,7 +220,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         return;
       }
 
-      if (key !== "branding" && key !== "appearance") await requireAuth(req);
+      if (key !== "branding" && key !== "appearance") {
+        await requireAuth(req);
+      } else {
+        // branding/appearance không cần đăng nhập (màn login cũng cần đọc) — giới hạn nhẹ chống dò/spam.
+        enforceRateLimit(req, "settings-public-get", 30, 60_000);
+      }
       try {
         const supabase = getSupabaseAdmin();
         const { data, error } = await supabase

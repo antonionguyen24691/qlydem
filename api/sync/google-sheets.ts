@@ -1,8 +1,16 @@
+import { timingSafeEqual } from "node:crypto";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { parseTables } from "../_lib/supabase.js";
 import { syncTablesToGoogleSheets } from "../_lib/googleSheets.js";
 import { requirePermission } from "../_lib/auth.js";
+
+function safeEqual(a: string, b: string) {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
@@ -15,7 +23,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const expected = process.env.CRON_SECRET;
       const authHeader = req.headers?.authorization ?? req.headers?.Authorization;
       const actual = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-      if (!expected || actual !== `Bearer ${expected}`) {
+      if (!expected || !actual || !safeEqual(actual, `Bearer ${expected}`)) {
         res.status(401).json({ ok: false, error: "Unauthorized cron request." });
         return;
       }

@@ -538,8 +538,8 @@ export function Orders() {
                   Danh sách sản phẩm
                 </h4>
                 <div className="space-y-3 bg-white border border-zinc-200 rounded-xl p-1">
-                  {selectedOrder.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start text-sm p-3 hover:bg-zinc-50 rounded-lg">
+                  {selectedOrder.items.map((item) => (
+                    <div key={item.id} className="flex justify-between items-start text-sm p-3 hover:bg-zinc-50 rounded-lg">
                       <div>
                         <div className="font-bold text-zinc-900">{item.name}</div>
                         <div className="text-zinc-500 mt-1">{item.quantity} {item.unit} x <span className="font-medium text-zinc-700">{item.price.toLocaleString()}</span></div>

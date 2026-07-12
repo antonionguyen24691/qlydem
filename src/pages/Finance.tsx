@@ -472,7 +472,7 @@ export function Finance() {
                 <div className="min-w-0">
                   <div className="truncate font-bold text-zinc-900">
                     {CASHBOOK_SOURCE_LABEL[entry.source_type ?? ""] ?? entry.source_type ?? "Sổ quỹ"}
-                    <span className={`ml-2 rounded px-1.5 py-0.5 text-[11px] font-bold ${entry.account_type === "BANK" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>{entry.account_type === "BANK" ? "Ngân hàng" : "Tiền mặt"}</span>
+                    <span className={`ml-2 rounded px-1.5 py-0.5 text-[11px] font-bold ${entry.account_type === "BANK" ? "bg-zinc-100 text-zinc-700" : "bg-emerald-50 text-emerald-700"}`}>{entry.account_type === "BANK" ? "Ngân hàng" : "Tiền mặt"}</span>
                   </div>
                   <div className="truncate text-xs text-zinc-500">
                     {[entry.person && `Người: ${entry.person}`, entry.note].filter(Boolean).join(" · ") || entry.code}

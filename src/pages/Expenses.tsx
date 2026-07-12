@@ -338,7 +338,7 @@ export function Expenses() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-zinc-900">{entry.category ?? "Chi phí khác"}</span>
-                          <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${entry.account_type === "BANK" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>
+                          <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${entry.account_type === "BANK" ? "bg-zinc-100 text-zinc-700" : "bg-emerald-50 text-emerald-700"}`}>
                             {entry.account_type === "BANK" ? "Ngân hàng" : "Tiền mặt"}
                           </span>
                         </div>

@@ -1,7 +1,15 @@
+import { timingSafeEqual } from "node:crypto";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { methodNotAllowed, sendError } from "./http.js";
 import { requirePermission } from "./auth.js";
 import { getSupabaseAdmin } from "./supabase.js";
+
+function safeEqual(a: string, b: string) {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -16,7 +24,7 @@ async function isCron(req: ApiRequest) {
   const expected = process.env.CRON_SECRET;
   const authHeader = req.headers?.authorization ?? req.headers?.Authorization;
   const actual = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-  return Boolean(expected && actual === `Bearer ${expected}`);
+  return Boolean(expected && actual && safeEqual(actual, `Bearer ${expected}`));
 }
 
 async function existingNotificationKeys() {

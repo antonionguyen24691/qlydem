@@ -41,7 +41,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Đang tải...</div>}>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">Đang tải...</div>}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<MainLayout />}>

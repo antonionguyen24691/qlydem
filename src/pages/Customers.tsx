@@ -276,6 +276,7 @@ export function Customers() {
               <button
                 type="button"
                 onClick={() => setSelectedCustomerId(null)}
+                aria-label="Quay lại danh sách khách hàng"
                 className="mt-1 rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 hover:bg-zinc-50"
               >
                 <ArrowLeft className="h-5 w-5" />

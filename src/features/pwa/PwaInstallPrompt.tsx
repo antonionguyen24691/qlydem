@@ -73,7 +73,7 @@ export function PwaInstallPrompt() {
   return (
     <section
       aria-label="Cài đặt ứng dụng PMQL"
-      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[100] mx-auto max-w-lg rounded-2xl border border-emerald-200 bg-white p-4 shadow-2xl"
+      className="fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[100] mx-auto max-w-lg rounded-2xl border border-emerald-200 bg-white p-4 shadow-2xl lg:bottom-[max(12px,env(safe-area-inset-bottom))]"
     >
       <button
         type="button"
