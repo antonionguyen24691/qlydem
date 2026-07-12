@@ -277,7 +277,7 @@ export function Customers() {
                 type="button"
                 onClick={() => setSelectedCustomerId(null)}
                 aria-label="Quay lại danh sách khách hàng"
-                className="mt-1 rounded-lg border border-zinc-200 bg-white p-2 text-zinc-600 hover:bg-zinc-50"
+                className="mt-1 rounded-[var(--radius-control)] border border-zinc-200 bg-white p-2 text-zinc-600 hover:bg-zinc-50"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
@@ -328,7 +328,7 @@ export function Customers() {
             <SummaryCard label="Đã thu" value={`${selectedPaid.toLocaleString()} ₫`} tone="green" />
           </div>
 
-          <div className="mb-4 flex gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2 hide-scrollbar sm:mb-5">
+          <div className="mb-4 flex gap-2 overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200 bg-white p-2 hide-scrollbar sm:mb-5">
             {[
               ["overview", "Tổng quan"],
               ["debt", "Sổ công nợ"],
@@ -339,7 +339,7 @@ export function Customers() {
                 key={key}
                 type="button"
                 onClick={() => setActiveTab(key as typeof activeTab)}
-                className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+                className={`whitespace-nowrap rounded-[var(--radius-control)] px-4 py-2 text-sm font-bold transition-colors ${
                   activeTab === key ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
                 }`}
               >
@@ -350,7 +350,7 @@ export function Customers() {
 
           {activeTab === "overview" && (
             <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+              <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
                 <h2 className="mb-4 text-lg font-bold text-zinc-900">Thông tin khách hàng</h2>
                 <div className="grid gap-4 text-sm sm:grid-cols-2">
                   <Info label="Mã khách" value={shortCode(selectedCustomer)} onPreview={setInfoPreview} />
@@ -359,14 +359,14 @@ export function Customers() {
                   <Info label="Địa chỉ" value={selectedCustomer.address || "-"} onPreview={setInfoPreview} />
                 </div>
               </section>
-              <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+              <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
                 <h2 className="mb-4 text-lg font-bold text-zinc-900">Cảnh báo nhanh</h2>
                 {selectedCustomer.oldDebt > 0 ? (
-                  <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+                  <div className="rounded-[var(--radius-control)] border border-red-100 bg-red-50 p-4 text-sm text-red-700">
                     Khách còn nợ {selectedCustomer.oldDebt.toLocaleString()} ₫. Nên theo dõi lịch hẹn thanh toán và tạo nhắc nợ nếu cần.
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
+                  <div className="rounded-[var(--radius-control)] border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-700">
                     Khách chưa có công nợ mở.
                   </div>
                 )}
@@ -375,7 +375,7 @@ export function Customers() {
           )}
 
           {activeTab === "debt" && (
-            <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-4 text-lg font-bold text-zinc-900">Sổ công nợ</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-zinc-200 text-sm">
@@ -414,11 +414,11 @@ export function Customers() {
           )}
 
           {activeTab === "orders" && (
-            <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><Receipt className="h-5 w-5 text-zinc-400" />Lịch sử mua hàng</h2>
               <div className="grid gap-3">
                 {selectedOrders.map((order) => (
-                  <button key={order.id} type="button" onClick={() => setSelectedOrder(order)} className="rounded-lg border border-zinc-200 p-4 text-left hover:bg-zinc-50">
+                  <button key={order.id} type="button" onClick={() => setSelectedOrder(order)} className="rounded-[var(--radius-control)] border border-zinc-200 p-4 text-left hover:bg-zinc-50">
                     <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="truncate font-bold text-emerald-700">{order.id}</div>
@@ -431,15 +431,15 @@ export function Customers() {
                     </div>
                   </button>
                 ))}
-                {selectedOrders.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có đơn hàng.</div>}
+                {selectedOrders.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có đơn hàng.</div>}
               </div>
             </section>
           )}
 
           {activeTab === "notes" && (
-            <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-zinc-900"><StickyNote className="h-5 w-5 text-zinc-400" />Ghi chú và lưu ý</h2>
-              <div className="whitespace-pre-wrap rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-sm text-zinc-700">
+              <div className="whitespace-pre-wrap rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 p-4 text-sm text-zinc-700">
                 {selectedCustomer.note || "Chưa có ghi chú riêng cho khách hàng này."}
               </div>
             </section>
@@ -490,7 +490,7 @@ export function Customers() {
           </div>
         </div>
 
-        <div className="hidden md:flex bg-white rounded-xl shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
+        <div className="hidden md:flex bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
           <div className="overflow-auto flex-1 custom-scrollbar">
             <table className="min-w-[960px] w-full table-fixed divide-y divide-zinc-200">
               <colgroup>
@@ -538,7 +538,7 @@ export function Customers() {
                           event.stopPropagation();
                           openEdit(customer);
                         }}
-                        className="rounded-lg p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700"
+                        className="rounded-[var(--radius-control)] p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700"
                         title="Sửa khách hàng"
                       >
                         <Edit3 className="h-4 w-4" />
@@ -559,7 +559,7 @@ export function Customers() {
                 setSelectedCustomerId(customer.id);
                 setActiveTab("overview");
               }}
-              className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
+              className="bg-white p-3 rounded-[var(--radius-card)] shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
             >
               <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
                 <div className="min-w-0 flex-1">
@@ -577,7 +577,7 @@ export function Customers() {
                   <div className="truncate text-xs font-bold text-emerald-600">{shortCode(customer)}</div>
                 </div>
                 {customer.oldDebt > 0 && (
-                  <div className="max-w-[120px] shrink-0 rounded-lg bg-red-50 px-2 py-1 text-right">
+                  <div className="max-w-[120px] shrink-0 rounded-[var(--radius-control)] bg-red-50 px-2 py-1 text-right">
                     <div className="text-xs text-red-700 font-semibold mb-0.5">Nợ</div>
                     <div className="truncate text-sm font-bold leading-none text-red-600">{customer.oldDebt.toLocaleString()} ₫</div>
                   </div>
@@ -678,7 +678,7 @@ function CustomerFormDialog({
             <Input value={form.address} onChange={(event) => onChange({ ...form, address: event.target.value })} />
           </div>
           {form.id && (
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <div className="rounded-[var(--radius-control)] border border-zinc-200 bg-zinc-50 px-3 py-2">
               <div className="text-xs font-semibold text-zinc-500">Công nợ hiện tại</div>
               <div className="mt-1 font-bold text-red-600">{form.oldDebt.toLocaleString()} ₫</div>
               <div className="mt-1 text-xs text-zinc-500">Điều chỉnh công nợ tại màn Tài chính để luôn có bút toán đối ứng.</div>
@@ -690,7 +690,7 @@ function CustomerFormDialog({
               value={form.note}
               onChange={(event) => onChange({ ...form, note: event.target.value })}
               rows={4}
-              className="flex w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+              className="flex w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
             />
           </div>
         </div>
@@ -708,7 +708,7 @@ function CustomerFormDialog({
 
 function SummaryCard({ label, value, tone = "dark" }: { label: string; value: string; tone?: "dark" | "green" | "red" }) {
   return (
-    <div className="min-w-0 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:p-4">
+    <div className="min-w-0 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-2 shadow-sm sm:p-4">
       <div className="mb-1 line-clamp-2 min-h-[28px] text-[11px] font-medium leading-tight text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-sm">{label}</div>
       <div className={`truncate text-lg font-bold sm:text-2xl ${tone === "green" ? "text-emerald-600" : tone === "red" ? "text-red-600" : "text-zinc-900"}`}>{value}</div>
     </div>
@@ -741,7 +741,7 @@ function InfoPreviewDialog({
 }) {
   return (
     <Dialog isOpen={Boolean(preview)} onClose={onClose} title={preview?.title ?? "Chi tiết"}>
-      <div className="whitespace-pre-wrap break-words rounded-lg border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
+      <div className="whitespace-pre-wrap break-words rounded-[var(--radius-control)] border border-zinc-100 bg-white p-4 text-sm font-medium leading-6 text-zinc-800">
         {preview?.content}
       </div>
     </Dialog>
@@ -760,12 +760,12 @@ function CustomerOrderDialog({ order, onClose }: { order: Order | null; onClose:
       {order && (
         <div className="flex h-full flex-col">
           <div className="flex-1 space-y-4">
-            <div className="rounded-xl border border-zinc-200 bg-white p-4">
+            <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
               <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">Khách hàng</div>
               <div className="mt-1 break-words text-lg font-bold text-zinc-900">{order.customerName}</div>
               <div className="mt-2 text-sm text-zinc-500">{new Date(order.date).toLocaleDateString("vi-VN")}</div>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-1">
+            <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-1">
               {order.items.map((item) => (
                 <div key={`${order.id}-${item.id}-${item.name}`} className="flex justify-between gap-3 border-b border-zinc-100 p-3 text-sm last:border-b-0">
                   <div className="min-w-0">
@@ -776,7 +776,7 @@ function CustomerOrderDialog({ order, onClose }: { order: Order | null; onClose:
                 </div>
               ))}
             </div>
-            <div className="rounded-xl bg-zinc-900 p-4 text-white">
+            <div className="rounded-[var(--radius-card)] bg-zinc-900 p-4 text-white">
               <div className="flex justify-between text-sm text-zinc-300"><span>Tổng tiền</span><span>{order.total.toLocaleString()} ₫</span></div>
               <div className="mt-2 flex justify-between text-sm text-zinc-300"><span>Đã thu</span><span className="text-emerald-300">{order.paid.toLocaleString()} ₫</span></div>
               <div className="mt-3 flex justify-between border-t border-zinc-700 pt-3 font-bold"><span>Còn nợ</span><span>{Math.max(0, order.total - order.paid).toLocaleString()} ₫</span></div>

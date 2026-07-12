@@ -497,8 +497,8 @@ export function Products() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-6">
-        {errorMessage && <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{errorMessage}</div>}
-        {message && <div className="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{message}</div>}
+        {errorMessage && <div className="mb-3 rounded-[var(--radius-control)] border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{errorMessage}</div>}
+        {message && <div className="mb-3 rounded-[var(--radius-control)] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{message}</div>}
         <div className="flex items-center gap-2 mb-3 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
@@ -524,7 +524,7 @@ export function Products() {
           )}
         </div>
 
-        <div className="hidden md:flex bg-white rounded-xl shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
+        <div className="hidden md:flex bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
           <div className="overflow-auto flex-1 custom-scrollbar">
             <table className="min-w-[1080px] w-full table-fixed divide-y divide-zinc-200">
               <colgroup>
@@ -580,17 +580,17 @@ export function Products() {
                       <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                         <div className="inline-flex justify-end gap-1">
                           {canUseSales && !inactive && (
-                            <button type="button" onClick={() => sellProduct(product)} className="rounded-lg p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700" title="Đưa vào bán hàng">
+                            <button type="button" onClick={() => sellProduct(product)} className="rounded-[var(--radius-control)] p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700" title="Đưa vào bán hàng">
                               <ShoppingCart className="h-4 w-4" />
                             </button>
                           )}
                           {canManage && (
-                            <button type="button" onClick={() => openEdit(product)} className="rounded-lg p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700" title="Sửa hàng hóa">
+                            <button type="button" onClick={() => openEdit(product)} className="rounded-[var(--radius-control)] p-2 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-700" title="Sửa hàng hóa">
                               <Edit3 className="h-4 w-4" />
                             </button>
                           )}
                           {canManage && !inactive && (
-                            <button type="button" onClick={() => discontinueProduct(product)} className="rounded-lg p-2 text-zinc-500 hover:bg-red-50 hover:text-red-700" title="Ngưng bán">
+                            <button type="button" onClick={() => discontinueProduct(product)} className="rounded-[var(--radius-control)] p-2 text-zinc-500 hover:bg-red-50 hover:text-red-700" title="Ngưng bán">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           )}
@@ -608,7 +608,7 @@ export function Products() {
           {filteredProducts.map((product) => {
             const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
             return (
-              <div key={product.id} onClick={() => setSelectedProduct(product)} className={`bg-white p-3 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform ${inactive ? "opacity-60" : ""}`}>
+              <div key={product.id} onClick={() => setSelectedProduct(product)} className={`bg-white p-3 rounded-[var(--radius-card)] shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform ${inactive ? "opacity-60" : ""}`}>
                 <div className="mb-2 flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <h3 className="line-clamp-2 break-words text-base font-semibold text-zinc-900">{product.name}</h3>
@@ -651,7 +651,7 @@ export function Products() {
         <div className="flex flex-col h-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
             <Field label="Danh mục">
-              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                 <option value="all">Tất cả danh mục</option>
                 {categories.map((category) => (
                   <option key={category} value={category}>{category}</option>
@@ -659,7 +659,7 @@ export function Products() {
               </select>
             </Field>
             <Field label="Loại hàng">
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                 <option value="all">Tất cả loại hàng</option>
                 {productTypes.map((type) => (
                   <option key={type} value={type}>{type}</option>
@@ -667,7 +667,7 @@ export function Products() {
               </select>
             </Field>
             <Field label="Tồn kho">
-              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                 <option value="all">Tất cả tồn kho</option>
                 <option value="in_stock">Còn hàng</option>
                 <option value="low_stock">Sắp hết hàng</option>
@@ -675,7 +675,7 @@ export function Products() {
               </select>
             </Field>
             <Field label="Trạng thái">
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                 <option value="all">Tất cả trạng thái</option>
                 <option value="active">Đang bán</option>
                 <option value="inactive">Ngưng bán</option>
@@ -683,7 +683,7 @@ export function Products() {
             </Field>
           </div>
 
-          <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+          <div className="mt-6 rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Kết quả</div>
             <div className="mt-1 text-2xl font-bold text-zinc-900">{filteredProducts.length.toLocaleString()} hàng hóa</div>
           </div>
@@ -703,7 +703,7 @@ export function Products() {
         {selectedProduct && (
           <div className="flex flex-col h-full">
             <div className="space-y-6 flex-1">
-              <div className="bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+              <div className="bg-zinc-50 p-4 rounded-[var(--radius-control)] border border-zinc-200">
                 <div className="text-sm text-zinc-500 mb-1">Mã hàng</div>
                 <div className="break-words text-lg font-bold text-emerald-600">{selectedProduct.code}</div>
                 <div className="mt-4 text-sm text-zinc-500 mb-1">Tên hàng hóa</div>
@@ -724,7 +724,7 @@ export function Products() {
                 </div>
               </div>
               {selectedProductStats && (
-                <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
                   <div className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-500">Bán hàng</div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <MiniStat label="Số đơn" value={selectedProductStats.orderCount.toLocaleString()} />
@@ -751,7 +751,7 @@ export function Products() {
               <Download className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{isExportingPrices ? "Đang xuất..." : "Xuất XLSX"}</span>
             </Button>
-            <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50 sm:h-10 sm:w-auto sm:px-3" title="Nhập XLSX">
+            <label className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50 sm:h-10 sm:w-auto sm:px-3" title="Nhập XLSX">
               <Upload className="h-4 w-4 sm:mr-2" />
               <span className="hidden text-sm font-semibold sm:inline">{isImportingPrices ? "Đang nhập..." : "Nhập XLSX"}</span>
                 <input
@@ -770,7 +770,7 @@ export function Products() {
             {priceRows.map((row) => {
               const changed = row.newPrice !== row.currentPrice;
               return (
-                <div key={row.productId} className={`rounded-lg border p-3 ${changed ? "border-emerald-200 bg-emerald-50/40" : "border-zinc-200 bg-white"}`}>
+                <div key={row.productId} className={`rounded-[var(--radius-control)] border p-3 ${changed ? "border-emerald-200 bg-emerald-50/40" : "border-zinc-200 bg-white"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0"><div className="font-semibold text-emerald-700">{row.code}</div><div className="line-clamp-2 text-sm font-semibold text-zinc-900">{row.name}</div></div>
                     <span className="shrink-0 text-xs font-medium text-zinc-500">{row.unit}</span>
@@ -780,7 +780,7 @@ export function Products() {
               );
             })}
           </div>
-          <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 bg-white md:block">
+          <div className="hidden overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200 bg-white md:block">
             <table className="min-w-[980px] w-full text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500">
                 <tr>
@@ -826,7 +826,7 @@ export function Products() {
             </div>
           </div>
           {canApprovePrices && (
-            <section className="rounded-xl border border-zinc-200 bg-white">
+            <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white">
               <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
                 <div>
                   <h3 className="font-bold text-zinc-900">Lệnh giá chờ duyệt</h3>
@@ -849,7 +849,7 @@ export function Products() {
                     </div>
                     <div className="mt-3 grid gap-2 md:grid-cols-2">
                       {request.items.slice(0, 6).map((item) => (
-                        <div key={item.id} className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
+                        <div key={item.id} className="rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
                           <div className="font-semibold text-zinc-900">{item.products?.code} - {item.products?.product_name}</div>
                           <div className="text-zinc-500">{Number(item.old_sell_price ?? 0).toLocaleString()} đ -&gt; <span className="font-semibold text-emerald-700">{Number(item.new_sell_price ?? 0).toLocaleString()} đ</span></div>
                         </div>
@@ -878,7 +878,7 @@ export function Products() {
               <select
                 value={form.unit}
                 onChange={(event) => setForm({ ...form, unit: event.target.value })}
-                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
               >
                 {unitOptions.map((unit) => (
                   <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>
@@ -945,7 +945,7 @@ function Price({ label, value, tone = "dark" }: { label: string; value: number; 
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-lg bg-zinc-50 p-3">
+    <div className="min-w-0 rounded-[var(--radius-control)] bg-zinc-50 p-3">
       <div className="truncate text-xs font-bold text-zinc-500">{label}</div>
       <div className="mt-1 truncate text-base font-black text-zinc-900">{value}</div>
     </div>

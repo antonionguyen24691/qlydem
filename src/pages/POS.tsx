@@ -558,13 +558,13 @@ export function POS() {
         {/* Mobile Overlay Background */}
         {isMobileCheckoutOpen && (
           <div 
-            className="fixed inset-0 z-40 bg-zinc-900/60 backdrop-blur-sm lg:hidden transition-opacity"
+            className="fixed inset-0 z-40 bg-[var(--overlay-bg)] backdrop-blur-sm lg:hidden transition-opacity"
             onClick={() => setIsMobileCheckoutOpen(false)}
           />
         )}
 
         {/* Right Checkout Panel (Bottom sheet on mobile, Sidebar on desktop) */}
-        <div className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-[0_-20px_40px_rgba(0,0,0,0.15)] lg:relative lg:w-[400px] lg:shadow-none lg:border-l lg:border-zinc-200 lg:rounded-none transition-transform duration-300 ease-out flex flex-col max-h-[90vh] lg:max-h-full ${isMobileCheckoutOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
+        <div className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-[var(--radius-dialog)] shadow-[0_-20px_40px_rgba(0,0,0,0.15)] lg:relative lg:w-[400px] lg:shadow-none lg:border-l lg:border-zinc-200 lg:rounded-none transition-transform duration-300 ease-out flex flex-col max-h-[90vh] lg:max-h-full ${isMobileCheckoutOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}`}>
           
           {/* Mobile Drag Handle */}
           <div className="flex justify-center pt-3 pb-1 lg:hidden" onClick={() => setIsMobileCheckoutOpen(false)}>
@@ -572,16 +572,16 @@ export function POS() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
-            <div className="bg-zinc-50 rounded-xl p-4 ring-1 ring-zinc-200/60">
+            <div className="bg-zinc-50 rounded-[var(--radius-card)] p-4 ring-1 ring-zinc-200/60">
               <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Khách hàng</h3>
               <div className="relative">
                 {selectedCustomer ? (
-                  <div className="flex items-center justify-between p-3 border rounded-xl bg-white border-emerald-200 ring-1 ring-emerald-500/20 shadow-sm">
+                  <div className="flex items-center justify-between p-3 border rounded-[var(--radius-card)] bg-white border-emerald-200 ring-1 ring-emerald-500/20 shadow-sm">
                     <div className="min-w-0">
                       <div className="line-clamp-2 break-words text-sm font-semibold text-zinc-900">{selectedCustomer.name}</div>
                       <div className="text-xs text-zinc-500 mt-0.5">Nợ cũ: <span className="text-red-600 font-medium">{selectedCustomer.oldDebt.toLocaleString()}đ</span></div>
                     </div>
-                    <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500">
+                    <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-zinc-100 rounded-[var(--radius-control)] text-zinc-500">
                       <X size={18} />
                     </button>
                   </div>
@@ -598,7 +598,7 @@ export function POS() {
                       placeholder="Khách lẻ (Tìm kiếm theo tên, SĐT...)" 
                     />
                     {showCustomerDropdown && customerSearch && (
-                      <div className="absolute z-10 w-full bg-white border border-zinc-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto custom-scrollbar">
+                      <div className="absolute z-10 w-full bg-white border border-zinc-200 rounded-[var(--radius-card)] shadow-lg mt-1 max-h-48 overflow-y-auto custom-scrollbar">
                         {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).map(c => (
                           <div 
                             key={c.id} 
@@ -623,7 +623,7 @@ export function POS() {
               </div>
             </div>
 
-            <div className="bg-zinc-50 rounded-xl p-4 ring-1 ring-zinc-200/60 flex-1 flex flex-col">
+            <div className="bg-zinc-50 rounded-[var(--radius-card)] p-4 ring-1 ring-zinc-200/60 flex-1 flex flex-col">
               <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Thanh toán</h3>
               <div className="space-y-4 text-sm flex-1">
                 <div className="flex justify-between items-center">
@@ -720,7 +720,7 @@ export function POS() {
 
       {showProductPicker && (
         <div
-          className="fixed inset-0 z-[80] flex items-end justify-center bg-zinc-900/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--overlay-bg)] p-0 backdrop-blur-sm sm:items-center sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="product-picker-title"
@@ -728,7 +728,7 @@ export function POS() {
             if (event.target === event.currentTarget) setShowProductPicker(false);
           }}
         >
-          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl ring-1 ring-zinc-200 sm:rounded-2xl">
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[var(--radius-dialog)] bg-white shadow-[var(--shadow-dialog)] ring-1 ring-zinc-200 sm:rounded-[var(--radius-dialog)]">
             <div className="flex items-start justify-between gap-3 border-b border-zinc-200 px-4 py-4 sm:px-5">
               <div className="min-w-0">
                 <h2 id="product-picker-title" className="text-lg font-bold text-zinc-900">Chọn sản phẩm bán</h2>
@@ -737,7 +737,7 @@ export function POS() {
               <button
                 type="button"
                 onClick={() => setShowProductPicker(false)}
-                className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100"
+                className="rounded-[var(--radius-control)] p-2 text-zinc-500 hover:bg-zinc-100"
                 aria-label="Đóng danh mục sản phẩm"
               >
                 <X size={20} />
@@ -750,7 +750,7 @@ export function POS() {
                 <Input
                   value={productPickerSearch}
                   onChange={(event) => setProductPickerSearch(event.target.value)}
-                  className="pl-10"
+                  className="pl-10 rounded-[var(--radius-search)]"
                   placeholder="Tìm theo mã, tên hàng, quy cách..."
                   autoFocus
                 />
@@ -768,7 +768,7 @@ export function POS() {
                   return (
                     <div
                       key={product.id}
-                      className={`flex min-w-0 flex-col rounded-xl border p-3 shadow-sm ${unavailable ? "border-zinc-200 bg-zinc-50 opacity-70" : "border-zinc-200 bg-white hover:border-emerald-300"}`}
+                      className={`flex min-w-0 flex-col rounded-[var(--radius-card)] border p-3 shadow-sm ${unavailable ? "border-zinc-200 bg-zinc-50 opacity-70" : "border-zinc-200 bg-white hover:border-emerald-300"}`}
                     >
                       <div className="flex min-w-0 items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -776,7 +776,7 @@ export function POS() {
                           <div className="mt-1 line-clamp-2 min-h-10 break-words text-sm font-bold leading-5 text-zinc-900" title={product.name}>{product.name}</div>
                         </div>
                         {cartItem && (
-                          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-xs font-black text-emerald-700">Đã chọn {cartItem.quantity}</span>
+                          <span className="shrink-0 rounded-full bg-[var(--cart-badge-bg)] px-2 py-1 text-xs font-black text-[var(--cart-badge-text)]">Đã chọn {cartItem.quantity}</span>
                         )}
                       </div>
                       <div className="mt-2 min-h-8 text-xs text-zinc-500">
@@ -823,14 +823,14 @@ export function POS() {
       )}
 
       {showNewCustomerModal && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-zinc-900/50 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-xl rounded-t-2xl bg-white shadow-2xl ring-1 ring-zinc-200 sm:rounded-2xl">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--overlay-bg)] p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-xl rounded-t-[var(--radius-dialog)] bg-white shadow-[var(--shadow-dialog)] ring-1 ring-zinc-200 sm:rounded-[var(--radius-dialog)]">
             <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
               <div>
                 <h2 className="text-lg font-bold text-zinc-900">Thêm khách hàng nhanh</h2>
                 <p className="text-sm text-zinc-500">Tạo khách và chọn ngay cho đơn bán hiện tại.</p>
               </div>
-              <button onClick={() => setShowNewCustomerModal(false)} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100">
+              <button onClick={() => setShowNewCustomerModal(false)} className="rounded-[var(--radius-control)] p-2 text-zinc-500 hover:bg-zinc-100">
                 <X size={20} />
               </button>
             </div>
@@ -863,7 +863,7 @@ export function POS() {
                 <textarea
                   value={newCustomer.note}
                   onChange={(event) => setNewCustomer({ ...newCustomer, note: event.target.value })}
-                  className="min-h-20 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600"
+                  className="min-h-20 w-full rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600"
                 />
               </label>
             </div>

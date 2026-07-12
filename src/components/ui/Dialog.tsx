@@ -14,17 +14,17 @@ export function Dialog({ isOpen, onClose, title, children, className }: DialogPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-6 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-6 bg-[var(--overlay-bg)] backdrop-blur-sm transition-opacity">
       <div className={cn(
-        "relative w-full max-w-md bg-white flex flex-col shadow-2xl",
-        "h-full sm:h-auto sm:max-h-full sm:rounded-2xl overflow-hidden",
+        "relative w-full max-w-md bg-white flex flex-col shadow-[var(--shadow-dialog)]",
+        "h-full sm:h-auto sm:max-h-full sm:rounded-[var(--radius-dialog)] overflow-hidden",
         className
       )}>
         <div className="flex items-center justify-between p-4 border-b border-zinc-100 shrink-0 bg-white z-10 shadow-sm">
           <h3 className="min-w-0 truncate pr-3 text-lg font-bold tracking-tight text-zinc-900">{title}</h3>
           <button 
             onClick={onClose}
-            className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 rounded-lg p-2 transition-colors active:scale-95"
+            className="text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 rounded-[var(--radius-control)] p-2 transition-colors active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>

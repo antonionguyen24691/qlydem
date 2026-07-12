@@ -337,11 +337,11 @@ export function Finance() {
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
-          <div className="flex shrink-0 rounded-lg bg-zinc-100 p-1 text-sm font-bold">
+          <div className="flex shrink-0 rounded-[var(--radius-control)] bg-zinc-100 p-1 text-sm font-bold">
             <span className="rounded-md bg-white px-3 py-1.5 text-emerald-700 shadow-sm">Tổng quan & công nợ</span>
             <Link to="/expenses" className="rounded-md px-3 py-1.5 text-zinc-600 hover:text-zinc-900">Chi phí & kết quả</Link>
           </div>
-          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 shrink-0 rounded-lg border border-zinc-200 bg-white px-3 text-sm"><option value="MONTH">Tháng này</option><option value="30_DAYS">30 ngày gần đây</option><option value="ALL">Tất cả thời gian</option></select>
+          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 shrink-0 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm"><option value="MONTH">Tháng này</option><option value="30_DAYS">30 ngày gần đây</option><option value="ALL">Tất cả thời gian</option></select>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <Button variant="outline" onClick={() => openFundDialog("TRANSFER")} className="w-full sm:w-auto">
@@ -366,34 +366,34 @@ export function Finance() {
 
       <div className="p-3 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-4 sm:space-y-6">
         <div className="grid grid-cols-2 gap-2 min-[480px]:grid-cols-4 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
-          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Doanh thu kỳ</span></div>
             <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate tabular-nums">{periodRevenue.toLocaleString()} ₫</div>
           </div>
-          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><DollarSign className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Đã thu kỳ</span></div>
             <div className="text-lg sm:text-2xl font-bold text-emerald-600 truncate tabular-nums">{periodCollected.toLocaleString()} ₫</div>
           </div>
-          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải thu</span></div>
             <div className="text-lg sm:text-2xl font-bold text-red-600 truncate tabular-nums">{totalReceivables.toLocaleString()} ₫</div>
           </div>
-          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải trả</span></div>
             <div className="text-lg sm:text-2xl font-bold text-red-600 truncate tabular-nums">{totalPayables.toLocaleString()} ₫</div>
           </div>
-          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Sổ quỹ tiền mặt</span></div>
             <div className="text-lg sm:text-2xl font-bold text-zinc-900 truncate tabular-nums">{cashBalance.toLocaleString()} ₫</div>
           </div>
-          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Số dư ngân hàng</span></div>
             <div className="text-lg sm:text-2xl font-bold text-zinc-900 truncate tabular-nums">{bankBalance.toLocaleString()} ₫</div>
           </div>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div id="cong-no" className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div id="cong-no" className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="font-bold text-zinc-900">Tuổi nợ</h2>
               <div className="flex gap-2 overflow-x-auto hide-scrollbar">
@@ -424,7 +424,7 @@ export function Finance() {
                 ["16-30", customers.filter((c) => (debtAgeByCustomer.get(c.id) ?? 0) >= 16 && (debtAgeByCustomer.get(c.id) ?? 0) <= 30).length],
                 [">30", customers.filter((c) => (debtAgeByCustomer.get(c.id) ?? 0) > 30).length]
               ].map(([label, count]) => (
-                <div key={label} className="rounded-lg bg-zinc-50 p-3">
+                <div key={label} className="rounded-[var(--radius-control)] bg-zinc-50 p-3">
                   <div className="text-xs font-bold text-zinc-500">{label}</div>
                   <div className="mt-1 text-xl font-black text-zinc-900">{count}</div>
                 </div>
@@ -432,7 +432,7 @@ export function Finance() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold text-zinc-900">Phiếu thu gần nhất</h2>
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{periodReceipts.length}</span>
@@ -441,7 +441,7 @@ export function Finance() {
               {periodReceipts.slice(0, 6).map((receipt) => {
                 const customer = customers.find((item) => item.id === receipt.customer_id);
                 return (
-                  <div key={receipt.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+                  <div key={receipt.id} className="rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate font-bold text-emerald-700">{receipt.code}</div>
@@ -461,14 +461,14 @@ export function Finance() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-bold text-zinc-900">Sổ quỹ gần đây</h2>
             <span className="text-xs font-semibold text-zinc-500">Tiền mặt {cashBalance.toLocaleString()} ₫ · Ngân hàng {bankBalance.toLocaleString()} ₫</span>
           </div>
           <div className="space-y-2">
             {cashbookEntries.slice(0, 10).map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
+              <div key={entry.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
                 <div className="min-w-0">
                   <div className="truncate font-bold text-zinc-900">
                     {CASHBOOK_SOURCE_LABEL[entry.source_type ?? ""] ?? entry.source_type ?? "Sổ quỹ"}
@@ -484,13 +484,13 @@ export function Finance() {
                 </div>
               </div>
             ))}
-            {cashbookEntries.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có giao dịch sổ quỹ.</div>}
+            {cashbookEntries.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có giao dịch sổ quỹ.</div>}
           </div>
         </div>
 
         {/* Reminders & Ratio */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-4 lg:col-span-2">
+          <div className="bg-white rounded-[var(--radius-card)] border border-zinc-200 shadow-sm p-4 lg:col-span-2">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-zinc-900 text-lg flex items-center gap-2">
                 <Bell className="w-5 h-5 text-red-500" /> Nhắc nợ cần xử lý
@@ -504,7 +504,7 @@ export function Finance() {
                   key={customer.id}
                   type="button"
                   onClick={() => setSelectedCustomer(customer)}
-                  className="flex w-full flex-col justify-between rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-left transition-colors hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 active:scale-[0.98] sm:flex-row sm:items-center"
+                  className="flex w-full flex-col justify-between rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 p-3 text-left transition-colors hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 active:scale-[0.98] sm:flex-row sm:items-center"
                 >
                   <div className="mb-2 flex min-w-0 items-start gap-3 sm:mb-0">
                     <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
@@ -532,7 +532,7 @@ export function Finance() {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5 flex flex-col justify-center items-center text-center h-full min-h-[200px]">
+          <div className="bg-white rounded-[var(--radius-card)] border border-zinc-200 shadow-sm p-5 flex flex-col justify-center items-center text-center h-full min-h-[200px]">
             <h2 className="font-semibold text-zinc-500 uppercase tracking-wider text-sm mb-4">Tỷ lệ thu trong kỳ</h2>
             <div className="relative">
               <svg className="w-32 h-32 transform -rotate-90">
@@ -560,7 +560,7 @@ export function Finance() {
 
         {/* Debt Management Section */}
         <div className="grid flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 flex flex-col min-h-[480px]">
+          <div className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 flex flex-col min-h-[480px]">
             <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="font-bold text-zinc-900 text-lg">Quản lý công nợ khách hàng</h2>
@@ -635,7 +635,7 @@ export function Finance() {
                   <div
                     key={customer.id}
                     onClick={() => setSelectedCustomer(customer)}
-                    className={`${selected ? "border-emerald-300 bg-emerald-50/60" : "bg-white border-zinc-200"} p-3 sm:p-4 rounded-xl border shadow-sm active:scale-[0.98] transition-transform`}
+                    className={`${selected ? "border-emerald-300 bg-emerald-50/60" : "bg-white border-zinc-200"} p-3 sm:p-4 rounded-[var(--radius-card)] border shadow-sm active:scale-[0.98] transition-transform`}
                   >
                     <div className="flex min-w-0 justify-between items-start mb-3 gap-3">
                       <div className="min-w-0">
@@ -682,7 +682,7 @@ export function Finance() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
+          <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
             {selectedCustomer ? (
               <div className="flex max-h-[calc(100vh-140px)] flex-col overflow-hidden">
                 <div className="border-b border-zinc-100 p-4">
@@ -693,19 +693,19 @@ export function Finance() {
 
                 <div className="custom-scrollbar overflow-y-auto p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-red-100 bg-red-50 p-3">
+                    <div className="rounded-[var(--radius-card)] border border-red-100 bg-red-50 p-3">
                       <div className="text-xs font-bold uppercase tracking-wider text-red-700">Nợ hiện tại</div>
                       <div className="mt-1 truncate text-2xl font-black text-red-600">{selectedCustomer.oldDebt.toLocaleString()} ₫</div>
                     </div>
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                    <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-3">
                       <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Hạn mức</div>
                       <div className="mt-1 truncate text-xl font-black text-zinc-900">{selectedCustomer.creditLimit.toLocaleString()} ₫</div>
                     </div>
-                    <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                    <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3">
                       <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Tuổi nợ</div>
                       <div className="mt-1 text-xl font-black text-zinc-900">{selectedCustomer.oldDebt > 0 ? `${selectedOldestDebtAge} ngày` : "-"}</div>
                     </div>
-                    <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                    <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3">
                       <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Đơn còn nợ</div>
                       <div className="mt-1 text-xl font-black text-zinc-900">{selectedDebtOrders.length}</div>
                     </div>
@@ -716,7 +716,7 @@ export function Finance() {
                     </Button>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-3 text-sm">
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Doanh số</div>
                       <div className="mt-1 font-black text-zinc-900">{selectedTotalSales.toLocaleString()} ₫</div>
@@ -734,7 +734,7 @@ export function Finance() {
                     </div>
                     <div className="space-y-2">
                       {selectedDebtOrders.slice(0, 8).map((order) => (
-                        <div key={order.id} className="rounded-lg border border-zinc-200 bg-white p-3 text-sm">
+                        <div key={order.id} className="rounded-[var(--radius-control)] border border-zinc-200 bg-white p-3 text-sm">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate font-bold text-emerald-700">{order.id}</div>
@@ -748,7 +748,7 @@ export function Finance() {
                         </div>
                       ))}
                       {selectedDebtOrders.length === 0 && (
-                        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">Không còn đơn nợ.</div>
+                        <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">Không còn đơn nợ.</div>
                       )}
                     </div>
                   </div>
@@ -760,7 +760,7 @@ export function Finance() {
                     </div>
                     <div className="space-y-2">
                       {selectedCustomerReceipts.slice(0, 6).map((receipt) => (
-                        <div key={receipt.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 text-sm">
+                        <div key={receipt.id} className="flex items-center justify-between rounded-[var(--radius-control)] border border-zinc-200 bg-white p-3 text-sm">
                           <div>
                             <div className="font-bold text-zinc-900">{receipt.code}</div>
                             <div className="text-xs text-zinc-500">{new Date(receipt.receipt_date).toLocaleDateString("vi-VN")} · {receipt.payment_method}</div>
@@ -769,7 +769,7 @@ export function Finance() {
                         </div>
                       ))}
                       {selectedCustomerReceipts.length === 0 && (
-                        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">Chưa có phiếu thu.</div>
+                        <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 bg-zinc-50 py-6 text-center text-sm text-zinc-500">Chưa có phiếu thu.</div>
                       )}
                     </div>
                   </div>
@@ -798,7 +798,7 @@ export function Finance() {
       >
         <form onSubmit={handleFundSubmit} className="flex h-full flex-col">
           <div className="flex-1 space-y-5">
-            <div className="grid grid-cols-2 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+            <div className="grid grid-cols-2 gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-3 text-sm">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn quỹ tiền mặt</div>
                 <div className="mt-1 font-black tabular-nums text-zinc-900">{cashBalance.toLocaleString()} ₫</div>
@@ -813,10 +813,10 @@ export function Finance() {
               <div>
                 <label className="mb-2 block text-sm font-bold text-zinc-700">Chiều chuyển</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setFundFrom("CASH")} className={`rounded-xl py-3 text-center text-sm font-semibold min-h-[48px] ${fundFrom === "CASH" ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
+                  <button type="button" onClick={() => setFundFrom("CASH")} className={`rounded-[var(--radius-card)] py-3 text-center text-sm font-semibold min-h-[48px] ${fundFrom === "CASH" ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
                     Tiền mặt → Ngân hàng
                   </button>
-                  <button type="button" onClick={() => setFundFrom("BANK")} className={`rounded-xl py-3 text-center text-sm font-semibold min-h-[48px] ${fundFrom === "BANK" ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
+                  <button type="button" onClick={() => setFundFrom("BANK")} className={`rounded-[var(--radius-card)] py-3 text-center text-sm font-semibold min-h-[48px] ${fundFrom === "BANK" ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
                     Ngân hàng → Tiền mặt
                   </button>
                 </div>
@@ -827,7 +827,7 @@ export function Finance() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-bold text-zinc-700">{fundAction === "WITHDRAW" ? "Rút từ" : "Quỹ điều chỉnh"}</label>
-                  <select value={fundAccount} onChange={(event) => setFundAccount(event.target.value as "CASH" | "BANK")} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
+                  <select value={fundAccount} onChange={(event) => setFundAccount(event.target.value as "CASH" | "BANK")} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
                     <option value="CASH">Quỹ tiền mặt</option>
                     <option value="BANK">Tài khoản ngân hàng</option>
                   </select>
@@ -835,7 +835,7 @@ export function Finance() {
                 {fundAction === "ADJUST" && (
                   <div>
                     <label className="mb-2 block text-sm font-bold text-zinc-700">Loại điều chỉnh</label>
-                    <select value={fundDirection} onChange={(event) => setFundDirection(event.target.value as "IN" | "OUT")} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
+                    <select value={fundDirection} onChange={(event) => setFundDirection(event.target.value as "IN" | "OUT")} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
                       <option value="IN">Ghi tăng (nhập số dư đầu/thiếu)</option>
                       <option value="OUT">Ghi giảm (số dư thừa)</option>
                     </select>
@@ -879,7 +879,7 @@ export function Finance() {
 
             <div>
               <label className="mb-2 block text-sm font-bold text-zinc-700">Ghi chú</label>
-              <textarea value={fundNote} onChange={(event) => setFundNote(event.target.value)} rows={2} placeholder={fundAction === "TRANSFER" ? "VD: Nộp tiền bán hàng vào tài khoản..." : "Ghi chú thêm..."} className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
+              <textarea value={fundNote} onChange={(event) => setFundNote(event.target.value)} rows={2} placeholder={fundAction === "TRANSFER" ? "VD: Nộp tiền bán hàng vào tài khoản..." : "Ghi chú thêm..."} className="w-full resize-none rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
             </div>
           </div>
 
@@ -901,7 +901,7 @@ export function Finance() {
             </div>
             
             {selectedCustomerForReceipt && (
-              <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex justify-between items-center">
+              <div className="bg-red-50 p-4 rounded-[var(--radius-card)] border border-red-100 flex justify-between items-center">
                 <span className="text-sm font-semibold text-red-800">Số nợ hiện tại:</span>
                 <span className="text-xl font-bold text-red-600">
                   {customers.find(c => c.id === selectedCustomerForReceipt)?.oldDebt.toLocaleString()} ₫
@@ -910,12 +910,12 @@ export function Finance() {
             )}
 
             {selectedCustomerForReceipt && selectedCustomerDebtRows.length > 0 && (
-              <div className="rounded-xl border border-zinc-200 bg-white p-3">
+              <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3">
                 <div className="mb-2 flex items-center justify-between"><div><div className="font-bold text-zinc-900">Phân bổ vào đơn nợ</div><div className="text-xs text-zinc-500">Để trống để hệ thống thu theo đơn đến hạn trước.</div></div><div className={`text-sm font-black tabular-nums ${allocatedReceiptAmount > Number(receiptAmount || 0) ? "text-red-600" : "text-emerald-700"}`}>{allocatedReceiptAmount.toLocaleString()} ₫</div></div>
                 <div className="max-h-44 space-y-2 overflow-y-auto custom-scrollbar">
                   {selectedCustomerDebtRows.map((debt) => {
                     const order = orders.find((item) => item.dbId === debt.order_id);
-                    return <div key={debt.id} className="grid grid-cols-[1fr_132px] items-center gap-3 rounded-lg bg-zinc-50 px-3 py-2"><div className="min-w-0"><div className="truncate font-bold text-zinc-900">{order?.id ?? debt.order_id}</div><div className="text-xs text-zinc-500">Còn {Number(debt.remaining_amount).toLocaleString()} ₫ · Hạn {debt.due_date ? new Date(debt.due_date).toLocaleDateString("vi-VN") : "chưa đặt"}</div></div><Input name={`allocation-${debt.id}`} type="number" min="0" max={Number(debt.remaining_amount)} value={receiptAllocations[debt.id] || ""} onChange={(event) => setReceiptAllocations((current) => ({ ...current, [debt.id]: Math.min(Number(event.target.value) || 0, Number(debt.remaining_amount)) }))} className="text-right font-bold" placeholder="0" /></div>;
+                    return <div key={debt.id} className="grid grid-cols-[1fr_132px] items-center gap-3 rounded-[var(--radius-control)] bg-zinc-50 px-3 py-2"><div className="min-w-0"><div className="truncate font-bold text-zinc-900">{order?.id ?? debt.order_id}</div><div className="text-xs text-zinc-500">Còn {Number(debt.remaining_amount).toLocaleString()} ₫ · Hạn {debt.due_date ? new Date(debt.due_date).toLocaleDateString("vi-VN") : "chưa đặt"}</div></div><Input name={`allocation-${debt.id}`} type="number" min="0" max={Number(debt.remaining_amount)} value={receiptAllocations[debt.id] || ""} onChange={(event) => setReceiptAllocations((current) => ({ ...current, [debt.id]: Math.min(Number(event.target.value) || 0, Number(debt.remaining_amount)) }))} className="text-right font-bold" placeholder="0" /></div>;
                   })}
                 </div>
               </div>
@@ -934,10 +934,10 @@ export function Finance() {
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức thu</label><select value={receiptPaymentMethod} onChange={(event) => setReceiptPaymentMethod(event.target.value)} className="flex h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm"><option value="CASH">Tiền mặt</option><option value="TRANSFER">Chuyển khoản</option></select></div>
+              <div><label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức thu</label><select value={receiptPaymentMethod} onChange={(event) => setReceiptPaymentMethod(event.target.value)} className="flex h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm"><option value="CASH">Tiền mặt</option><option value="TRANSFER">Chuyển khoản</option></select></div>
               <div><label className="mb-2 block text-sm font-bold text-zinc-700">Ngày thu</label><Input type="date" defaultValue={new Date().toISOString().slice(0, 10)} disabled /></div>
             </div>
-            <div><label className="mb-2 block text-sm font-bold text-zinc-700">Nội dung / ghi chú</label><textarea value={receiptNote} onChange={(event) => setReceiptNote(event.target.value)} rows={3} placeholder="VD: Thu công nợ đơn DH..." className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" /></div>
+            <div><label className="mb-2 block text-sm font-bold text-zinc-700">Nội dung / ghi chú</label><textarea value={receiptNote} onChange={(event) => setReceiptNote(event.target.value)} rows={3} placeholder="VD: Thu công nợ đơn DH..." className="w-full resize-none rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" /></div>
           </div>
           
           <div className="flex gap-3 mt-8 pt-4 border-t border-zinc-100">

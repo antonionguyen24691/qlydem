@@ -12,8 +12,38 @@
    - [data-theme="terracotta"]  → 1b Đất nung hiện đại
    ============================================================ */
 
+/* ---------- Token hình khối (bo góc/shadow/overlay) — dùng bởi
+   Dialog.tsx/Button.tsx/Input.tsx tại src/components/ui/. Giá trị mặc định
+   dưới đây PHẢI khớp y hệt giá trị Tailwind literal đang dùng cho classic
+   (rounded-2xl=16px, rounded-lg=8px, shadow-2xl, zinc-900/60) — theme moss/
+   terracotta override bên dưới, classic không đổi gì. ---------- */
+:root {
+  --radius-dialog: 1rem;      /* 16px = rounded-2xl */
+  --radius-card: 0.75rem;     /* 12px = rounded-xl */
+  --radius-control: 0.5rem;   /* 8px = rounded-lg */
+  --radius-chip: 9999px;
+  --shadow-dialog: 0 25px 50px -12px rgb(0 0 0 / 0.25); /* shadow-2xl */
+  --overlay-bg: rgb(24 24 27 / 0.6);                    /* bg-zinc-900/60 */
+  --label-color: var(--color-zinc-700);
+  --readonly-bg: transparent;
+  --radius-search: var(--radius-control);
+  /* Badge "đã chọn/×N trong giỏ" ở POS — mặc định giữ màu emerald nhạt hiện có */
+  --cart-badge-bg: var(--color-emerald-100);
+  --cart-badge-text: var(--color-emerald-700);
+}
+
 /* ---------- 1a · MOSS — Xanh rêu thanh lịch ---------- */
 :root[data-theme="moss"] {
+  --radius-dialog: 18px;
+  --radius-card: 12px;
+  --radius-control: 10px;
+  --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.3);
+  --overlay-bg: rgba(18, 46, 41, 0.55);
+  --readonly-bg: #F7F7F2;
+  --radius-search: 9999px;
+  --cart-badge-bg: #E9B44C;
+  --cart-badge-text: #122E29;
+
   /* primary: emerald → xanh rêu đậm */
   --color-emerald-50:  #EFF4F0;
   --color-emerald-100: #E4EDE6;
@@ -64,6 +94,15 @@
 
 /* ---------- 1b · TERRACOTTA — Đất nung hiện đại ---------- */
 :root[data-theme="terracotta"] {
+  --radius-dialog: 20px;
+  --radius-card: 14px;
+  --radius-control: 12px;
+  --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.3);
+  --overlay-bg: rgba(43, 36, 32, 0.5);
+  --readonly-bg: #F7F1E9;
+  --radius-search: 9999px;
+  --cart-badge-bg: #2B2420;
+  --cart-badge-text: #FFFFFF;
   /* primary: emerald → cam đất nung */
   --color-emerald-50:  #FBEEE6;
   --color-emerald-100: #F6DFD0;

@@ -8,6 +8,7 @@ import { Input } from "../components/ui/Input";
 import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
 import { getAuthHeaders } from "../lib/supabase";
 import { useAuthStore } from "../store/auth";
+import { useThemeStore } from "../store/theme";
 
 type DateFilterMode = "single" | "range" | "week" | "month" | "year" | "all";
 type DebtFilter = "all" | "debt" | "paid";
@@ -31,6 +32,7 @@ function startOfWeek(date: Date) {
 export function Orders() {
   const { orders, products, customers, loadLiveData } = useDataStore();
   const user = useAuthStore((state) => state.user);
+  const isTerracotta = useThemeStore((state) => state.themeId === "terracotta");
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -247,7 +249,7 @@ export function Orders() {
         </div>
 
         {/* Stats */}
-        <div className="mb-3 grid grid-cols-4 divide-x divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm sm:mb-6">
+        <div className="mb-3 grid grid-cols-4 divide-x divide-zinc-100 overflow-hidden rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm sm:mb-6">
           <div className="min-w-0 p-2 text-center sm:p-4">
             <div className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">Doanh thu</div>
             <div className="truncate text-sm font-bold text-zinc-900 sm:text-xl">
@@ -282,8 +284,10 @@ export function Orders() {
            <div className="text-sm font-medium text-zinc-500">{filteredOrders.length} đơn theo bộ lọc</div>
         </div>
 
+        {!isTerracotta && (
+        <>
         {/* Desktop Table View */}
-        <div className="hidden md:flex bg-white rounded-xl shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
+        <div className="hidden md:flex bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 flex-1 overflow-hidden flex-col">
           <div className="overflow-auto flex-1 custom-scrollbar">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="bg-zinc-50 sticky top-0 z-10">
@@ -331,7 +335,7 @@ export function Orders() {
                           e.stopPropagation();
                           downloadOrderXlsx(order);
                         }}
-                        className="text-zinc-400 hover:text-emerald-600 p-2 rounded-lg hover:bg-emerald-50 transition-colors active:scale-95"
+                        className="text-zinc-400 hover:text-emerald-600 p-2 rounded-[var(--radius-control)] hover:bg-emerald-50 transition-colors active:scale-95"
                       >
                         <Printer className="h-5 w-5" />
                       </button>
@@ -349,7 +353,7 @@ export function Orders() {
             <div 
               key={order.id}
               onClick={() => setSelectedOrder(order)}
-              className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
+              className="bg-white p-3 rounded-[var(--radius-card)] shadow-sm border border-zinc-200 active:scale-[0.98] transition-transform"
             >
               <div className="mb-3 flex min-w-0 items-start justify-between gap-3 border-b border-zinc-100 pb-3">
                 <div className="min-w-0">
@@ -384,7 +388,7 @@ export function Orders() {
                     e.stopPropagation();
                     downloadOrderXlsx(order);
                   }}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-50 text-zinc-600 border border-zinc-200 active:bg-zinc-100"
+                  className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-control)] bg-zinc-50 text-zinc-600 border border-zinc-200 active:bg-zinc-100"
                 >
                   <Printer className="h-5 w-5" />
                 </button>
@@ -398,6 +402,55 @@ export function Orders() {
             </div>
           )}
         </div>
+        </>
+        )}
+
+        {/* Terracotta: list phẳng thay bảng — không card bao, không sticky header, phân cách bằng border-bottom */}
+        {isTerracotta && (
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {filteredOrders.map((order) => (
+              <div
+                key={order.id}
+                onClick={() => setSelectedOrder(order)}
+                className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 py-3 hover:bg-white/60"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-bold text-emerald-600">{order.id}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
+                      order.status === 'Đã thanh toán'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'bg-red-50 text-red-700'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 truncate text-sm text-zinc-600">{order.customerName}</div>
+                  <div className="text-xs text-zinc-500">{new Date(order.date).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-base font-bold text-zinc-900">{order.total.toLocaleString()} ₫</div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadOrderXlsx(order);
+                    }}
+                    className="mt-1 inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 text-xs font-semibold text-zinc-600 hover:bg-white"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    In
+                  </button>
+                </div>
+              </div>
+            ))}
+            {filteredOrders.length === 0 && (
+              <div className="text-center py-12 text-zinc-500">
+                <ScrollText className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
+                <p>Không có đơn hàng khớp bộ lọc</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Dialog isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Bộ lọc đơn hàng" className="sm:max-w-2xl">
@@ -418,7 +471,7 @@ export function Orders() {
                     key={value}
                     type="button"
                     onClick={() => setDateMode(value as DateFilterMode)}
-                    className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+                    className={`rounded-[var(--radius-control)] border px-3 py-2 text-sm font-semibold ${
                       dateMode === value ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-white text-zinc-700"
                     }`}
                   >
@@ -447,7 +500,7 @@ export function Orders() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Khách hàng">
-                <select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <select value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                   <option value="all">Tất cả khách hàng</option>
                   <option value={RETAIL_CUSTOMER}>Khách lẻ</option>
                   {customers.map((customer) => (
@@ -456,14 +509,14 @@ export function Orders() {
                 </select>
               </Field>
               <Field label="Công nợ">
-                <select value={debtFilter} onChange={(event) => setDebtFilter(event.target.value as DebtFilter)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <select value={debtFilter} onChange={(event) => setDebtFilter(event.target.value as DebtFilter)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                   <option value="all">Tất cả trạng thái</option>
                   <option value="debt">Có công nợ</option>
                   <option value="paid">Đã thanh toán</option>
                 </select>
               </Field>
               <Field label="Danh mục hàng">
-                <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                   <option value="all">Tất cả danh mục</option>
                   {categories.map((category) => (
                     <option key={category} value={category}>{category}</option>
@@ -471,7 +524,7 @@ export function Orders() {
                 </select>
               </Field>
               <Field label="Loại hàng">
-                <select value={selectedProductType} onChange={(event) => setSelectedProductType(event.target.value)} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
+                <select value={selectedProductType} onChange={(event) => setSelectedProductType(event.target.value)} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10">
                   <option value="all">Tất cả loại hàng</option>
                   {productTypes.map((type) => (
                     <option key={type} value={type}>{type}</option>
@@ -480,7 +533,7 @@ export function Orders() {
               </Field>
             </div>
 
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-4">
               <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Tổng theo bộ lọc</div>
               <div className="mt-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 <div><div className="text-zinc-500">Doanh thu</div><div className="font-bold text-zinc-900">{totals.revenue.toLocaleString()} ₫</div></div>
@@ -509,7 +562,7 @@ export function Orders() {
         {selectedOrder && (
           <div className="flex flex-col h-full">
             <div className="space-y-6 flex-1">
-              <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200">
+              <div className="bg-zinc-50 rounded-[var(--radius-card)] p-4 border border-zinc-200">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-zinc-500 block mb-1">Khách hàng:</span>
@@ -537,9 +590,9 @@ export function Orders() {
                   <PackageSearch className="w-5 h-5 text-zinc-400" />
                   Danh sách sản phẩm
                 </h4>
-                <div className="space-y-3 bg-white border border-zinc-200 rounded-xl p-1">
+                <div className="space-y-3 bg-white border border-zinc-200 rounded-[var(--radius-card)] p-1">
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-start text-sm p-3 hover:bg-zinc-50 rounded-lg">
+                    <div key={item.id} className="flex justify-between items-start text-sm p-3 hover:bg-zinc-50 rounded-[var(--radius-control)]">
                       <div>
                         <div className="font-bold text-zinc-900">{item.name}</div>
                         <div className="text-zinc-500 mt-1">{item.quantity} {item.unit} x <span className="font-medium text-zinc-700">{item.price.toLocaleString()}</span></div>
@@ -550,7 +603,7 @@ export function Orders() {
                 </div>
               </div>
 
-              <div className="bg-zinc-900 text-white rounded-xl p-5 space-y-3">
+              <div className="bg-zinc-900 text-white rounded-[var(--radius-card)] p-5 space-y-3">
                 <div className="flex justify-between text-zinc-400 text-sm">
                   <span>Tổng tiền hàng:</span>
                   <span className="font-medium text-white">{selectedOrder.total.toLocaleString()} ₫</span>

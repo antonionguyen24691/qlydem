@@ -65,7 +65,7 @@ export function Bill() {
             <button
               type="button"
               onClick={() => navigate("/pos")}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -96,18 +96,18 @@ export function Bill() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar">
-        <div className="mx-auto max-w-5xl rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="mx-auto max-w-5xl rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 p-5 sm:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="text-lg font-black uppercase text-zinc-900">Phiếu xuất bán hàng</div>
                 <div className="mt-1 text-sm text-zinc-500">Ngày {new Date(order.date).toLocaleDateString("vi-VN")}</div>
               </div>
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm">
+              <div className="rounded-[var(--radius-control)] border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm">
                 <div><span className="text-zinc-500">Số phiếu:</span> <span className="font-bold text-zinc-900">{order.id}</span></div>
               </div>
             </div>
-            <div className="mt-6 grid gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-[120px_1fr]">
+            <div className="mt-6 grid gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-[120px_1fr]">
               <div className="font-bold text-zinc-500">Bên mua:</div>
               <div className="font-black uppercase text-zinc-900">{order.customerName}</div>
             </div>
@@ -146,13 +146,13 @@ export function Bill() {
           <div className="grid gap-6 border-t border-zinc-200 p-5 sm:p-8 lg:grid-cols-[1fr_360px]">
             <div className="grid grid-cols-3 gap-4 text-center">
               {["Kế toán/Bên giao", "Người giao hàng", "Bên nhận hàng"].map((label) => (
-                <div key={label} className="min-h-[140px] rounded-xl border border-dashed border-zinc-300 p-3">
+                <div key={label} className="min-h-[140px] rounded-[var(--radius-card)] border border-dashed border-zinc-300 p-3">
                   <div className="font-bold text-zinc-900">{label}</div>
                   <div className="mt-1 text-xs text-zinc-500">Ký, ghi rõ họ tên</div>
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-4">
               <div className="flex justify-between py-2"><span>Tạm tính</span><span className="font-semibold">{money(subtotal)}</span></div>
               <div className="flex justify-between border-t border-zinc-200 py-2"><span>Chiết khấu</span><span className="font-semibold text-red-600">-{money(discount)}</span></div>
               <div className="flex justify-between py-2"><span>Tổng cộng</span><span className="font-black">{money(order.total)}</span></div>

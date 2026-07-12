@@ -62,35 +62,35 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-        <Link to="/expenses?tab=REPORT" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Doanh thu hôm nay" value={money(todayRevenue)} icon={<DollarSign className="h-5 w-5" />} delta={revenueDelta} /></Link>
-        <Link to="/orders" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Đơn hàng hôm nay" value={String(todayOrders.length)} icon={<TrendingUp className="h-5 w-5" />} sub={`${yesterdayOrders.length} đơn hôm qua`} /></Link>
-        <Link to="/inventory?filter=LOW" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Sản phẩm hết kho" value={String(lowStock.length)} icon={<Package className="h-5 w-5" />} warning="Cần nhập/kiểm kho" /></Link>
-        <Link to="/finance#cong-no" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Khách hàng nợ" value={String(debtCustomers.length)} icon={<Users className="h-5 w-5" />} sub={`Tổng nợ: ${money(totalDebt)}`} /></Link>
+        <Link to="/expenses?tab=REPORT" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Doanh thu hôm nay" value={money(todayRevenue)} icon={<DollarSign className="h-5 w-5" />} delta={revenueDelta} /></Link>
+        <Link to="/orders" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Đơn hàng hôm nay" value={String(todayOrders.length)} icon={<TrendingUp className="h-5 w-5" />} sub={`${yesterdayOrders.length} đơn hôm qua`} /></Link>
+        <Link to="/inventory?filter=LOW" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Sản phẩm hết kho" value={String(lowStock.length)} icon={<Package className="h-5 w-5" />} warning="Cần nhập/kiểm kho" /></Link>
+        <Link to="/finance#cong-no" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Khách hàng nợ" value={String(debtCustomers.length)} icon={<Users className="h-5 w-5" />} sub={`Tổng nợ: ${money(totalDebt)}`} /></Link>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-red-100 sm:p-4">
+      <div className="mt-4 rounded-[var(--radius-card)] bg-white p-3 shadow-sm ring-1 ring-red-100 sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-base font-bold text-zinc-900">Cảnh báo công nợ</h2>
             <p className="text-sm text-zinc-500">{debtCustomers.length} khách đang nợ, tổng {money(totalDebt)}</p>
           </div>
-          <Link to="/finance" className="inline-flex w-full items-center justify-center rounded-lg border border-red-200 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 lg:w-auto">
+          <Link to="/finance" className="inline-flex w-full items-center justify-center rounded-[var(--radius-control)] border border-red-200 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 lg:w-auto">
             Xem sổ công nợ
           </Link>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {topDebtCustomers.map((customer) => (
-            <div key={customer.id} className="min-w-0 rounded-lg bg-red-50 px-3 py-2 ring-1 ring-red-100">
+            <div key={customer.id} className="min-w-0 rounded-[var(--radius-control)] bg-red-50 px-3 py-2 ring-1 ring-red-100">
               <div className="truncate text-sm font-bold text-red-800">{customer.name}</div>
               <div className="text-xs font-semibold text-red-600">{money(customer.oldDebt)}</div>
             </div>
           ))}
-          {topDebtCustomers.length === 0 && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">Chưa có công nợ cần cảnh báo.</div>}
+          {topDebtCustomers.length === 0 && <div className="rounded-[var(--radius-control)] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">Chưa có công nợ cần cảnh báo.</div>}
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-7">
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:p-6 lg:col-span-4">
+        <div className="rounded-[var(--radius-card)] bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:p-6 lg:col-span-4">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-base font-semibold text-zinc-900">Doanh thu 7 ngày</h2>
             <span className="text-xs text-zinc-500">{orders.length} đơn hàng</span>
@@ -112,11 +112,11 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:p-6 lg:col-span-3">
+        <div className="rounded-[var(--radius-card)] bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:p-6 lg:col-span-3">
           <h2 className="mb-5 text-base font-semibold text-zinc-900">Sản phẩm bán chạy</h2>
           <div className="space-y-3">
             {topProducts.map((product, index) => (
-              <div key={`${product.name}-${index}`} className="rounded-lg border p-3">
+              <div key={`${product.name}-${index}`} className="rounded-[var(--radius-control)] border p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="line-clamp-2 break-words font-medium text-zinc-900">{product.name}</div>
@@ -126,7 +126,7 @@ export function Dashboard() {
                 </div>
               </div>
             ))}
-            {topProducts.length === 0 && <div className="rounded-lg border border-dashed p-6 text-center text-sm text-zinc-500">Chưa có dữ liệu bán hàng.</div>}
+            {topProducts.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed p-6 text-center text-sm text-zinc-500">Chưa có dữ liệu bán hàng.</div>}
           </div>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function Dashboard() {
 function StatCard({ title, value, icon, delta, sub, warning }: { title: string; value: string; icon: ReactNode; delta?: number; sub?: string; warning?: string }) {
   const isUp = (delta ?? 0) >= 0;
   return (
-    <div className="flex min-h-[104px] flex-col justify-between rounded-2xl bg-white p-3 shadow-sm ring-1 ring-zinc-200/70 sm:min-h-[140px] sm:p-5">
+    <div className="flex min-h-[104px] flex-col justify-between rounded-[var(--radius-card)] bg-white p-3 shadow-sm ring-1 ring-zinc-200/70 sm:min-h-[140px] sm:p-5">
       <div className="flex items-center justify-between">
         <p className="line-clamp-2 text-xs font-semibold leading-tight text-zinc-500 sm:text-sm">{title}</p>
         <div className="text-zinc-400">{icon}</div>

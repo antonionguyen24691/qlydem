@@ -675,7 +675,7 @@ export function Settings() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
-        <div className="flex gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2 shadow-sm">
+        <div className="flex gap-2 overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200 bg-white p-2 shadow-sm">
           {[
             ["general", "Cấu hình chung"],
             ["payment", "Thanh toán QR"],
@@ -689,7 +689,7 @@ export function Settings() {
               key={key}
               type="button"
               onClick={() => setActiveSection(key as typeof activeSection)}
-              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              className={`whitespace-nowrap rounded-[var(--radius-control)] px-4 py-2 text-sm font-bold transition-colors ${
                 activeSection === key ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
               }`}
             >
@@ -699,9 +699,9 @@ export function Settings() {
         </div>
 
         {/* Nhận diện App */}
-        {activeSection === "general" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "general" && <section className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
-            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+            <div className="bg-emerald-100 p-2 rounded-[var(--radius-control)] text-emerald-700">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
@@ -711,8 +711,8 @@ export function Settings() {
           </div>
           
           <div className="p-4 sm:p-6">
-            {brandingError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{brandingError}</div>}
-            {brandingMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{brandingMessage}</div>}
+            {brandingError && <div className="mb-4 rounded-[var(--radius-control)] bg-red-50 border border-red-100 p-3 text-sm text-red-700">{brandingError}</div>}
+            {brandingMessage && <div className="mb-4 rounded-[var(--radius-control)] bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{brandingMessage}</div>}
 
             <form onSubmit={saveBranding} className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -738,12 +738,12 @@ export function Settings() {
                 </div>
                 
                 <div className="sm:col-span-2 pt-4 flex flex-wrap gap-3">
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
                     <ImageIcon className="h-4 w-4 text-zinc-400" />
                     Upload Logo
                     <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("logoUrl", event)} />
                   </label>
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
                     <ImageIcon className="h-4 w-4 text-zinc-400" />
                     Upload Favicon
                     <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadBrandImage("faviconUrl", event)} />
@@ -758,10 +758,10 @@ export function Settings() {
               </div>
 
               {/* Preview Box */}
-              <div className="bg-zinc-50 rounded-xl p-5 border border-zinc-200 h-fit">
+              <div className="bg-zinc-50 rounded-[var(--radius-card)] p-5 border border-zinc-200 h-fit">
                 <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Xem trước</div>
-                <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-zinc-100">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-emerald-600 text-white shadow-inner">
+                <div className="flex items-center gap-4 bg-white p-4 rounded-[var(--radius-card)] shadow-sm border border-zinc-100">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-card)] bg-emerald-600 text-white shadow-inner">
                     {brandForm.logoUrl ? <img src={brandForm.logoUrl} alt={brandForm.appName} className="h-full w-full object-cover" /> : <Building2 className="h-7 w-7" />}
                   </div>
                   <div className="min-w-0">
@@ -775,9 +775,9 @@ export function Settings() {
         </section>}
 
         {activeSection === "payment" && (
-          <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+          <section className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
-              <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+              <div className="bg-emerald-100 p-2 rounded-[var(--radius-control)] text-emerald-700">
                 <CreditCard className="h-5 w-5" />
               </div>
               <div>
@@ -786,10 +786,10 @@ export function Settings() {
               </div>
             </div>
             <div className="p-4 sm:p-6">
-              {paymentError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{paymentError}</div>}
-              {paymentMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{paymentMessage}</div>}
+              {paymentError && <div className="mb-4 rounded-[var(--radius-control)] bg-red-50 border border-red-100 p-3 text-sm text-red-700">{paymentError}</div>}
+              {paymentMessage && <div className="mb-4 rounded-[var(--radius-control)] bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{paymentMessage}</div>}
               <form onSubmit={savePayment} className="grid gap-4 sm:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 sm:col-span-2">
+                <label className="flex items-center gap-3 rounded-[var(--radius-control)] border border-zinc-200 bg-zinc-50 p-3 sm:col-span-2">
                   <input
                     type="checkbox"
                     checked={paymentForm.enabled}
@@ -803,7 +803,7 @@ export function Settings() {
                   <select
                     value={paymentForm.bankBin}
                     onChange={(event) => setPaymentForm({ ...paymentForm, bankBin: event.target.value })}
-                    className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    className="flex h-11 sm:h-10 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   >
                     <option value="">-- Chọn ngân hàng --</option>
                     {vietQrBanks.map((bank) => (
@@ -837,9 +837,9 @@ export function Settings() {
         )}
 
         {activeSection === "units" && (
-          <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+          <section className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
-              <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+              <div className="bg-emerald-100 p-2 rounded-[var(--radius-control)] text-emerald-700">
                 <Database className="h-5 w-5" />
               </div>
               <div>
@@ -848,10 +848,10 @@ export function Settings() {
               </div>
             </div>
             <div className="p-4 sm:p-6">
-              {unitError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{unitError}</div>}
-              {unitMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{unitMessage}</div>}
+              {unitError && <div className="mb-4 rounded-[var(--radius-control)] bg-red-50 border border-red-100 p-3 text-sm text-red-700">{unitError}</div>}
+              {unitMessage && <div className="mb-4 rounded-[var(--radius-control)] bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700">{unitMessage}</div>}
               <form onSubmit={saveUnits} className="space-y-4">
-                <div className="overflow-x-auto rounded-xl border border-zinc-200">
+                <div className="overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200">
                   <table className="min-w-[760px] w-full text-sm">
                     <thead className="bg-zinc-50 text-xs uppercase tracking-wider text-zinc-500">
                       <tr>
@@ -901,7 +901,7 @@ export function Settings() {
                                   )
                                 }))
                               }
-                              className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                              className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
                             >
                               <option value="">Chính nó</option>
                               {unitForm.units
@@ -935,7 +935,7 @@ export function Settings() {
                                   units: current.units.filter((_, itemIndex) => itemIndex !== index)
                                 }))
                               }
-                              className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                              className="rounded-[var(--radius-control)] p-2 text-red-600 hover:bg-red-50"
                               title="Xóa đơn vị"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -970,9 +970,9 @@ export function Settings() {
         )}
 
         {/* Quản lý Nhân viên */}
-        {activeSection === "users" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "users" && <section className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
-            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+            <div className="bg-emerald-100 p-2 rounded-[var(--radius-control)] text-emerald-700">
               <Users className="h-5 w-5" />
             </div>
             <div>
@@ -982,9 +982,9 @@ export function Settings() {
           </div>
 
           <div className="p-4 sm:p-6">
-            {userError && <div className="mb-4 rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">{userError}</div>}
+            {userError && <div className="mb-4 rounded-[var(--radius-control)] bg-red-50 border border-red-100 p-3 text-sm text-red-700">{userError}</div>}
 
-            <form onSubmit={saveUser} className="bg-zinc-50 rounded-xl p-4 sm:p-5 border border-zinc-200 mb-6">
+            <form onSubmit={saveUser} className="bg-zinc-50 rounded-[var(--radius-card)] p-4 sm:p-5 border border-zinc-200 mb-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-zinc-700">Email (*)</label>
@@ -996,13 +996,13 @@ export function Settings() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-zinc-700">Vai trò</label>
-                  <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                  <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="flex h-11 sm:h-10 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
                     {roles.map((r) => <option key={r.role} value={r.role}>{r.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-zinc-700">Trạng thái</label>
-                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="flex h-11 sm:h-10 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600">
                     <option value="ACTIVE">Đang hoạt động</option>
                     <option value="INACTIVE">Khóa</option>
                   </select>
@@ -1023,7 +1023,7 @@ export function Settings() {
             </form>
 
             {/* Desktop Table */}
-            <div className="hidden sm:block overflow-x-auto rounded-xl border border-zinc-200 shadow-sm">
+            <div className="hidden sm:block overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
               <table className="min-w-full divide-y divide-zinc-200">
                 <thead className="bg-zinc-50">
                   <tr>
@@ -1061,7 +1061,7 @@ export function Settings() {
             {/* Mobile Cards */}
             <div className="sm:hidden space-y-3">
               {users.map(user => (
-                <div key={user.id} className="bg-white border border-zinc-200 p-4 rounded-xl shadow-sm">
+                <div key={user.id} className="bg-white border border-zinc-200 p-4 rounded-[var(--radius-card)] shadow-sm">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="font-bold text-zinc-900">{user.full_name}</div>
@@ -1082,14 +1082,14 @@ export function Settings() {
               ))}
             </div>
 
-            <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+            <div className="mt-8 rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
               <div className="mb-4">
                 <h3 className="text-base font-black text-zinc-900">Ma trận quyền thao tác</h3>
                 <p className="mt-1 text-sm text-zinc-500">Quyền được kiểm tra ở backend. “Của mình” áp dụng cho dữ liệu sale được gán/phát sinh bởi user đó.</p>
               </div>
               <div className="space-y-5">
                 {roles.map((role) => (
-                  <div key={role.role} className="rounded-xl border border-zinc-200 bg-white p-3 sm:p-4">
+                  <div key={role.role} className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 sm:p-4">
                     <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="font-black text-zinc-900">{role.name}</div>
@@ -1101,7 +1101,7 @@ export function Settings() {
                       </Button>
                     </div>
                     {role.role === "ADMIN" ? (
-                      <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">ADMIN luôn có toàn quyền; không thể hạ quyền từ màn này.</div>
+                      <div className="rounded-[var(--radius-control)] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">ADMIN luôn có toàn quyền; không thể hạ quyền từ màn này.</div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="min-w-[650px] w-full text-sm">
@@ -1118,7 +1118,7 @@ export function Settings() {
                                     <select
                                       value={scope}
                                       onChange={(event) => updateRolePermission(role.role, permission.key, event.target.value as PermissionScope)}
-                                      className="h-9 min-w-36 rounded-lg border border-zinc-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600"
+                                      className="h-9 min-w-36 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600"
                                     >
                                       {permissionScopes.map((option) => <option key={option} value={option}>{permissionScopeLabels[option]}</option>)}
                                     </select>
@@ -1139,9 +1139,9 @@ export function Settings() {
         </section>}
 
         {/* Nhập/Xuất Dữ Liệu */}
-        {activeSection === "data" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "data" && <section className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
-            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+            <div className="bg-emerald-100 p-2 rounded-[var(--radius-control)] text-emerald-700">
               <Database className="h-5 w-5" />
             </div>
             <div>
@@ -1151,9 +1151,9 @@ export function Settings() {
           </div>
           
           <div className="p-4 sm:p-6 space-y-4">
-            {syncError && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{syncError}</div>}
-            {syncMessage && <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{syncMessage}</div>}
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex sm:items-center sm:justify-between">
+            {syncError && <div className="rounded-[var(--radius-control)] border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{syncError}</div>}
+            {syncMessage && <div className="rounded-[var(--radius-control)] border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{syncMessage}</div>}
+            <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-zinc-50 p-4 sm:flex sm:items-center sm:justify-between">
               <div>
                 <div className="font-bold text-zinc-900">Đồng bộ Google Sheet thủ công</div>
                 <div className="mt-1 text-sm text-zinc-500">POS và thu tiền sẽ ưu tiên ghi Supabase trước; Sheet chỉ chạy khi admin bấm hoặc theo cron đã cấu hình.</div>
@@ -1167,7 +1167,7 @@ export function Settings() {
               {importTargets.map((target) => {
                 const result = results[target.entity];
                 return (
-                  <div key={target.entity} className="rounded-xl border border-zinc-200 bg-white p-5 hover:border-emerald-300 transition-colors shadow-sm flex flex-col h-full">
+                  <div key={target.entity} className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-5 hover:border-emerald-300 transition-colors shadow-sm flex flex-col h-full">
                     <div className="font-bold text-zinc-900 mb-1 text-base">{target.title}</div>
                     <p className="text-sm text-zinc-500 mb-5 flex-1">{target.description}</p>
 
@@ -1175,13 +1175,13 @@ export function Settings() {
                       <button
                         type="button"
                         onClick={() => downloadTemplate(target.entity)}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-zinc-300 px-4 py-2.5 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
                       >
                         <Download className="h-4 w-4" />
                         Tải mẫu Excel
                       </button>
 
-                      <label className="w-full inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-[0.98]">
+                      <label className="w-full inline-flex cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-[0.98]">
                         <Upload className="h-4 w-4" />
                         {uploading === target.entity ? "Đang tải lên..." : "Upload File"}
                         <input
@@ -1195,7 +1195,7 @@ export function Settings() {
                     </div>
 
                     {result && (
-                      <div className={`mt-4 rounded-lg p-3 text-sm font-medium border ${result.ok ? "bg-emerald-50 text-emerald-800 border-emerald-100" : "bg-red-50 text-red-800 border-red-100"}`}>
+                      <div className={`mt-4 rounded-[var(--radius-control)] p-3 text-sm font-medium border ${result.ok ? "bg-emerald-50 text-emerald-800 border-emerald-100" : "bg-red-50 text-red-800 border-red-100"}`}>
                         {result.error ? (
                           <div>{result.error}</div>
                         ) : (
@@ -1215,10 +1215,10 @@ export function Settings() {
           </div>
         </section>}
 
-        {activeSection === "operations" && <section className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {activeSection === "operations" && <section className="bg-white rounded-[var(--radius-card)] shadow-sm border border-zinc-200 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-50/50 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
+              <div className="bg-emerald-100 p-2 rounded-[var(--radius-control)] text-emerald-700">
                 <Activity className="h-5 w-5" />
               </div>
               <div>
@@ -1239,10 +1239,10 @@ export function Settings() {
           </div>
 
           <div className="p-4 sm:p-6 space-y-5">
-            {operationsError && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{operationsError}</div>}
-            {operationsMessage && <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{operationsMessage}</div>}
+            {operationsError && <div className="rounded-[var(--radius-control)] border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{operationsError}</div>}
+            {operationsMessage && <div className="rounded-[var(--radius-control)] border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">{operationsMessage}</div>}
 
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+            <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-base font-black text-zinc-900">Hình thức nhập/xuất kho</div>
@@ -1265,7 +1265,7 @@ export function Settings() {
 
               <div className="space-y-3">
                 {inventoryOperationForm.operations.map((operation, index) => (
-                  <div key={`${operation.code}-${index}`} className="grid gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3 lg:grid-cols-[160px_1fr_150px_190px_auto]">
+                  <div key={`${operation.code}-${index}`} className="grid gap-3 rounded-[var(--radius-card)] border border-zinc-100 bg-zinc-50 p-3 lg:grid-cols-[160px_1fr_150px_190px_auto]">
                     <Input
                       value={operation.code}
                       onChange={(event) => setInventoryOperationForm((current) => ({
@@ -1285,7 +1285,7 @@ export function Settings() {
                       onChange={(event) => setInventoryOperationForm((current) => ({
                         operations: current.operations.map((item, itemIndex) => itemIndex === index ? { ...item, direction: event.target.value as "IN" | "OUT" | "COUNT" } : item)
                       }))}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                      className="h-11 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
                     >
                       <option value="IN">Nhập kho</option>
                       <option value="OUT">Xuất kho</option>
@@ -1296,7 +1296,7 @@ export function Settings() {
                       onChange={(event) => setInventoryOperationForm((current) => ({
                         operations: current.operations.map((item, itemIndex) => itemIndex === index ? { ...item, costingMethod: event.target.value } : item)
                       }))}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
+                      className="h-11 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm"
                     >
                       <option value="WEIGHTED_AVERAGE">Bình quân gia quyền</option>
                       <option value="FIFO">FIFO</option>
@@ -1325,7 +1325,7 @@ export function Settings() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+              <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
                 <div className="text-sm font-bold text-zinc-500">Database readiness</div>
                 <div className={`mt-2 text-2xl font-black ${readiness?.ready ? "text-emerald-600" : "text-red-600"}`}>
                   {!readiness ? "Chưa kiểm tra" : readiness.ready ? "Sẵn sàng" : "Thiếu bảng"}
@@ -1334,12 +1334,12 @@ export function Settings() {
                   {readiness ? `${readiness.tables.filter((item) => item.ok).length}/${readiness.tables.length} bảng OK` : "Bấm Kiểm tra để đối chiếu production schema."}
                 </div>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+              <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
                 <div className="text-sm font-bold text-zinc-500">Audit gần nhất</div>
                 <div className="mt-2 text-2xl font-black text-zinc-900">{auditLogs.length}</div>
                 <div className="mt-1 text-sm text-zinc-500">Dùng để truy vết thao tác quan trọng.</div>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+              <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
                 <div className="text-sm font-bold text-zinc-500">NCC / Đơn nhập</div>
                 <div className="mt-2 text-2xl font-black text-zinc-900">{supplierRows.length} / {purchaseRows.length}</div>
                 <div className="mt-1 text-sm text-zinc-500">Dữ liệu đã có bảng, chờ màn quản lý sâu.</div>
@@ -1347,7 +1347,7 @@ export function Settings() {
             </div>
 
             {readiness && (
-              <div className="rounded-xl border border-zinc-200 overflow-hidden">
+              <div className="rounded-[var(--radius-card)] border border-zinc-200 overflow-hidden">
                 <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 font-bold text-zinc-900">Bảng production</div>
                 <div className="max-h-80 overflow-auto custom-scrollbar">
                   <table className="min-w-[720px] w-full text-sm">
@@ -1386,7 +1386,7 @@ export function Settings() {
               <MiniOpsList title="Đơn nhập" rows={purchaseRows} primaryKey="code" secondaryKey="status" dateKey="purchase_date" />
             </div>
 
-            <div className="rounded-xl border border-red-200 bg-red-50/60 p-4 sm:p-5">
+            <div className="rounded-[var(--radius-card)] border border-red-200 bg-red-50/60 p-4 sm:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="text-base font-black text-red-700">Clear lịch sử</div>
@@ -1404,7 +1404,7 @@ export function Settings() {
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {historyClearOptions.map((option) => (
-                  <label key={option.key} className="flex cursor-pointer gap-3 rounded-xl border border-red-100 bg-white p-3 shadow-sm">
+                  <label key={option.key} className="flex cursor-pointer gap-3 rounded-[var(--radius-card)] border border-red-100 bg-white p-3 shadow-sm">
                     <input
                       type="checkbox"
                       checked={clearHistoryGroups.includes(option.key)}
@@ -1437,7 +1437,7 @@ export function Settings() {
               </div>
 
               {clearHistoryResult && (
-                <div className="mt-4 rounded-lg border border-red-100 bg-white p-3 text-sm">
+                <div className="mt-4 rounded-[var(--radius-control)] border border-red-100 bg-white p-3 text-sm">
                   <div className="font-bold text-zinc-900">Kết quả xóa</div>
                   <div className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
                     {Object.entries(clearHistoryResult).map(([table, count]) => (
@@ -1474,7 +1474,7 @@ function MiniOpsList({
   dateKey: string;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+    <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white overflow-hidden">
       <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3 font-bold text-zinc-900">{title}</div>
       <div className="divide-y divide-zinc-100">
         {rows.map((row, index) => (

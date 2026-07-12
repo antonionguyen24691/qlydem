@@ -4,15 +4,18 @@ import { cn } from "../../lib/utils"
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "outline" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
+  /** "chip": luôn bo tròn hoàn toàn (filter chip/tag/badge-nút) ở mọi theme. */
+  shape?: "default" | "chip";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", shape = "default", ...props }, ref) => {
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+          "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+          shape === "chip" ? "rounded-full" : "rounded-[var(--radius-control)]",
           {
             "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm": variant === "primary",
             "border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-900": variant === "outline",

@@ -530,7 +530,7 @@ export function Inventory() {
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 custom-scrollbar sm:p-6 md:overflow-hidden">
         {isCountMode ? (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm font-medium text-amber-800 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div className="mb-3 rounded-[var(--radius-card)] border border-amber-100 bg-amber-50 p-3 text-sm font-medium text-amber-800 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
               <div>
                 {canAdjust ? "Admin/Kho lưu kiểm kê sẽ cập nhật tồn kho ngay." : "Kế toán chỉnh kiểm kê sẽ gửi lệnh chờ admin duyệt."}
               </div>
@@ -558,7 +558,7 @@ export function Inventory() {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm">
               <div className="h-full overflow-auto custom-scrollbar">
                 <table className="min-w-[860px] w-full table-fixed divide-y divide-zinc-200 text-sm">
                   <colgroup>
@@ -623,7 +623,7 @@ export function Inventory() {
           </div>
         ) : (
         <>
-        <div className="mb-3 max-w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:mb-4 sm:p-3">
+        <div className="mb-3 max-w-full rounded-[var(--radius-card)] border border-zinc-200 bg-white p-2 shadow-sm sm:mb-4 sm:p-3">
           <div className="grid min-w-0 gap-2 xl:grid-cols-[0.9fr_1.1fr_1.4fr] xl:gap-3">
             <div className="grid min-w-0 grid-cols-4 gap-2">
               <CompactStat label="Giá trị tồn" value={`${totalValue.toLocaleString()} ₫`} tone="green" />
@@ -632,7 +632,7 @@ export function Inventory() {
               <CompactStat label="Mã hàng" value={String(products.length)} tone="dark" />
             </div>
 
-            <div className={`${isInventorySummaryOpen ? "block" : "hidden"} min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3 xl:block`}>
+            <div className={`${isInventorySummaryOpen ? "block" : "hidden"} min-w-0 rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 p-2 sm:p-3 xl:block`}>
               <div className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Tồn theo danh mục</div>
               <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 hide-scrollbar">
                 {inventoryByCategory.map(([category, summary]) => (
@@ -645,7 +645,7 @@ export function Inventory() {
               </div>
             </div>
 
-            <div className={`${isInventorySummaryOpen ? "block" : "hidden"} min-w-0 rounded-lg border border-red-100 bg-red-50 p-2 sm:p-3 xl:block`}>
+            <div className={`${isInventorySummaryOpen ? "block" : "hidden"} min-w-0 rounded-[var(--radius-control)] border border-red-100 bg-red-50 p-2 sm:p-3 xl:block`}>
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-xs font-bold uppercase tracking-wider text-red-700">Lưu ý tồn kho</div>
                 <div className="ml-2 shrink-0 text-xs font-semibold text-red-600">{lowStock.length} hết/âm, {nearLowStock.length} gần hết</div>
@@ -680,7 +680,7 @@ export function Inventory() {
         <div className="mb-3 flex items-center gap-2 sm:mb-4 sm:justify-between">
           <h2 className="font-bold text-zinc-900 text-lg hidden sm:block">Chi tiết tồn kho</h2>
           <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
-          <select value={stockStatusFilter} onChange={(event) => { setStockStatusFilter(event.target.value as "ALL" | "LOW" | "AVAILABLE"); setStockPage(1); }} className="h-11 w-[142px] shrink-0 rounded-lg border border-zinc-200 bg-white px-2 text-sm sm:h-10 sm:w-auto sm:px-3"><option value="ALL">Tất cả tồn kho</option><option value="LOW">Cần nhập thêm</option><option value="AVAILABLE">Đủ tồn</option></select>
+          <select value={stockStatusFilter} onChange={(event) => { setStockStatusFilter(event.target.value as "ALL" | "LOW" | "AVAILABLE"); setStockPage(1); }} className="h-11 w-[142px] shrink-0 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-sm sm:h-10 sm:w-auto sm:px-3"><option value="ALL">Tất cả tồn kho</option><option value="LOW">Cần nhập thêm</option><option value="AVAILABLE">Đủ tồn</option></select>
           <div className="relative min-w-0 flex-1 sm:w-80 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <Input 
@@ -694,7 +694,7 @@ export function Inventory() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:flex flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="hidden md:flex flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm">
           <div className="overflow-auto flex-1 custom-scrollbar">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="sticky top-0 bg-zinc-50 z-10">
@@ -744,7 +744,7 @@ export function Inventory() {
         {/* Mobile Card View */}
         <div className="space-y-2 md:hidden">
           {pagedProducts.map((product) => (
-            <div key={product.id} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-sm">
+            <div key={product.id} className="rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 shadow-sm">
               <div className="flex min-w-0 items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <button
@@ -788,15 +788,15 @@ export function Inventory() {
             </div>
           )}
         </div>
-        {filteredProducts.length > 0 && <div className="mt-3 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="text-zinc-500">{filteredProducts.length} mã hàng · Trang {stockPage}/{stockTotalPages}</span><div className="flex items-center gap-2"><select value={stockPageSize} onChange={(event) => { setStockPageSize(Number(event.target.value)); setStockPage(1); }} className="h-9 rounded-md border border-zinc-200 bg-white px-2"><option value={10}>10 / trang</option><option value={20}>20 / trang</option><option value={50}>50 / trang</option></select><Button size="sm" variant="outline" disabled={stockPage <= 1} onClick={() => setStockPage((page) => page - 1)}>Trước</Button><Button size="sm" variant="outline" disabled={stockPage >= stockTotalPages} onClick={() => setStockPage((page) => page + 1)}>Sau</Button></div></div>}
-        <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        {filteredProducts.length > 0 && <div className="mt-3 flex flex-col gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="text-zinc-500">{filteredProducts.length} mã hàng · Trang {stockPage}/{stockTotalPages}</span><div className="flex items-center gap-2"><select value={stockPageSize} onChange={(event) => { setStockPageSize(Number(event.target.value)); setStockPage(1); }} className="h-9 rounded-md border border-zinc-200 bg-white px-2"><option value={10}>10 / trang</option><option value={20}>20 / trang</option><option value={50}>50 / trang</option></select><Button size="sm" variant="outline" disabled={stockPage <= 1} onClick={() => setStockPage((page) => page - 1)}>Trước</Button><Button size="sm" variant="outline" disabled={stockPage >= stockTotalPages} onClick={() => setStockPage((page) => page + 1)}>Sau</Button></div></div>}
+        <div className="mt-3 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-zinc-900">Biến động kho gần đây</h2><span className="text-xs font-semibold text-zinc-500">Kho chính</span></div>
           <div className="space-y-2">
             {transactions.slice(0, 8).map((transaction) => {
               const product = products.find((item) => item.id === transaction.product_id);
-              return <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm"><div className="min-w-0"><div className="truncate font-bold text-zinc-900">{product?.code ?? "Hàng hóa"} · {product?.name ?? transaction.product_id}</div><div className="truncate text-xs text-zinc-500">{transaction.source_type} · {new Date(transaction.created_at).toLocaleString("vi-VN")}</div></div><div className="shrink-0 text-right"><div className={`font-black tabular-nums ${Number(transaction.quantity_change) < 0 ? "text-red-600" : "text-emerald-700"}`}>{Number(transaction.quantity_change) > 0 ? "+" : ""}{Number(transaction.quantity_change).toLocaleString()}</div><div className="text-xs text-zinc-500">Tồn {Number(transaction.stock_after).toLocaleString()}</div></div></div>;
+              return <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm"><div className="min-w-0"><div className="truncate font-bold text-zinc-900">{product?.code ?? "Hàng hóa"} · {product?.name ?? transaction.product_id}</div><div className="truncate text-xs text-zinc-500">{transaction.source_type} · {new Date(transaction.created_at).toLocaleString("vi-VN")}</div></div><div className="shrink-0 text-right"><div className={`font-black tabular-nums ${Number(transaction.quantity_change) < 0 ? "text-red-600" : "text-emerald-700"}`}>{Number(transaction.quantity_change) > 0 ? "+" : ""}{Number(transaction.quantity_change).toLocaleString()}</div><div className="text-xs text-zinc-500">Tồn {Number(transaction.stock_after).toLocaleString()}</div></div></div>;
             })}
-            {transactions.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có biến động kho để hiển thị.</div>}
+            {transactions.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có biến động kho để hiển thị.</div>}
           </div>
         </div>
         </>
@@ -807,14 +807,14 @@ export function Inventory() {
         <div className="flex flex-col h-full">
           {mode === "COUNT" ? (
             <div className="flex min-h-0 flex-1 flex-col gap-4">
-              <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="rounded-[var(--radius-control)] border border-amber-100 bg-amber-50 p-3 text-sm text-amber-800">
                 {canAdjust ? "Admin/Kho lưu kiểm kê sẽ cập nhật tồn kho ngay." : "Kế toán chỉnh kiểm kê sẽ gửi lệnh chờ admin duyệt."}
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-zinc-700">Ghi chú chung</label>
                 <Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="VD: Kiểm kê cuối ngày..." />
               </div>
-              <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-zinc-200 bg-white custom-scrollbar">
+              <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-zinc-200 bg-white custom-scrollbar">
                 <table className="min-w-[760px] w-full table-fixed divide-y divide-zinc-200 text-sm">
                   <colgroup>
                     <col className="w-[110px]" />
@@ -867,7 +867,7 @@ export function Inventory() {
           ) : (
           <div className="space-y-5 flex-1">
             {mode === "IN" && (
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+              <div className="rounded-[var(--radius-card)] border border-emerald-100 bg-emerald-50 p-3">
                 <label className="flex items-center gap-2 text-sm font-bold text-emerald-800">
                   <input
                     type="checkbox"
@@ -893,7 +893,7 @@ export function Inventory() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-1.5">Đơn vị tính</label>
-                  <select value={newProduct.unit} onChange={(event) => setNewProduct((current) => ({ ...current, unit: event.target.value }))} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm">
+                  <select value={newProduct.unit} onChange={(event) => setNewProduct((current) => ({ ...current, unit: event.target.value }))} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] outline-none focus:ring-2 focus:ring-emerald-600 sm:h-10 sm:text-sm">
                     {unitOptions.map((unit) => <option key={unit.code} value={unit.code}>{unit.name} ({unit.code})</option>)}
                   </select>
                 </div>
@@ -932,7 +932,7 @@ export function Inventory() {
             )}
             
             {selectedProduct && (
-              <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 flex items-center justify-between">
+              <div className="rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 p-4 flex items-center justify-between">
                 <span className="text-sm text-zinc-500">Tồn hiện tại:</span>
                 <div className="text-lg font-bold text-zinc-900">
                   {selectedProduct.stock.toLocaleString()} <span className="text-sm font-normal text-zinc-500 ml-1">{selectedProduct.unit}</span>
@@ -946,7 +946,7 @@ export function Inventory() {
                 <select
                   value={operationType}
                   onChange={(event) => setOperationType(event.target.value)}
-                  className="flex h-11 sm:h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="flex h-11 sm:h-10 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 >
                   {inventoryOperations
                     .filter((item) => mode === "IN" ? item.direction === "IN" : item.direction === "OUT")
@@ -1001,7 +1001,7 @@ export function Inventory() {
                     <Input type="number" value={paidAmount || ""} onChange={(event) => setPaidAmount(Number(event.target.value) || 0)} placeholder="0" />
                   </div>
                 </div>
-                <div className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-3 sm:grid-cols-3">
+                <div className="grid gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 sm:grid-cols-3">
                   <div>
                     <div className="text-xs font-bold uppercase text-zinc-500">Tiền hàng</div>
                     <div className="mt-1 font-black text-zinc-900">{(quantity * unitCost).toLocaleString()} đ</div>
@@ -1023,7 +1023,7 @@ export function Inventory() {
                 value={note} 
                 onChange={(event) => setNote(event.target.value)} 
                 rows={3} 
-                className="flex w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none" 
+                className="flex w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none" 
                 placeholder={mode === "REQUEST_EXPORT" ? "Lý do đề nghị xuất kho..." : "Ghi chú nghiệp vụ kho..."} 
               />
             </div>
@@ -1045,7 +1045,7 @@ export function Inventory() {
       <Dialog isOpen={isApprovalOpen} onClose={() => setIsApprovalOpen(false)} title="Duyệt lệnh kiểm kê" className="sm:max-w-4xl">
         <div className="space-y-4">
           {approvalRequests.map((request) => (
-            <div key={request.id} className="rounded-xl border border-zinc-200 bg-white p-4">
+            <div key={request.id} className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="font-bold text-zinc-900">Lệnh {request.id.slice(0, 8)}</div>
@@ -1053,7 +1053,7 @@ export function Inventory() {
                 </div>
                 <span className={`rounded-full px-2 py-1 text-xs font-bold ${request.status === "PENDING" ? "bg-amber-50 text-amber-700" : request.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{request.status}</span>
               </div>
-              <div className="max-h-72 overflow-auto rounded-lg border border-zinc-100 custom-scrollbar">
+              <div className="max-h-72 overflow-auto rounded-[var(--radius-control)] border border-zinc-100 custom-scrollbar">
                 <table className="min-w-[680px] w-full text-sm">
                   <thead className="bg-zinc-50">
                     <tr>
@@ -1085,7 +1085,7 @@ export function Inventory() {
               )}
             </div>
           ))}
-          {approvalRequests.length === 0 && <div className="rounded-lg border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có lệnh kiểm kê nào.</div>}
+          {approvalRequests.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 py-10 text-center text-zinc-500">Chưa có lệnh kiểm kê nào.</div>}
         </div>
       </Dialog>
     </div>
@@ -1097,7 +1097,7 @@ function CompactStat({ label, value, tone }: { label: string; value: string; ton
   const isRed = tone === "red";
   
   return (
-    <div className="min-w-0 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:p-3">
+    <div className="min-w-0 rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 p-2 sm:p-3">
       <div className="mb-1 truncate text-[11px] font-semibold text-zinc-500 sm:text-xs">{label}</div>
       <div className={`truncate text-lg font-bold ${
         isGreen ? "text-emerald-600" : isRed ? "text-red-600" : "text-zinc-900"

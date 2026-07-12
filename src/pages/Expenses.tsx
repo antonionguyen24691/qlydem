@@ -270,11 +270,11 @@ export function Expenses() {
     <div className="flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto hide-scrollbar">
-          <div className="flex shrink-0 rounded-lg bg-zinc-100 p-1 text-sm font-bold">
+          <div className="flex shrink-0 rounded-[var(--radius-control)] bg-zinc-100 p-1 text-sm font-bold">
             <Link to="/finance" className="rounded-md px-3 py-1.5 text-zinc-600 hover:text-zinc-900">Tổng quan & công nợ</Link>
             <span className="rounded-md bg-white px-3 py-1.5 text-emerald-700 shadow-sm">Chi phí & kết quả</span>
           </div>
-          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm">
+          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm">
             <option value="MONTH">Tháng này</option>
             <option value="LAST_MONTH">Tháng trước</option>
             <option value="30_DAYS">30 ngày gần đây</option>
@@ -322,10 +322,10 @@ export function Expenses() {
             </div>
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-              <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm">
                 <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="font-bold text-zinc-900">Danh sách chi phí ({periodLabel})</h2>
-                  <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm">
+                  <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-9 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm">
                     <option value="all">Tất cả loại chi phí</option>
                     {expenseByCategory.map(([category]) => (
                       <option key={category} value={category}>{category}</option>
@@ -358,11 +358,11 @@ export function Expenses() {
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
                   <h2 className="mb-3 font-bold text-zinc-900">Chi phí theo loại</h2>
                   <div className="space-y-2">
                     {expenseByCategory.map(([category, summary]) => (
-                      <div key={category} className="rounded-lg bg-zinc-50 px-3 py-2">
+                      <div key={category} className="rounded-[var(--radius-control)] bg-zinc-50 px-3 py-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-semibold text-zinc-900">{category}</span>
                           <span className="font-black tabular-nums text-red-600">{summary.total.toLocaleString()} ₫</span>
@@ -378,7 +378,7 @@ export function Expenses() {
                 </div>
 
                 {canManageCategories && (
-                  <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
                     <button type="button" className="flex w-full items-center justify-between font-bold text-zinc-900" onClick={() => setIsCategoryManagerOpen((current) => !current)}>
                       Loại chi phí
                       <span className="text-sm font-semibold text-emerald-700">{isCategoryManagerOpen ? "Thu gọn" : "Quản lý"}</span>
@@ -386,7 +386,7 @@ export function Expenses() {
                     {isCategoryManagerOpen && (
                       <div className="mt-3 space-y-2">
                         {categories.map((category) => (
-                          <div key={category.code} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm">
+                          <div key={category.code} className="flex items-center justify-between rounded-[var(--radius-control)] bg-zinc-50 px-3 py-2 text-sm">
                             <span className="font-semibold text-zinc-900">{category.name}</span>
                             <button type="button" onClick={() => removeCategory(category.code)} disabled={isSavingCategories} className="rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600" aria-label={`Xóa ${category.name}`}>
                               <Trash2 className="h-4 w-4" />
@@ -415,7 +415,7 @@ export function Expenses() {
             </div>
 
             <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-              <div className="min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <div className="min-w-0 rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm">
                 <div className="border-b border-zinc-200 p-4">
                   <h2 className="font-bold text-zinc-900">Chi tiết theo ngày ({periodLabel})</h2>
                   <p className="mt-1 text-sm text-zinc-500">Doanh thu theo đơn hàng, thực thu và chi phí ghi nhận từng ngày.</p>
@@ -452,7 +452,7 @@ export function Expenses() {
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
                   <h2 className="mb-3 font-bold text-zinc-900">Kết quả kinh doanh ({periodLabel})</h2>
                   <div className="space-y-2 text-sm">
                     <ReportRow label="Doanh thu bán hàng" value={periodRevenue} />
@@ -466,7 +466,7 @@ export function Expenses() {
                   <p className="mt-3 text-xs text-zinc-400">Giá vốn được chốt theo từng dòng hàng tại thời điểm bán.</p>
                 </div>
 
-                <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
                   <h2 className="mb-3 font-bold text-zinc-900">Chi phí theo loại</h2>
                   <div className="space-y-2 text-sm">
                     {expenseByCategory.map(([category, summary]) => (
@@ -502,7 +502,7 @@ export function Expenses() {
               <select
                 value={form.category}
                 onChange={(event) => setForm({ ...form, category: event.target.value })}
-                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm"
+                className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm"
               >
                 {categories.map((category) => (
                   <option key={category.code} value={category.name}>{category.name}</option>
@@ -533,7 +533,7 @@ export function Expenses() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-bold text-zinc-700">Nguồn chi</label>
-                <select value={form.accountType} onChange={(event) => setForm({ ...form, accountType: event.target.value as "CASH" | "BANK" })} className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
+                <select value={form.accountType} onChange={(event) => setForm({ ...form, accountType: event.target.value as "CASH" | "BANK" })} className="h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-[16px] sm:h-10 sm:text-sm">
                   <option value="CASH">Quỹ tiền mặt</option>
                   <option value="BANK">Tài khoản ngân hàng</option>
                 </select>
@@ -549,7 +549,7 @@ export function Expenses() {
             </div>
             <div>
               <label className="mb-2 block text-sm font-bold text-zinc-700">Ghi chú</label>
-              <textarea value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} rows={2} placeholder="VD: Đổ dầu xe tải chở hàng đi Buôn Hồ..." className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
+              <textarea value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} rows={2} placeholder="VD: Đổ dầu xe tải chở hàng đi Buôn Hồ..." className="w-full resize-none rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
             </div>
           </div>
           <div className="mt-8 flex gap-3 border-t border-zinc-100 pt-4">
@@ -564,7 +564,7 @@ export function Expenses() {
 
 function StatCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: "green" | "red" | "dark" }) {
   return (
-    <div className="min-w-0 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm sm:p-4">
+    <div className="min-w-0 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-2 shadow-sm sm:p-4">
       <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs">
         <span className="mt-0.5 shrink-0">{icon}</span>
         <span className="line-clamp-2">{label}</span>
