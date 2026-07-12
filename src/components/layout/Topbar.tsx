@@ -89,7 +89,7 @@ export function Topbar() {
       <div className="flex flex-1 items-center gap-4">
         <button 
           onClick={toggleSidebar}
-          className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B68]"
+          className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-600"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -99,7 +99,7 @@ export function Topbar() {
           </div>
           <input 
             type="text" 
-            className="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#006B68] sm:text-sm sm:leading-6" 
+            className="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6"
             placeholder="Tìm kiếm thông tin (F3)..." 
           />
         </div>
@@ -109,7 +109,7 @@ export function Topbar() {
           <button
             type="button"
             onClick={() => setIsNotificationsOpen((value) => !value)}
-            className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#006B68] rounded-md"
+            className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 rounded-md"
             title="Thông báo"
           >
             {unreadCount > 0 && (

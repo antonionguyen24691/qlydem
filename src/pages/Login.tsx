@@ -3,6 +3,7 @@ import { KeyRound, Store } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { useAuthStore } from "../store/auth";
 import { useBrandingStore } from "../store/branding";
+import { useThemeStore } from "../store/theme";
 
 export function Login() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export function Login() {
   const [password, setPassword] = useState("");
 
   useEffect(() => {
+    useThemeStore.getState().loadTheme();
     loadSession().then(() => {
       if (useAuthStore.getState().isAuthenticated) navigate("/", { replace: true });
     });
@@ -29,7 +31,7 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md rounded-lg border bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-[#006B68] text-white">
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-emerald-600 text-white">
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt={branding.appName} className="h-full w-full object-cover" />
             ) : (
@@ -54,7 +56,7 @@ export function Login() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Email"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
               autoComplete="email"
               required
             />
@@ -63,14 +65,14 @@ export function Login() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Mật khẩu"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#006B68]"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
               autoComplete="current-password"
               required
             />
             <button
               type="submit"
               disabled={isLoading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#006B68] px-4 py-2 font-medium text-white hover:bg-[#005a57] disabled:bg-gray-300"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:bg-gray-300"
             >
               <KeyRound className="h-4 w-4" />
               {isLoading ? "Đang đăng nhập..." : "Đăng nhập bằng email"}

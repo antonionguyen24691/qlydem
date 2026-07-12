@@ -7,6 +7,7 @@ import { type BrandingSettings, defaultBranding, useBrandingStore } from "../sto
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { permissionCatalog, permissionScopeFor, permissionScopeLabels, permissionScopes, type PermissionScope, withPermissionScope } from "../lib/permissionCatalog";
+import { ThemeSettingsSection } from "../components/settings/ThemeSettingsSection";
 
 const importTargets = [
   {
@@ -184,7 +185,7 @@ function readImageFile(file?: File) {
 
 export function Settings() {
   const location = useLocation();
-  const [activeSection, setActiveSection] = useState<"general" | "payment" | "units" | "users" | "data" | "operations">("general");
+  const [activeSection, setActiveSection] = useState<"general" | "payment" | "units" | "users" | "data" | "operations" | "appearance">("general");
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
   const branding = useBrandingStore((state) => state.branding);
@@ -227,8 +228,8 @@ export function Settings() {
 
   useEffect(() => {
     const section = new URLSearchParams(location.search).get("section");
-    if (section && ["general", "payment", "units", "users", "data", "operations"].includes(section)) {
-      setActiveSection(section as "general" | "payment" | "units" | "users" | "data" | "operations");
+    if (section && ["general", "payment", "units", "users", "data", "operations", "appearance"].includes(section)) {
+      setActiveSection(section as "general" | "payment" | "units" | "users" | "data" | "operations" | "appearance");
     }
   }, [location.search]);
 
@@ -681,7 +682,8 @@ export function Settings() {
             ["units", "Đơn vị tính"],
             ["users", "Người dùng"],
             ["data", "Dữ liệu & backup"],
-            ["operations", "Vận hành"]
+            ["operations", "Vận hành"],
+            ["appearance", "Giao diện"]
           ].map(([key, label]) => (
             <button
               key={key}
@@ -1450,6 +1452,8 @@ export function Settings() {
             </div>
           </div>
         </section>}
+
+        {activeSection === "appearance" && <ThemeSettingsSection />}
 
       </div>
     </div>

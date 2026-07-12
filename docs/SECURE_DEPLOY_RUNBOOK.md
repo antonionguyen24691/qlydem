@@ -22,3 +22,17 @@
 - Trong Supabase Auth, bật leaked-password protection và MFA cho ADMIN nếu plan cho phép.
 - Dùng `npm run bootstrap:admins` để tạo/quản lý admin đầu tiên; API không còn tự nâng user đăng nhập đầu tiên thành ADMIN.
 - Thiết lập backup off-platform định kỳ. `history_clear_backups` chỉ hỗ trợ khôi phục logic sau thao tác xóa nhầm, không thay thế backup thảm họa.
+
+## Update 2.0 — tenant và entitlement
+
+Chỉ thực hiện sau khi các probe hardening bên trên đã đạt:
+
+1. Tạo backup production và restore thử sang môi trường kiểm tra.
+2. Apply `supabase/migrations/20260712_update2_entitlements.sql` trước khi deploy API Update 2.0.
+3. Xác nhận user hiện có được gắn tenant `default` và tenant này có đúng một license `CLOUD` trạng thái `ACTIVE`.
+4. Xác nhận anon/authenticated không đọc trực tiếp được `tenants`, `licenses`, `license_entitlements`, `license_installations`, `usage_counters`.
+5. Deploy API/frontend cùng commit chứa migration contract.
+6. Gọi `GET /api/settings?key=entitlements` bằng bearer token hợp lệ và xác nhận plan/features đúng.
+7. Gọi bằng token thiếu/không hợp lệ và xác nhận trả `401`; API tính năng ngoài gói phải trả `403 FEATURE_NOT_ENTITLED`.
+
+Không bật entitlement API trước migration vì query `users.tenant_id` sẽ chưa tồn tại.

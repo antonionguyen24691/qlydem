@@ -101,7 +101,7 @@ export function Dashboard() {
                 <div className="text-center text-[11px] text-zinc-500">{day.count} đơn</div>
                 <div className="relative flex flex-1 items-end">
                   <div
-                    className="w-full rounded-t bg-[#006B68]"
+                    className="w-full rounded-t bg-emerald-600"
                     style={{ height: `${Math.max(4, (day.revenue / maxRevenue) * 100)}%` }}
                     title={`${day.label}: ${money(day.revenue)}`}
                   />
@@ -122,7 +122,7 @@ export function Dashboard() {
                     <div className="line-clamp-2 break-words font-medium text-zinc-900">{product.name}</div>
                     <div className="text-xs text-zinc-500">Đã bán {product.quantity.toLocaleString("vi-VN")}</div>
                   </div>
-                  <div className="max-w-[130px] shrink-0 truncate text-right text-sm font-semibold text-[#006B68]">{money(product.revenue)}</div>
+                  <div className="max-w-[130px] shrink-0 truncate text-right text-sm font-semibold text-emerald-600">{money(product.revenue)}</div>
                 </div>
               </div>
             ))}

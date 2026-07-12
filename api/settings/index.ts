@@ -3,6 +3,7 @@ import { getQueryValue, methodNotAllowed, sendError } from "../_lib/http.js";
 import { requireAuth, requirePermission } from "../_lib/auth.js";
 import { getJsonBody, toStringValue } from "../_lib/body.js";
 import { getSupabaseAdmin } from "../_lib/supabase.js";
+import { getEntitlementSnapshot } from "../_lib/entitlements.js";
 
 type BrandingSettings = {
   appName: string;
@@ -96,6 +97,21 @@ const defaultInventoryOperations: InventoryOperationSettings = {
   ]
 };
 
+type AppearanceSettings = {
+  themeId: "classic" | "moss" | "terracotta";
+};
+
+const defaultAppearance: AppearanceSettings = { themeId: "classic" };
+
+function normalizeAppearance(input: Record<string, unknown>): AppearanceSettings {
+  const themeId = toStringValue(input.themeId, defaultAppearance.themeId).trim();
+  return {
+    themeId: ["classic", "moss", "terracotta"].includes(themeId)
+      ? (themeId as AppearanceSettings["themeId"])
+      : defaultAppearance.themeId
+  };
+}
+
 // Chỉ chấp nhận ảnh https hoặc data URI ảnh; loại bỏ javascript:/http:/URL lạ để tránh SSRF/lộ IP khi in bill.
 function safeImageUrl(value: unknown) {
   const url = toStringValue(value).trim();
@@ -183,19 +199,27 @@ function normalizeSetting(key: string, input: Record<string, unknown>) {
   if (key === "payment") return normalizePayment(input);
   if (key === "inventoryOperations") return normalizeInventoryOperations(input);
   if (key === "expenseCategories") return normalizeExpenseCategories(input);
+  if (key === "appearance") return normalizeAppearance(input);
   return normalizeUnits(input);
 }
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const key = getQueryValue(req.query?.key) ?? "branding";
-    if (!["branding", "payment", "units", "inventoryOperations", "expenseCategories"].includes(key)) {
+    if (!["branding", "payment", "units", "inventoryOperations", "expenseCategories", "appearance", "entitlements"].includes(key)) {
       res.status(400).json({ ok: false, error: "Unsupported settings key." });
       return;
     }
 
     if (req.method === "GET") {
-      if (key !== "branding") await requireAuth(req);
+      if (key === "entitlements") {
+        const actor = await requireAuth(req);
+        const snapshot = await getEntitlementSnapshot(actor.id);
+        res.status(200).json({ ok: true, ...snapshot });
+        return;
+      }
+
+      if (key !== "branding" && key !== "appearance") await requireAuth(req);
       try {
         const supabase = getSupabaseAdmin();
         const { data, error } = await supabase
@@ -211,7 +235,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           payment: key === "payment" ? normalizePayment(value) : undefined,
           units: key === "units" ? normalizeUnits(value) : undefined,
           inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined,
-          expenseCategories: key === "expenseCategories" ? normalizeExpenseCategories(value) : undefined
+          expenseCategories: key === "expenseCategories" ? normalizeExpenseCategories(value) : undefined,
+          appearance: key === "appearance" ? normalizeAppearance(value) : undefined
         });
       } catch (error) {
         res.status(200).json({
@@ -221,6 +246,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           units: key === "units" ? defaultUnits : undefined,
           inventoryOperations: key === "inventoryOperations" ? defaultInventoryOperations : undefined,
           expenseCategories: key === "expenseCategories" ? defaultExpenseCategories : undefined,
+          appearance: key === "appearance" ? defaultAppearance : undefined,
           warning: error instanceof Error ? error.message : "Không đọc được cấu hình Supabase."
         });
       }
@@ -258,7 +284,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         payment: key === "payment" ? normalizePayment(value) : undefined,
         units: key === "units" ? normalizeUnits(value) : undefined,
         inventoryOperations: key === "inventoryOperations" ? normalizeInventoryOperations(value) : undefined,
-        expenseCategories: key === "expenseCategories" ? normalizeExpenseCategories(value) : undefined
+        expenseCategories: key === "expenseCategories" ? normalizeExpenseCategories(value) : undefined,
+        appearance: key === "appearance" ? normalizeAppearance(value) : undefined
       });
       return;
     }

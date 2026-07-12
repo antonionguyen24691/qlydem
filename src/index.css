@@ -16,10 +16,14 @@
   --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+@import "./theme.css";
+
 @layer base {
   body {
     font-family: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
     @apply text-zinc-900 bg-zinc-50 antialiased;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
   }
 }
 

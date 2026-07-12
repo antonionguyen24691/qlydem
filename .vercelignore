@@ -2,9 +2,11 @@ node_modules
 .git
 .codex
 .codex-remote-attachments
+.claude
 .agents
 dist
 docs
+theme new
 NHAT KY BAN HANG.xlsx
 untitled.zip
 .env.local

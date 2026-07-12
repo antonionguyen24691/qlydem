@@ -37,7 +37,7 @@ Trong Supabase Dashboard:
    - Local: `http://localhost:3000`
    - Production: URL Vercel cua app.
 
-Lan dau tien khi bang `users` con rong, Google user dau tien dang nhap se duoc auto-provision thanh `ADMIN`. Sau do cac user khac phai duoc them vao bang `users` voi role phu hop.
+API khong tu cap quyen ADMIN cho user dau tien. Dung `npm run bootstrap:admins` de provision admin theo danh sach email/env duoc phep, sau do admin tao cac user con lai voi role phu hop.
 Schema cung seed san 2 admin:
 
 - `antonionguyen246@gmail.com`
@@ -123,6 +123,13 @@ Kiem tra API cong khai:
 
 ```http
 GET /api/settings?key=branding
+```
+
+Sau khi apply migration Update 2.0, user da dang nhap co the doc license va feature hien tai:
+
+```http
+GET /api/settings?key=entitlements
+Authorization: Bearer <supabase_access_token>
 ```
 
 Doc mot bang Supabase:
