@@ -12,6 +12,7 @@ import { useBrandingStore } from "./store/branding";
 import { useAuthStore } from "./store/auth";
 import { canManageInventory, canSell, canViewCustomers, canViewFinance, canViewSuppliers, isAdmin } from "./lib/permissions";
 import { PwaInstallPrompt } from "./features/pwa/PwaInstallPrompt";
+import { UpdatePrompt } from "./features/pwa/UpdatePrompt";
 
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
 const POS = lazy(() => import("./pages/POS").then((module) => ({ default: module.POS })));
@@ -60,6 +61,7 @@ export default function App() {
         </Routes>
       </Suspense>
       <PwaInstallPrompt />
+      <UpdatePrompt />
     </BrowserRouter>
   );
 }

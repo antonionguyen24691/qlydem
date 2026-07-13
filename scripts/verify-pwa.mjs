@@ -19,13 +19,26 @@ function readPngSize(file) {
 
 const requiredFiles = [
   "dist/manifest.webmanifest",
-  "dist/registerSW.js",
   "dist/sw.js",
   "dist/index.html",
   "public/favicon.svg",
   "public/favicon.ico"
 ];
 for (const file of requiredFiles) requireFile(file);
+
+// Đăng ký service worker qua virtual:pwa-register/react (UpdatePrompt) thay vì
+// script auto-inject của vite-plugin-pwa (injectRegister: false trong
+// vite.config.ts) — registerType "prompt" bắt buộc phải có UI gọi
+// updateServiceWorker(), nếu không người dùng sẽ kẹt vĩnh viễn ở bản cache cũ
+// sau mỗi lần deploy.
+const appEntry = readFileSync(fromRoot("src/App.tsx"), "utf8");
+const updatePrompt = readFileSync(fromRoot("src/features/pwa/UpdatePrompt.tsx"), "utf8");
+if (!appEntry.includes("<UpdatePrompt")) {
+  throw new Error("PWA verification failed: App.tsx does not mount <UpdatePrompt />");
+}
+if (!updatePrompt.includes("virtual:pwa-register/react") || !updatePrompt.includes("updateServiceWorker")) {
+  throw new Error("PWA verification failed: UpdatePrompt does not register/apply service worker updates");
+}
 
 const icons = [
   ["public/pwa-64x64.png", 64],
