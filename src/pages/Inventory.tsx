@@ -9,6 +9,7 @@ import { Input } from "../components/ui/Input";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { InventoryReceiptDialog } from "../components/inventory/InventoryReceiptDialog";
 import { useAuthStore } from "../store/auth";
+import { useThemeStore } from "../store/theme";
 import { canCountInventory, canManageInventory, canRequestStockOut, isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
 import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
@@ -84,6 +85,7 @@ const defaultInventoryOperations: InventoryOperation[] = [
 ];
 
 export function Inventory() {
+  const themeId = useThemeStore((state) => state.themeId);
   const location = useLocation();
   const navigate = useNavigate();
   const { products, loadLiveData } = useDataStore();
@@ -452,7 +454,7 @@ export function Inventory() {
   };
 
   return (
-    <div data-mobile-page="inventory" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="inventory" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="hidden sm:block">
           <h1 className="text-xl font-bold text-zinc-900">Quản lý tồn kho</h1>

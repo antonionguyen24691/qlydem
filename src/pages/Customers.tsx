@@ -7,6 +7,7 @@ import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
 import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
 import type { Order } from "../store/data";
+import { useThemeStore } from "../store/theme";
 
 type CustomerForm = {
   id?: string;
@@ -86,6 +87,7 @@ function mapSavedCustomer(row: any): Customer {
 }
 
 export function Customers() {
+  const themeId = useThemeStore((state) => state.themeId);
   const { customers, orders, upsertCustomerLocal, loadLiveData } = useDataStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -269,7 +271,7 @@ export function Customers() {
 
   if (selectedCustomer) {
     return (
-      <div data-mobile-page="customer-detail" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
+      <div data-mobile-page="customer-detail" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
         <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-start gap-3">
@@ -461,7 +463,7 @@ export function Customers() {
   }
 
   return (
-    <div data-mobile-page="customers" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="customers" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Khách hàng</h1>
         <Button onClick={openCreate} className="w-full sm:w-auto">

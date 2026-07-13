@@ -7,6 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { useAuthStore } from "../store/auth";
+import { useThemeStore } from "../store/theme";
 import { isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
 
@@ -40,6 +41,7 @@ type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
 type PeriodFilter = "MONTH" | "30_DAYS" | "ALL";
 
 export function Finance() {
+  const themeId = useThemeStore((state) => state.themeId);
   const location = useLocation();
   const { customers, orders, loadLiveData } = useDataStore();
   const { isAuthenticated, user } = useAuthStore();
@@ -334,7 +336,7 @@ export function Finance() {
   };
 
   return (
-    <div data-mobile-page="finance" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="finance" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
           <div className="flex shrink-0 rounded-[var(--radius-control)] bg-zinc-100 p-1 text-sm font-bold">

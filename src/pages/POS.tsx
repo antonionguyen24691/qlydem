@@ -29,7 +29,10 @@ export function POS() {
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated, user } = useAuthStore();
   const themeId = useThemeStore((state) => state.themeId);
+  const isMoss = themeId === "moss";
+  const isTerracotta = themeId === "terracotta";
   const usesMobileMockup = themeId === "moss" || themeId === "terracotta";
+  const mobilePosClass = isTerracotta ? "pos-mobile-terracotta" : "pos-mobile-moss";
   const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
   const navigate = useNavigate();
   const draftPromptedRef = useRef(false);
@@ -352,7 +355,7 @@ export function POS() {
   };
 
   return (
-    <div data-mobile-page="pos" className="mobile-mockup-page flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
+    <div data-mobile-page="pos" data-mobile-theme={themeId} className={`mobile-mockup-page ${mobilePosClass} flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0`}>
       <div className="hidden lg:flex lg:flex-row lg:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Button data-testid="pos-product-picker-open" variant="primary" size="sm" onClick={() => setShowProductPicker(true)}>
@@ -423,9 +426,11 @@ export function POS() {
                   inputMode="search"
                 />
               </label>
-              <button type="button" className="pos-mobile-scan" onClick={() => setShowProductPicker(true)} aria-label="Mở danh mục sản phẩm">
-                <Package className="h-5 w-5" />
-              </button>
+              {isMoss && (
+                <button type="button" className="pos-mobile-scan" onClick={() => setShowProductPicker(true)} aria-label="Mở danh mục sản phẩm">
+                  <Package className="h-5 w-5" />
+                </button>
+              )}
             </div>
             <div className="pos-mobile-categories hide-scrollbar" aria-label="Nhóm sản phẩm">
               <button type="button" onClick={() => setMobileCategory("ALL")} className={mobileCategory === "ALL" ? "is-active" : ""}>Tất cả</button>
@@ -442,8 +447,10 @@ export function POS() {
                     <button type="button" disabled={unavailable} onClick={() => handleAddProduct(product)} className="pos-mobile-product-main">
                       <span className="pos-mobile-product-code">{product.code}</span>
                       <strong>{product.name}</strong>
-                      <span className="pos-mobile-product-meta">{product.stock.toLocaleString("vi-VN")} {product.unit || ""} trong kho</span>
-                      <span className="pos-mobile-product-price">{product.price.toLocaleString("vi-VN")} ₫</span>
+                      <span className="pos-mobile-product-footer">
+                        <span className="pos-mobile-product-price">{product.price.toLocaleString("vi-VN")} ₫</span>
+                        <span className="pos-mobile-product-stock">tồn {product.stock.toLocaleString("vi-VN")} {product.unit || ""}</span>
+                      </span>
                     </button>
                     {cartItem && (
                       <div className="pos-mobile-quantity" aria-label={`Số lượng ${product.name}`}>
@@ -626,7 +633,7 @@ export function POS() {
             <button type="button" className={paymentMethod === "TRANSFER" ? "is-active" : ""} onClick={() => { setPaymentMethod("TRANSFER"); setCustomerPaid(""); }}>Chuyển khoản</button>
             <button type="button" className={customerPaid === "0" ? "is-active" : ""} onClick={() => { setPaymentMethod("CASH"); setCustomerPaid("0"); setIsMobileCheckoutOpen(true); }}>Ghi nợ</button>
           </div>
-          <button type="button" className="pos-mobile-complete" disabled={cart.length === 0} onClick={() => setIsMobileCheckoutOpen(true)}>Hoàn tất — In hóa đơn</button>
+          <button type="button" className="pos-mobile-complete" disabled={cart.length === 0} onClick={() => setIsMobileCheckoutOpen(true)}>{isTerracotta ? "Thanh toán & in bill" : "Hoàn tất — In hóa đơn"}</button>
         </div> : <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200 p-3 z-30 flex justify-between items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(12px+env(safe-area-inset-bottom))]">
           <div className="min-w-0 flex flex-col">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Tổng thanh toán ({cart.length})</span>

@@ -6,6 +6,7 @@ import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
 import { canManageInventory, canViewFinance, isAdmin } from "../lib/permissions";
 import { useAuthStore } from "../store/auth";
+import { useThemeStore } from "../store/theme";
 
 type Supplier = {
   id: string;
@@ -25,6 +26,7 @@ type SupplierForm = Omit<Supplier, "id" | "current_payable">;
 const emptyForm: SupplierForm = { code: "", name: "", phone: "", address: "", tax_code: "", contact_person: "", payment_terms: "", status: "ACTIVE", note: "" };
 
 export function Suppliers() {
+  const themeId = useThemeStore((state) => state.themeId);
   const user = useAuthStore((state) => state.user);
   const [rows, setRows] = useState<Supplier[]>([]);
   const [term, setTerm] = useState("");
@@ -157,7 +159,7 @@ export function Suppliers() {
     }
   };
 
-  return <div data-mobile-page="suppliers" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
+  return <div data-mobile-page="suppliers" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
     <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <div><h1 className="text-xl font-bold text-zinc-900">Nhà cung cấp</h1><p className="mt-1 text-sm text-zinc-500">Quản lý NCC, công nợ phải trả và thông tin dùng khi nhập kho.</p></div>
       {canManageInventory(user) && <div className="grid grid-cols-[minmax(0,1fr)_44px_44px] gap-2 sm:flex sm:items-center">

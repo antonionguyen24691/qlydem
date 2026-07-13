@@ -8,6 +8,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { getAuthHeaders } from "../lib/supabase";
 import { useAuthStore } from "../store/auth";
+import { useThemeStore } from "../store/theme";
 import { canEditSalePrices, canManageProducts, canSell, isAdmin } from "../lib/permissions";
 import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
 
@@ -135,6 +136,7 @@ function mapSavedProduct(row: any, currentStock = 0): Product {
 }
 
 export function Products() {
+  const themeId = useThemeStore((state) => state.themeId);
   const { products, orders, upsertProductLocal, loadLiveData } = useDataStore();
   const addToCart = usePOSStore((state) => state.addToCart);
   const user = useAuthStore((state) => state.user);
@@ -478,7 +480,7 @@ export function Products() {
   }
 
   return (
-    <div data-mobile-page="products" className="mobile-mockup-page flex h-full min-h-0 flex-col bg-zinc-50">
+    <div data-mobile-page="products" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full min-h-0 flex-col bg-zinc-50">
       <div className="flex items-center justify-end border-b border-zinc-200 bg-white px-3 py-3 sm:px-6 sm:py-4">
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           {canEditPrices && (

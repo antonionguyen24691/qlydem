@@ -8,6 +8,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { permissionCatalog, permissionScopeFor, permissionScopeLabels, permissionScopes, type PermissionScope, withPermissionScope } from "../lib/permissionCatalog";
 import { ThemeSettingsSection } from "../components/settings/ThemeSettingsSection";
+import { useThemeStore } from "../store/theme";
 
 const importTargets = [
   {
@@ -184,6 +185,7 @@ function readImageFile(file?: File) {
 }
 
 export function Settings() {
+  const themeId = useThemeStore((state) => state.themeId);
   const location = useLocation();
   const [activeSection, setActiveSection] = useState<"general" | "payment" | "units" | "users" | "data" | "operations" | "appearance">("general");
   const [uploading, setUploading] = useState<string | null>(null);
@@ -669,7 +671,7 @@ export function Settings() {
   };
 
   return (
-    <div data-mobile-page="settings" className="mobile-mockup-page flex h-full flex-col bg-zinc-50 overflow-hidden">
+    <div data-mobile-page="settings" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50 overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4 shrink-0">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Cài đặt hệ thống</h1>
       </div>

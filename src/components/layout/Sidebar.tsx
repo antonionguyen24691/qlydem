@@ -84,14 +84,14 @@ export function Sidebar({ mobileOnly = false }: { mobileOnly?: boolean }) {
         dark ? "bg-[#122E29] text-[#E8EDE9]" : "bg-white border-r border-zinc-200",
         isSidebarOpen ? "w-[280px] translate-x-0" : "w-[280px] -translate-x-full lg:w-20 lg:translate-x-0",
         mobileOnly && "lg:hidden"
-      )}>
+      )} data-sidebar-theme={themeId}>
         <div className={cn(
           "flex h-16 shrink-0 items-center justify-between px-4",
           dark ? "border-b border-white/10" : "border-b border-zinc-100"
         )}>
           <div className={cn("flex items-center gap-3 font-semibold overflow-hidden transition-all", dark ? "text-white" : "text-zinc-900", !isSidebarOpen && "lg:justify-center lg:w-full")}>
             <div className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-sm",
+              "sidebar-logo flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-sm",
               dark ? "bg-[#E9B44C] text-[#122E29]" : "bg-zinc-900 text-white ring-1 ring-inset ring-zinc-900/10"
             )}>
               {branding.logoUrl ? (
@@ -143,6 +143,7 @@ export function Sidebar({ mobileOnly = false }: { mobileOnly?: boolean }) {
                               : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 font-medium",
                           !isSidebarOpen && "lg:justify-center"
                         )}
+                        data-active={isActive}
                         onClick={() => {
                           if (window.innerWidth < 1024) {
                             setSidebarOpen(false);

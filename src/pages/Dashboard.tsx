@@ -2,6 +2,7 @@ import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, P
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useDataStore } from "../store/data";
+import { useThemeStore } from "../store/theme";
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -12,6 +13,7 @@ function money(value: number) {
 }
 
 export function Dashboard() {
+  const themeId = useThemeStore((state) => state.themeId);
   const { orders, products, customers, isLoadingLiveData, liveDataError } = useDataStore();
   const today = startOfDay(new Date());
   const yesterday = new Date(today);
@@ -53,7 +55,7 @@ export function Dashboard() {
   const topProducts = Array.from(soldMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 6);
 
   return (
-    <div data-mobile-page="dashboard" className="mobile-mockup-page relative mx-auto w-full max-w-7xl p-3 pb-24 sm:p-6 lg:p-8">
+    <div data-mobile-page="dashboard" data-mobile-theme={themeId} className="mobile-mockup-page relative mx-auto w-full max-w-7xl p-3 pb-24 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Tổng quan</h1>
         <p className="mt-1 text-sm text-zinc-500">Số liệu được đồng bộ theo đơn hàng, tồn kho và công nợ.</p>

@@ -31,7 +31,7 @@ export function Login() {
   if (isAuthenticated) return <Navigate to="/" replace />;
 
   return (
-    <div data-mobile-page="login" className={cn(
+    <div data-mobile-page="login" data-mobile-theme={themeId} className={cn(
       "flex min-h-[100dvh] items-center justify-center p-4",
       isMoss ? "bg-[#122E29]" : "bg-gray-50"
     )}>
