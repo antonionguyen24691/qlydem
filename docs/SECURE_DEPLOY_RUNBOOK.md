@@ -22,6 +22,7 @@
 - Trong Supabase Auth, bật leaked-password protection và MFA cho ADMIN nếu plan cho phép.
 - Dùng `npm run bootstrap:admins` để tạo/quản lý admin đầu tiên; API không còn tự nâng user đăng nhập đầu tiên thành ADMIN.
 - Thiết lập backup off-platform định kỳ. `history_clear_backups` chỉ hỗ trợ khôi phục logic sau thao tác xóa nhầm, không thay thế backup thảm họa.
+- Nếu Security Advisor báo `capture_sales_item_cost()` có thể execute bởi public/authenticated, apply `supabase/migrations/20260713_capture_sales_item_cost_execute_lockdown.sql` hoặc chạy đúng SQL trong `docs/SUPABASE_SECURITY_FIXES.md`.
 
 ## Update 2.0 — tenant và entitlement
 

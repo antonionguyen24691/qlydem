@@ -30,6 +30,9 @@ create trigger sales_order_items_capture_cost
 before insert on public.sales_order_items
 for each row execute function public.capture_sales_item_cost();
 
+revoke all on function public.capture_sales_item_cost() from public, anon, authenticated;
+grant execute on function public.capture_sales_item_cost() to service_role;
+
 create or replace function public.adjust_customer_debt_secure(
   p_actor_id uuid,
   p_customer_id uuid,
