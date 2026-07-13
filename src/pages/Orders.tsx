@@ -172,7 +172,7 @@ export function Orders() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="orders" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 gap-3 sm:gap-4">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none sm:w-64">

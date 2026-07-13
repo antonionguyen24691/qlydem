@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { usePOSStore } from "../store/pos";
 import { type Order, useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
+import { useThemeStore } from "../store/theme";
 import { getAuthHeaders } from "../lib/supabase";
 import { canEditSalePrices } from "../lib/permissions";
 import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
@@ -26,6 +27,8 @@ export function POS() {
   const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, updateUnit, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated, user } = useAuthStore();
+  const themeId = useThemeStore((state) => state.themeId);
+  const usesMobileMockup = themeId === "moss" || themeId === "terracotta";
   const navigate = useNavigate();
   const draftPromptedRef = useRef(false);
   const checkoutKeyRef = useRef<string | undefined>(undefined);
@@ -34,6 +37,7 @@ export function POS() {
   const [searchResults, setSearchResults] = useState(products);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productPickerSearch, setProductPickerSearch] = useState("");
+  const [mobileCategory, setMobileCategory] = useState("ALL");
 
   // Checkout states
   const [customerSearch, setCustomerSearch] = useState("");
@@ -66,6 +70,11 @@ export function POS() {
     return [product.name, product.code, product.invoiceName ?? "", product.category ?? "", product.size ?? ""]
       .some((value) => normalizeSearch(value).includes(normalizedPickerSearch));
   });
+  const mobileCategories = React.useMemo(
+    () => Array.from(new Set(products.map((product) => product.category).filter(Boolean))).slice(0, 6) as string[],
+    [products]
+  );
+  const mobileProducts = searchResults.filter((product) => mobileCategory === "ALL" || product.category === mobileCategory);
 
   const isProductUnavailable = (product: (typeof products)[number]) => {
     const status = (product.lifecycleStatus || product.status || "ACTIVE").toUpperCase();
@@ -341,8 +350,8 @@ export function POS() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
+    <div data-mobile-page="pos" className="mobile-mockup-page flex h-[calc(100vh-64px)] flex-col bg-zinc-50 relative pb-20 lg:pb-0">
+      <div className="hidden lg:flex lg:flex-row lg:items-center justify-between bg-white px-4 py-3 border-b border-zinc-200 gap-3 shrink-0">
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <Button data-testid="pos-product-picker-open" variant="primary" size="sm" onClick={() => setShowProductPicker(true)}>
             <Package className="mr-1.5 h-4 w-4" />
@@ -357,9 +366,9 @@ export function POS() {
 
       <div className="flex flex-1 flex-col lg:flex-row overflow-hidden relative">
         {/* Left/Center Area */}
-        <div className="flex flex-col flex-1 p-2 sm:p-4 lg:border-r border-zinc-200 gap-4 overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col flex-1 p-0 lg:p-4 lg:border-r border-zinc-200 gap-4 overflow-y-auto custom-scrollbar">
           {/* Search */}
-          <div className="bg-white rounded-xl shadow-sm ring-1 ring-zinc-200 p-3 sm:p-4 shrink-0">
+          <div className="hidden lg:block bg-white rounded-xl shadow-sm ring-1 ring-zinc-200 p-3 sm:p-4 shrink-0">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <Search className="h-5 w-5 text-zinc-400" />
@@ -392,6 +401,53 @@ export function POS() {
               </div>
             )}
           </div>
+
+          <section className={`${usesMobileMockup ? "" : "hidden"} pos-mobile-catalog lg:hidden`} aria-label="Chọn sản phẩm bán">
+            <div className="pos-mobile-search-row">
+              <label className="pos-mobile-search">
+                <Search className="h-4 w-4" aria-hidden="true" />
+                <input
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  placeholder="Quét mã hoặc tìm sản phẩm"
+                  inputMode="search"
+                />
+              </label>
+              <button type="button" className="pos-mobile-scan" onClick={() => setShowProductPicker(true)} aria-label="Mở danh mục sản phẩm">
+                <Package className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="pos-mobile-categories hide-scrollbar" aria-label="Nhóm sản phẩm">
+              <button type="button" onClick={() => setMobileCategory("ALL")} className={mobileCategory === "ALL" ? "is-active" : ""}>Tất cả</button>
+              {mobileCategories.map((category) => (
+                <button type="button" key={category} onClick={() => setMobileCategory(category)} className={mobileCategory === category ? "is-active" : ""}>{category}</button>
+              ))}
+            </div>
+            <div className="pos-mobile-product-grid">
+              {mobileProducts.map((product) => {
+                const cartItem = cart.find((item) => item.id === product.id);
+                const unavailable = isProductUnavailable(product);
+                return (
+                  <article key={product.id} className={`pos-mobile-product ${cartItem ? "is-selected" : ""} ${unavailable ? "is-disabled" : ""}`}>
+                    <button type="button" disabled={unavailable} onClick={() => handleAddProduct(product)} className="pos-mobile-product-main">
+                      <span className="pos-mobile-product-code">{product.code}</span>
+                      <strong>{product.name}</strong>
+                      <span className="pos-mobile-product-meta">{product.stock.toLocaleString("vi-VN")} {product.unit || ""} trong kho</span>
+                      <span className="pos-mobile-product-price">{product.price.toLocaleString("vi-VN")} ₫</span>
+                    </button>
+                    {cartItem && (
+                      <div className="pos-mobile-quantity" aria-label={`Số lượng ${product.name}`}>
+                        <button type="button" onClick={() => cartItem.quantity <= 1 ? removeFromCart(cartItem.id) : updateQuantity(cartItem.id, cartItem.quantity - 1)} aria-label="Giảm số lượng"><Minus size={15} /></button>
+                        <span>{cartItem.quantity}</span>
+                        <button type="button" onClick={() => updateQuantity(cartItem.id, cartItem.quantity + 1)} aria-label="Tăng số lượng"><Plus size={15} /></button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+              {mobileProducts.length === 0 && <div className="pos-mobile-empty">Không tìm thấy sản phẩm phù hợp.</div>}
+            </div>
+          </section>
 
           {/* Cart Desktop */}
           <div className="hidden lg:flex bg-white rounded-xl shadow-sm ring-1 ring-zinc-200 flex-1 flex-col overflow-hidden">
@@ -483,7 +539,7 @@ export function POS() {
           </div>
 
           {/* Cart Mobile (Card List) */}
-          <div className="lg:hidden flex flex-col gap-3 pb-8">
+          <div className={`${usesMobileMockup ? "hidden" : "lg:hidden"} flex-col gap-3 pb-8`}>
             {cart.length === 0 ? (
               <div className="bg-white rounded-xl p-8 text-center text-zinc-500 ring-1 ring-zinc-200">
                 <Package className="mx-auto h-12 w-12 text-zinc-300 mb-3" />
@@ -545,15 +601,29 @@ export function POS() {
         </div>
 
         {/* Mobile Checkout Toggle Bar */}
-        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200 p-3 z-30 flex justify-between items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(12px+env(safe-area-inset-bottom))]">
+        {usesMobileMockup ? <div className="pos-mobile-checkout-dock lg:hidden">
+          <button type="button" className="pos-mobile-cart-summary" onClick={() => setIsMobileCheckoutOpen(true)}>
+            <span className="pos-mobile-cart-count">{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+            <span className="pos-mobile-customer">{selectedCustomer ? `${selectedCustomer.name} · nợ cũ ${selectedCustomer.oldDebt.toLocaleString("vi-VN")} đ` : "Khách lẻ · mở giỏ hàng"}</span>
+            <ChevronDown size={16} />
+          </button>
+          <div className="pos-mobile-total-row">
+            <span>Khách cần trả</span>
+            <strong>{finalTotal.toLocaleString("vi-VN")} ₫</strong>
+          </div>
+          <div className="pos-mobile-payment-methods">
+            <button type="button" className={paymentMethod === "CASH" && customerPaid !== "0" ? "is-active" : ""} onClick={() => { setPaymentMethod("CASH"); setCustomerPaid(""); }}>Tiền mặt</button>
+            <button type="button" className={paymentMethod === "TRANSFER" ? "is-active" : ""} onClick={() => { setPaymentMethod("TRANSFER"); setCustomerPaid(""); }}>Chuyển khoản</button>
+            <button type="button" className={customerPaid === "0" ? "is-active" : ""} onClick={() => { setPaymentMethod("CASH"); setCustomerPaid("0"); setIsMobileCheckoutOpen(true); }}>Ghi nợ</button>
+          </div>
+          <button type="button" className="pos-mobile-complete" disabled={cart.length === 0} onClick={() => setIsMobileCheckoutOpen(true)}>Hoàn tất — In hóa đơn</button>
+        </div> : <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-zinc-200 p-3 z-30 flex justify-between items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(12px+env(safe-area-inset-bottom))]">
           <div className="min-w-0 flex flex-col">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Tổng thanh toán ({cart.length})</span>
             <span className="mt-1 max-w-[190px] truncate text-xl font-bold leading-none text-emerald-600">{finalTotal.toLocaleString()} đ</span>
           </div>
-          <Button size="lg" onClick={() => setIsMobileCheckoutOpen(true)}>
-            Thanh toán
-          </Button>
-        </div>
+          <Button size="lg" onClick={() => setIsMobileCheckoutOpen(true)}>Thanh toán</Button>
+        </div>}
 
         {/* Mobile Overlay Background */}
         {isMobileCheckoutOpen && (

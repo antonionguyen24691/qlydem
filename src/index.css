@@ -17,6 +17,7 @@
 }
 
 @import "./theme.css";
+@import "./mobile-mockup.css";
 
 @layer base {
   body {

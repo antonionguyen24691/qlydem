@@ -24,6 +24,7 @@
     "verify:finance-integrity": "node scripts/verify-finance-integrity.mjs",
     "verify:finance-integrity:remote": "node scripts/verify-finance-integrity-remote.mjs",
     "verify:pwa": "node scripts/verify-pwa.mjs",
+    "verify:mobile-mockup": "node scripts/verify-mobile-mockup.mjs",
     "verify:update2-foundation": "node scripts/verify-update2-foundation.mjs"
   },
   "dependencies": {

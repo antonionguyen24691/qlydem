@@ -31,7 +31,7 @@ export function Bill() {
 
   if (!order) {
     return (
-      <div className="flex h-full flex-col bg-zinc-50">
+      <div data-mobile-page="bill" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
         <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-6">
           <Button variant="outline" onClick={() => navigate("/orders")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -58,7 +58,7 @@ export function Bill() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="bill" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">

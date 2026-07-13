@@ -157,7 +157,7 @@ export function Suppliers() {
     }
   };
 
-  return <div className="flex h-full flex-col bg-zinc-50">
+  return <div data-mobile-page="suppliers" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
     <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <div><h1 className="text-xl font-bold text-zinc-900">Nhà cung cấp</h1><p className="mt-1 text-sm text-zinc-500">Quản lý NCC, công nợ phải trả và thông tin dùng khi nhập kho.</p></div>
       {canManageInventory(user) && <div className="grid grid-cols-[minmax(0,1fr)_44px_44px] gap-2 sm:flex sm:items-center">

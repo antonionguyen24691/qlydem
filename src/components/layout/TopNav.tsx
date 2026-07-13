@@ -94,7 +94,7 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-zinc-200 bg-zinc-50 px-4 sm:px-6">
+    <header className="app-chrome-header flex h-16 shrink-0 items-center gap-4 border-b border-zinc-200 bg-zinc-50 px-4 sm:px-6">
       {/* Nút menu mobile — mở Sidebar drawer */}
       <button
         onClick={toggleSidebar}

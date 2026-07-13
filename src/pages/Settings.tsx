@@ -669,7 +669,7 @@ export function Settings() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 overflow-hidden">
+    <div data-mobile-page="settings" className="mobile-mockup-page flex h-full flex-col bg-zinc-50 overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-b border-zinc-200 gap-4 shrink-0">
         <h1 className="text-xl font-bold text-zinc-900 text-center sm:text-left">Cài đặt hệ thống</h1>
       </div>

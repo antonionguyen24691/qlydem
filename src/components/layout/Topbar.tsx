@@ -82,7 +82,7 @@ export function Topbar() {
   }, []);
   
   return (
-    <header className="relative flex h-16 items-center justify-between border-b bg-white px-4 shrink-0">
+    <header className="app-chrome-header relative flex h-16 items-center justify-between border-b bg-white px-4 shrink-0">
       <div className="pointer-events-none absolute inset-x-16 flex justify-center sm:inset-x-48">
         <h1 className="max-w-full truncate text-center text-base font-bold text-zinc-900 sm:text-lg">{pageTitle}</h1>
       </div>

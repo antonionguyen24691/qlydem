@@ -452,7 +452,7 @@ export function Inventory() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="inventory" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="hidden sm:block">
           <h1 className="text-xl font-bold text-zinc-900">Quản lý tồn kho</h1>

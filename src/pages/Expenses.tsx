@@ -267,7 +267,7 @@ export function Expenses() {
   const periodLabel = periodFilter === "MONTH" ? "tháng này" : periodFilter === "LAST_MONTH" ? "tháng trước" : periodFilter === "30_DAYS" ? "30 ngày" : "toàn bộ";
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="expenses" className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto hide-scrollbar">
           <div className="flex shrink-0 rounded-[var(--radius-control)] bg-zinc-100 p-1 text-sm font-bold">

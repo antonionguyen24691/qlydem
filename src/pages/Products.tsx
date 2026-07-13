@@ -478,7 +478,7 @@ export function Products() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-zinc-50">
+    <div data-mobile-page="products" className="mobile-mockup-page flex h-full min-h-0 flex-col bg-zinc-50">
       <div className="flex items-center justify-end border-b border-zinc-200 bg-white px-3 py-3 sm:px-6 sm:py-4">
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           {canEditPrices && (

@@ -41,7 +41,7 @@ export function MainLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-50 relative selection:bg-emerald-100 selection:text-emerald-900">
       <Sidebar mobileOnly={layout === "topnav"} />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", location.pathname === "/pos" && "pos-route-shell")}>
         {layout === "topnav" ? <TopNav /> : <Topbar />}
         {(liveDataError || isLoadingLiveData) && (
           <div className={`border-b px-4 py-2 text-sm ${liveDataError ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
