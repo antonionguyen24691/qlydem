@@ -18,6 +18,7 @@ const required = [
   [pos, 'data-mobile-page="pos"', "POS mobile page marker"],
   [pos, "pos-mobile-product-grid", "catalog-first product grid"],
   [pos, "pos-mobile-checkout-dock", "mobile checkout dock"],
+  [pos, 'aria-label="Mở menu điều hướng"', "POS navigation escape"],
   [pos, 'themeId === "moss" || themeId === "terracotta"', "classic theme isolation"],
   [layout, 'location.pathname === "/pos"', "POS route shell"],
   [css, '@scope (:root[data-theme="moss"], :root[data-theme="terracotta"])', "theme-scoped mobile layer"],

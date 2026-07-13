@@ -4,10 +4,11 @@ import { usePOSStore } from "../store/pos";
 import { type Order, useDataStore } from "../store/data";
 import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
+import { useUIStore } from "../store/ui";
 import { getAuthHeaders } from "../lib/supabase";
 import { canEditSalePrices } from "../lib/permissions";
 import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
-import { Search, Trash2, Plus, Minus, X, ChevronDown, Package } from "lucide-react";
+import { Search, Trash2, Plus, Minus, X, ChevronDown, Package, Menu } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
@@ -29,6 +30,7 @@ export function POS() {
   const { isAuthenticated, user } = useAuthStore();
   const themeId = useThemeStore((state) => state.themeId);
   const usesMobileMockup = themeId === "moss" || themeId === "terracotta";
+  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
   const navigate = useNavigate();
   const draftPromptedRef = useRef(false);
   const checkoutKeyRef = useRef<string | undefined>(undefined);
@@ -404,6 +406,14 @@ export function POS() {
 
           <section className={`${usesMobileMockup ? "" : "hidden"} pos-mobile-catalog lg:hidden`} aria-label="Chọn sản phẩm bán">
             <div className="pos-mobile-search-row">
+              <button
+                type="button"
+                className="pos-mobile-nav"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Mở menu điều hướng"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
               <label className="pos-mobile-search">
                 <Search className="h-4 w-4" aria-hidden="true" />
                 <input

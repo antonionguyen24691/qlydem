@@ -33,6 +33,10 @@
     padding: max(14px, env(safe-area-inset-top)) var(--mobile-page-pad) 230px;
   }
   .pos-mobile-search-row { display: flex; gap: 8px; align-items: center; }
+  .pos-mobile-nav {
+    display: grid; height: 44px; width: 44px; flex: 0 0 44px; place-items: center;
+    border: 1px solid var(--color-zinc-200); border-radius: 12px; background: #fff; color: var(--color-zinc-700);
+  }
   .pos-mobile-search {
     display: flex; min-width: 0; flex: 1; height: 44px; align-items: center; gap: 9px;
     border: 1px solid var(--color-zinc-200); border-radius: 12px; background: #fff; padding: 0 12px; color: var(--color-zinc-400);
