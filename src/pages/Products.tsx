@@ -51,6 +51,8 @@ const emptyForm: ProductForm = {
   lifecycleStatus: "ACTIVE"
 };
 
+type PriceUnitMode = "BOX" | "M2" | "PIECE";
+
 type PriceSheetRow = {
   productId: string;
   code: string;
@@ -60,7 +62,35 @@ type PriceSheetRow = {
   currentPrice: number;
   newPrice: number;
   note: string;
+  m2PerBox: number;
+  piecesPerBox: number;
+  inputUnit: PriceUnitMode;
 };
+
+function priceUnitOptions(row: Pick<PriceSheetRow, "unit" | "m2PerBox" | "piecesPerBox">) {
+  const options: Array<{ mode: PriceUnitMode; label: string }> = [{ mode: "BOX", label: row.unit || "ĐVT" }];
+  if (row.m2PerBox > 0) options.push({ mode: "M2", label: "M²" });
+  if (row.piecesPerBox > 0) options.push({ mode: "PIECE", label: "Viên" });
+  return options;
+}
+
+function convertPriceToBox(value: number, unitMode: PriceUnitMode, row: Pick<PriceSheetRow, "m2PerBox" | "piecesPerBox">) {
+  if (unitMode === "M2" && row.m2PerBox > 0) return value * row.m2PerBox;
+  if (unitMode === "PIECE" && row.piecesPerBox > 0) return value * row.piecesPerBox;
+  return value;
+}
+
+function convertBoxToUnit(boxPrice: number, unitMode: PriceUnitMode, row: Pick<PriceSheetRow, "m2PerBox" | "piecesPerBox">) {
+  if (unitMode === "M2" && row.m2PerBox > 0) return boxPrice / row.m2PerBox;
+  if (unitMode === "PIECE" && row.piecesPerBox > 0) return boxPrice / row.piecesPerBox;
+  return boxPrice;
+}
+
+function priceEquivalents(row: PriceSheetRow) {
+  return priceUnitOptions(row)
+    .filter((option) => option.mode !== row.inputUnit)
+    .map((option) => ({ label: option.label, value: Math.round(convertBoxToUnit(row.newPrice, option.mode, row)) }));
+}
 
 type PriceUpdateRequest = {
   id: string;
@@ -198,26 +228,28 @@ export function Products() {
     return Array.from(new Set(products.map((product) => product.productType).filter(Boolean))).sort();
   }, [products]);
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = useMemo(() => {
     const term = normalizeSearch(searchTerm);
-    const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
-    const matchSearch =
-      !term ||
-      [product.name, product.code, product.invoiceName ?? "", product.category ?? "", product.size ?? ""]
-        .some((value) => normalizeSearch(value).includes(term));
-    const matchCategory = categoryFilter === "all" || product.category === categoryFilter;
-    const matchType = typeFilter === "all" || product.productType === typeFilter;
-    const matchStock =
-      stockFilter === "all" ||
-      (stockFilter === "in_stock" && product.stock > 0) ||
-      (stockFilter === "out_stock" && product.stock <= 0) ||
-      (stockFilter === "low_stock" && product.stock > 0 && product.stock <= 10);
-    const matchStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && !inactive) ||
-      (statusFilter === "inactive" && inactive);
-    return matchSearch && matchCategory && matchType && matchStock && matchStatus;
-  });
+    return products.filter((product) => {
+      const inactive = product.status === "INACTIVE" || product.lifecycleStatus === "DISCONTINUED";
+      const matchSearch =
+        !term ||
+        [product.name, product.code, product.invoiceName ?? "", product.category ?? "", product.size ?? ""]
+          .some((value) => normalizeSearch(value).includes(term));
+      const matchCategory = categoryFilter === "all" || product.category === categoryFilter;
+      const matchType = typeFilter === "all" || product.productType === typeFilter;
+      const matchStock =
+        stockFilter === "all" ||
+        (stockFilter === "in_stock" && product.stock > 0) ||
+        (stockFilter === "out_stock" && product.stock <= 0) ||
+        (stockFilter === "low_stock" && product.stock > 0 && product.stock <= 10);
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && !inactive) ||
+        (statusFilter === "inactive" && inactive);
+      return matchSearch && matchCategory && matchType && matchStock && matchStatus;
+    });
+  }, [products, searchTerm, categoryFilter, typeFilter, stockFilter, statusFilter]);
 
   const activeFilterCount = [
     categoryFilter !== "all",
@@ -249,7 +281,7 @@ export function Products() {
     setStatusFilter("all");
   }
 
-  function buildPriceRows(sourceProducts = products) {
+  function buildPriceRows(sourceProducts = products): PriceSheetRow[] {
     return sourceProducts
       .filter((product) => product.status !== "INACTIVE" && product.lifecycleStatus !== "DISCONTINUED")
       .map((product) => ({
@@ -260,7 +292,10 @@ export function Products() {
         cost: product.cost,
         currentPrice: product.price,
         newPrice: product.price,
-        note: ""
+        note: "",
+        m2PerBox: product.m2PerBox ?? 0,
+        piecesPerBox: product.piecesPerBox ?? 0,
+        inputUnit: "BOX"
       }));
   }
 
@@ -289,6 +324,18 @@ export function Products() {
 
   function updatePriceRow(productId: string, patch: Partial<PriceSheetRow>) {
     setPriceRows((rows) => rows.map((row) => row.productId === productId ? { ...row, ...patch } : row));
+  }
+
+  function updatePriceRowUnit(productId: string, unitMode: PriceUnitMode) {
+    updatePriceRow(productId, { inputUnit: unitMode });
+  }
+
+  function updatePriceRowInput(productId: string, rawValue: number) {
+    setPriceRows((rows) => rows.map((row) => {
+      if (row.productId !== productId) return row;
+      const boxPrice = Math.round(convertPriceToBox(rawValue, row.inputUnit, row));
+      return { ...row, newPrice: Math.max(0, boxPrice) };
+    }));
   }
 
   async function savePriceSheet() {
@@ -725,6 +772,25 @@ export function Products() {
                   <div className={`truncate text-xl font-bold ${selectedProduct.stock <= 0 ? "text-red-600" : "text-emerald-600"}`}>{selectedProduct.stock.toLocaleString()}</div>
                 </div>
               </div>
+              {((selectedProduct.m2PerBox ?? 0) > 0 || (selectedProduct.piecesPerBox ?? 0) > 0) && (
+                <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
+                  <div className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-500">Quy đổi đơn vị</div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {(selectedProduct.m2PerBox ?? 0) > 0 && (
+                      <>
+                        <MiniStat label={`M²/${selectedProduct.unit || "ĐVT"}`} value={(selectedProduct.m2PerBox ?? 0).toLocaleString()} />
+                        <MiniStat label="Giá/M²" value={`${Math.round(selectedProduct.price / (selectedProduct.m2PerBox || 1)).toLocaleString()} đ`} />
+                      </>
+                    )}
+                    {(selectedProduct.piecesPerBox ?? 0) > 0 && (
+                      <>
+                        <MiniStat label={`Viên/${selectedProduct.unit || "ĐVT"}`} value={(selectedProduct.piecesPerBox ?? 0).toLocaleString()} />
+                        <MiniStat label="Giá/Viên" value={`${Math.round(selectedProduct.price / (selectedProduct.piecesPerBox || 1)).toLocaleString()} đ`} />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
               {selectedProductStats && (
                 <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4">
                   <div className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-500">Bán hàng</div>
@@ -777,7 +843,33 @@ export function Products() {
                     <div className="min-w-0"><div className="font-semibold text-emerald-700">{row.code}</div><div className="line-clamp-2 text-sm font-semibold text-zinc-900">{row.name}</div></div>
                     <span className="shrink-0 text-xs font-medium text-zinc-500">{row.unit}</span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2"><div className="text-xs text-zinc-500">Hiện tại<br /><span className="font-semibold text-zinc-700">{row.currentPrice.toLocaleString()} đ</span></div><Input type="number" value={row.newPrice || ""} onChange={(event) => updatePriceRow(row.productId, { newPrice: Number(event.target.value) || 0 })} className="h-10 text-right font-semibold" aria-label={`Giá bán mới ${row.code}`} /></div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="text-xs text-zinc-500">Hiện tại<br /><span className="font-semibold text-zinc-700">{row.currentPrice.toLocaleString()} đ</span></div>
+                    <div>
+                      {priceUnitOptions(row).length > 1 && (
+                        <select
+                          value={row.inputUnit}
+                          onChange={(event) => updatePriceRowUnit(row.productId, event.target.value as PriceUnitMode)}
+                          className="mb-1 h-8 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-xs outline-none focus:border-emerald-500"
+                          aria-label={`Đơn vị nhập giá ${row.code}`}
+                        >
+                          {priceUnitOptions(row).map((option) => <option key={option.mode} value={option.mode}>Giá / {option.label}</option>)}
+                        </select>
+                      )}
+                      <Input
+                        type="number"
+                        value={Math.round(convertBoxToUnit(row.newPrice, row.inputUnit, row)) || ""}
+                        onChange={(event) => updatePriceRowInput(row.productId, Number(event.target.value) || 0)}
+                        className="h-10 text-right font-semibold"
+                        aria-label={`Giá bán mới ${row.code}`}
+                      />
+                    </div>
+                  </div>
+                  {priceEquivalents(row).length > 0 && (
+                    <div className="mt-1 text-right text-xs text-zinc-400">
+                      {priceEquivalents(row).map((equivalent) => `≈ ${equivalent.value.toLocaleString()} đ/${equivalent.label}`).join(" • ")}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -806,7 +898,29 @@ export function Products() {
                       <td className="px-4 py-3 text-right text-zinc-500">{row.cost.toLocaleString()} đ</td>
                       <td className="px-4 py-3 text-right font-semibold text-zinc-700">{row.currentPrice.toLocaleString()} đ</td>
                       <td className="px-4 py-3">
-                        <Input type="number" value={row.newPrice || ""} onChange={(event) => updatePriceRow(row.productId, { newPrice: Number(event.target.value) || 0 })} className="text-right font-semibold" />
+                        <div className="flex items-center justify-end gap-2">
+                          {priceUnitOptions(row).length > 1 && (
+                            <select
+                              value={row.inputUnit}
+                              onChange={(event) => updatePriceRowUnit(row.productId, event.target.value as PriceUnitMode)}
+                              className="h-9 w-20 shrink-0 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-1 text-xs outline-none focus:border-emerald-500"
+                              aria-label={`Đơn vị nhập giá ${row.code}`}
+                            >
+                              {priceUnitOptions(row).map((option) => <option key={option.mode} value={option.mode}>{option.label}</option>)}
+                            </select>
+                          )}
+                          <Input
+                            type="number"
+                            value={Math.round(convertBoxToUnit(row.newPrice, row.inputUnit, row)) || ""}
+                            onChange={(event) => updatePriceRowInput(row.productId, Number(event.target.value) || 0)}
+                            className="text-right font-semibold"
+                          />
+                        </div>
+                        {priceEquivalents(row).length > 0 && (
+                          <div className="mt-1 text-right text-xs text-zinc-400">
+                            {priceEquivalents(row).map((equivalent) => `≈ ${equivalent.value.toLocaleString()} đ/${equivalent.label}`).join(" • ")}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <Input value={row.note} onChange={(event) => updatePriceRow(row.productId, { note: event.target.value })} placeholder="Lý do..." />
@@ -905,6 +1019,20 @@ export function Products() {
             <Field label="Giá bán"><Input type="number" value={form.price || ""} onChange={(event) => setForm({ ...form, price: Number(event.target.value) || 0 })} /></Field>
             <Field label={`Quy đổi diện tích/${selectedUnitLabel}`}><Input type="number" value={form.m2PerBox || ""} onChange={(event) => setForm({ ...form, m2PerBox: Number(event.target.value) || 0 })} /></Field>
             <Field label={`Quy đổi số lượng lẻ/${selectedUnitLabel}`}><Input type="number" value={form.piecesPerBox || ""} onChange={(event) => setForm({ ...form, piecesPerBox: Number(event.target.value) || 0 })} /></Field>
+            <Field label="Giá theo M²">
+              <div className="flex gap-2">
+                <Input type="number" value={form.priceByM2 || ""} onChange={(event) => setForm({ ...form, priceByM2: Number(event.target.value) || 0 })} />
+                {form.m2PerBox > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, priceByM2: prev.m2PerBox > 0 ? Math.round(prev.price / prev.m2PerBox) : prev.priceByM2 }))}
+                    className="shrink-0 whitespace-nowrap text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  >
+                    Tính từ giá bán
+                  </button>
+                )}
+              </div>
+            </Field>
             <Field label="Trạng thái"><Input value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} /></Field>
             <Field label="Vòng đời"><Input value={form.lifecycleStatus} onChange={(event) => setForm({ ...form, lifecycleStatus: event.target.value })} /></Field>
           </div>

@@ -338,7 +338,7 @@ async function loadProductsForPriceUpdate(productIds: string[]) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("products")
-    .select("id,code,product_name,unit,cost_price,sell_price_box_vat")
+    .select("id,code,product_name,unit,cost_price,sell_price_box_vat,m2_per_box")
     .in("id", productIds);
   if (error) throw new Error(error.message);
   return new Map((data ?? []).map((item: any) => [item.id, item]));
@@ -367,17 +367,24 @@ async function applyPriceRows({
       const current = currentByProduct.get(row.productId);
       const oldPrice = toNumber(current?.sell_price_box_vat);
       const costPrice = toNumber(current?.cost_price);
-      return { ...row, oldPrice, costPrice };
+      const m2PerBox = toNumber(current?.m2_per_box);
+      return { ...row, oldPrice, costPrice, m2PerBox };
     })
     .filter((row) => row.newPrice !== row.oldPrice);
 
   for (const row of changedRows) {
+    // Giữ giá theo m2 quy đổi đúng theo giá hộp mới nhất, tránh lệch với hệ đơn vị của sản phẩm.
+    const productUpdate: Record<string, unknown> = {
+      sell_price_box_vat: row.newPrice,
+      updated_at: now
+    };
+    if (row.m2PerBox > 0) {
+      productUpdate.price_by_m2 = Math.round(row.newPrice / row.m2PerBox);
+    }
+
     const { error: updateError } = await supabase
       .from("products")
-      .update({
-        sell_price_box_vat: row.newPrice,
-        updated_at: now
-      })
+      .update(productUpdate)
       .eq("id", row.productId);
     if (updateError) throw new Error(updateError.message);
 
