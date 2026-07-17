@@ -75,6 +75,17 @@ Bảng `payment_promises` có sẵn trong DB nhưng chưa từng có UI/API — 
   - `src/pages/Dashboard.tsx` — cảnh báo trễ hẹn
   - `src/store/data.ts` — mapping O(n)
 
+## 7. BỔ SUNG (18/07): Xóa danh mục + fix "Phải thu" hiển thị số cũ
+
+**Vấn đề báo lại:** Xóa hết lịch sử nhưng trang Tài chính vẫn thấy "Phải thu 98.800 đ".
+**Chẩn đoán:** DB thực tế đã về 0 (đã probe trực tiếp) — số cũ là do app **không tự tải lại dữ liệu** sau khi xóa, phải F5 mới thấy. Đã sửa: sau khi xóa lịch sử, app tự gọi `loadLiveData()` → mọi trang cập nhật ngay.
+
+**Tính năng mới — Xóa dữ liệu danh mục** (Cài đặt → Vận hành, khối viền đỏ riêng):
+- 3 nhóm: **DANH MỤC khách hàng** (khách + liên hệ), **DANH MỤC nhà cung cấp**, **DANH MỤC sản phẩm & tồn kho** (hàng hóa, tồn kho, lịch sử giá).
+- **Xác nhận 2 lớp**: nhập `XOA` + confirm thường + confirm cảnh báo riêng cho danh mục.
+- **Precheck khóa ngoại**: nếu còn lịch sử tham chiếu (đơn bán, phiếu thu, giao dịch kho...) sẽ báo rõ bảng nào còn bao nhiêu dòng và gợi ý tick kèm nhóm lịch sử để xóa cùng lúc — không bao giờ chết giữa chừng vì vỡ FK.
+- Không hỗ trợ mốc ngày cho danh mục (chỉ xóa toàn bộ), vẫn tự tạo **bản lưu JSON** trước khi xóa như lịch sử.
+
 ## Gợi ý bước tiếp theo (chưa làm)
 
 - Nhắc nợ tự động (bảng `debt_reminders` đã có sẵn, có thể nối vào cron notifications).
