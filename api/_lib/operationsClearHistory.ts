@@ -70,6 +70,47 @@ const CLEAR_GROUPS: ClearGroup[] = [
   }
 ];
 
+// Nhóm xóa DANH MỤC (nguy hiểm): chỉ được xóa khi các bảng lịch sử tham chiếu đã trống,
+// nếu không sẽ vỡ khóa ngoại. Precheck bên dưới kiểm tra và báo rõ cần xóa lịch sử nào trước.
+const MASTER_GROUPS: ClearGroup[] = [
+  {
+    key: "master-customers",
+    label: "DANH MỤC khách hàng",
+    tables: ["customer_contacts", "customers"]
+  },
+  {
+    key: "master-suppliers",
+    label: "DANH MỤC nhà cung cấp",
+    tables: ["suppliers"]
+  },
+  {
+    key: "master-products",
+    label: "DANH MỤC sản phẩm & tồn kho",
+    tables: [
+      "price_update_request_items",
+      "price_update_requests",
+      "price_edit_logs",
+      "product_status_history",
+      "inventory_balances",
+      "products"
+    ]
+  }
+];
+
+// Các bảng lịch sử đang giữ khóa ngoại tới danh mục tương ứng.
+const MASTER_PRECHECKS: Record<string, string[]> = {
+  "master-customers": [
+    "sales_orders", "receipts", "order_debts", "customer_debt_ledger",
+    "receipt_allocations", "payment_promises", "debt_assignments",
+    "debt_reminders", "debt_reminder_logs"
+  ],
+  "master-suppliers": ["purchase_orders", "payments", "supplier_debt_ledger"],
+  "master-products": [
+    "sales_order_items", "purchase_order_items", "inventory_transactions",
+    "inventory_adjustment_request_items", "inventory_edit_logs"
+  ]
+};
+
 const MAX_ARCHIVE_ROWS = 20_000;
 const SELECT_PAGE_SIZE = 1000;
 const UPDATE_CHUNK_SIZE = 20;
@@ -367,7 +408,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     if (req.method === "GET") {
       await requirePermission(req, "history.clear");
-      res.status(200).json({ ok: true, groups: CLEAR_GROUPS });
+      res.status(200).json({ ok: true, groups: CLEAR_GROUPS, masterGroups: MASTER_GROUPS });
       return;
     }
 
@@ -381,7 +422,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
 
-    const selectedGroups = CLEAR_GROUPS.filter((group) => requested.includes(group.key));
+    const selectedHistoryGroups = CLEAR_GROUPS.filter((group) => requested.includes(group.key));
+    const selectedMasterGroups = MASTER_GROUPS.filter((group) => requested.includes(group.key));
+    const selectedGroups = [...selectedHistoryGroups, ...selectedMasterGroups];
     if (selectedGroups.length === 0) {
       res.status(400).json({ ok: false, error: "Chưa chọn nhóm lịch sử cần xóa." });
       return;
@@ -397,6 +440,32 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         return;
       }
       beforeDate = parsed.toISOString();
+    }
+
+    if (selectedMasterGroups.length > 0 && beforeDate) {
+      res.status(400).json({ ok: false, error: "Xóa danh mục không hỗ trợ mốc ngày — bỏ mốc ngày hoặc bỏ chọn nhóm danh mục." });
+      return;
+    }
+
+    // Precheck khóa ngoại cho nhóm danh mục: bảng lịch sử tham chiếu phải trống,
+    // hoặc nằm trong chính danh sách bị xóa toàn bộ của lần này.
+    if (selectedMasterGroups.length > 0) {
+      const historyTablesInRequest = new Set(uniqueTables(selectedHistoryGroups));
+      const blockers: string[] = [];
+      for (const group of selectedMasterGroups) {
+        for (const table of MASTER_PRECHECKS[group.key] ?? []) {
+          if (historyTablesInRequest.has(table)) continue;
+          const count = await countRows(table);
+          if (count > 0) blockers.push(`${table} (${count.toLocaleString("vi-VN")} dòng)`);
+        }
+      }
+      if (blockers.length > 0) {
+        res.status(400).json({
+          ok: false,
+          error: `Chưa xóa được danh mục vì còn lịch sử tham chiếu: ${[...new Set(blockers)].join(", ")}. Hãy chọn thêm các nhóm lịch sử tương ứng để xóa cùng lúc, hoặc xóa lịch sử trước.`
+        });
+        return;
+      }
     }
 
     const supabase = getSupabaseAdmin();

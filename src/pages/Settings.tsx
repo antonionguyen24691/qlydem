@@ -9,6 +9,7 @@ import { Input } from "../components/ui/Input";
 import { permissionCatalog, permissionScopeFor, permissionScopeLabels, permissionScopes, type PermissionScope, withPermissionScope } from "../lib/permissionCatalog";
 import { ThemeSettingsSection } from "../components/settings/ThemeSettingsSection";
 import { useThemeStore } from "../store/theme";
+import { useDataStore } from "../store/data";
 
 const importTargets = [
   {
@@ -152,6 +153,12 @@ const historyClearOptions = [
   { key: "imports", label: "Lịch sử import dữ liệu", description: "Batch import và lỗi import Excel." }
 ];
 
+const masterClearOptions = [
+  { key: "master-customers", label: "DANH MỤC khách hàng", description: "Xóa toàn bộ khách hàng + liên hệ. Cần xóa sạch lịch sử bán/công nợ trước." },
+  { key: "master-suppliers", label: "DANH MỤC nhà cung cấp", description: "Xóa toàn bộ NCC. Cần xóa sạch lịch sử mua/nhập hàng trước." },
+  { key: "master-products", label: "DANH MỤC sản phẩm & tồn kho", description: "Xóa toàn bộ hàng hóa, tồn kho, lịch sử giá. Cần xóa sạch lịch sử bán + kho trước." }
+];
+
 const emptyForm = {
   id: "",
   email: "",
@@ -223,6 +230,7 @@ export function Settings() {
   const [clearHistoryGroups, setClearHistoryGroups] = useState<string[]>([]);
   const [clearHistoryConfirmation, setClearHistoryConfirmation] = useState("");
   const [clearHistoryResult, setClearHistoryResult] = useState<Record<string, number> | null>(null);
+  const loadLiveData = useDataStore((state) => state.loadLiveData);
   const [historyArchives, setHistoryArchives] = useState<Array<{ id: string; groups: string[]; row_counts: Record<string, number>; created_at: string }>>([]);
   const [downloadingArchiveId, setDownloadingArchiveId] = useState("");
   const [isClearingHistory, setIsClearingHistory] = useState(false);
@@ -640,11 +648,17 @@ export function Settings() {
       setOperationsError("Vui lòng nhập XOA để xác nhận xóa lịch sử.");
       return;
     }
-    const labels = historyClearOptions
+    const labels = [...historyClearOptions, ...masterClearOptions]
       .filter((item) => clearHistoryGroups.includes(item.key))
       .map((item) => item.label)
       .join(", ");
     if (!window.confirm(`Xóa vĩnh viễn các nhóm: ${labels}?`)) return;
+    const selectedMasterLabels = masterClearOptions
+      .filter((item) => clearHistoryGroups.includes(item.key))
+      .map((item) => item.label);
+    if (selectedMasterLabels.length > 0 && !window.confirm(
+      `⚠️ CẢNH BÁO: Bạn sắp xóa toàn bộ ${selectedMasterLabels.join(", ")}.\n\nĐây là dữ liệu danh mục gốc, xóa xong KHÔNG thể hoàn tác trong app (chỉ còn bản lưu JSON). Bấm OK để xác nhận lần cuối.`
+    )) return;
 
     setIsClearingHistory(true);
     setOperationsError("");
@@ -677,7 +691,8 @@ export function Settings() {
         (resyncParts.length > 0 ? ` Đã đồng bộ lại số dư: ${resyncParts.join(", ")}.` : "")
       );
       setClearHistoryConfirmation("");
-      await loadOperations();
+      // Tải lại dữ liệu app ngay để các trang (Tài chính, Đơn hàng...) không hiển thị số cũ.
+      await Promise.all([loadOperations(), loadLiveData()]);
     } catch (error) {
       setOperationsError(error instanceof Error ? error.message : "Không xóa được lịch sử.");
     } finally {
@@ -1457,6 +1472,29 @@ export function Settings() {
                     </span>
                   </label>
                 ))}
+              </div>
+
+              <div className="mt-5 rounded-[var(--radius-card)] border-2 border-dashed border-red-300 bg-red-50 p-3 sm:p-4">
+                <div className="text-sm font-black uppercase tracking-wide text-red-700">Xóa dữ liệu danh mục — cực kỳ nguy hiểm</div>
+                <div className="mt-1 text-xs text-red-700/80">
+                  Xóa trắng khách hàng / nhà cung cấp / sản phẩm để làm lại từ đầu. Phải xóa sạch lịch sử liên quan trước (hoặc tick chọn cùng lúc với các nhóm lịch sử ở trên). Có xác nhận 2 lần trước khi xóa; dữ liệu vẫn được lưu vào bản backup JSON bên dưới.
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {masterClearOptions.map((option) => (
+                    <label key={option.key} className="flex cursor-pointer gap-3 rounded-[var(--radius-card)] border border-red-200 bg-white p-3 shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={clearHistoryGroups.includes(option.key)}
+                        onChange={() => toggleClearHistoryGroup(option.key)}
+                        className="mt-1 h-4 w-4 shrink-0 accent-red-600"
+                      />
+                      <span className="min-w-0">
+                        <span className="block font-bold text-red-700">{option.label}</span>
+                        <span className="mt-0.5 block text-xs text-zinc-500">{option.description}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
