@@ -36,6 +36,7 @@ const CASHBOOK_SOURCE_LABEL: Record<string, string> = {
   EXPENSE: "Chi phí"
 };
 type OrderDebtRow = { id: string; order_id: string; customer_id: string; remaining_amount: number; due_date?: string; status: string };
+type PromiseRow = { id: string; customer_id: string; promised_amount: number; promised_date: string; status: string; contact_name?: string; note?: string; created_at: string };
 
 type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
 type PeriodFilter = "MONTH" | "30_DAYS" | "ALL";
@@ -73,6 +74,18 @@ export function Finance() {
   const [fundPerson, setFundPerson] = useState("");
   const [fundNote, setFundNote] = useState("");
   const [isSavingFund, setIsSavingFund] = useState(false);
+  const [promises, setPromises] = useState<PromiseRow[]>([]);
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [adjustDirection, setAdjustDirection] = useState<"INCREASE" | "DECREASE">("DECREASE");
+  const [adjustAmount, setAdjustAmount] = useState<number | "">("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [isSavingAdjust, setIsSavingAdjust] = useState(false);
+  const [isPromiseOpen, setIsPromiseOpen] = useState(false);
+  const [promiseAmount, setPromiseAmount] = useState<number | "">("");
+  const [promiseDate, setPromiseDate] = useState("");
+  const [promiseContact, setPromiseContact] = useState("");
+  const [promiseNote, setPromiseNote] = useState("");
+  const [isSavingPromise, setIsSavingPromise] = useState(false);
 
   useEffect(() => {
     if (location.hash !== "#cong-no") return;
@@ -82,24 +95,27 @@ export function Finance() {
   const loadFinanceRows = async () => {
     try {
       const headers = await getAuthHeaders();
-      const [receiptResponse, supplierResponse, cashbookResponse, debtResponse] = await Promise.all([
+      const [receiptResponse, supplierResponse, cashbookResponse, debtResponse, promiseResponse] = await Promise.all([
         fetch("/api/data/receipts", { headers }),
         fetch("/api/data/suppliers", { headers }),
         fetch("/api/data/cashbook_entries", { headers }),
-        fetch("/api/data/order_debts", { headers })
+        fetch("/api/data/order_debts", { headers }),
+        fetch("/api/data/payment-promises", { headers })
       ]);
-      const [receiptBody, supplierBody, cashbookBody, debtBody] = await Promise.all([
-        receiptResponse.json(), supplierResponse.json(), cashbookResponse.json(), debtResponse.json()
+      const [receiptBody, supplierBody, cashbookBody, debtBody, promiseBody] = await Promise.all([
+        receiptResponse.json(), supplierResponse.json(), cashbookResponse.json(), debtResponse.json(), promiseResponse.json()
       ]);
       if (receiptResponse.ok && receiptBody.ok) setReceipts(receiptBody.rows ?? []);
       if (supplierResponse.ok && supplierBody.ok) setSuppliers(supplierBody.rows ?? []);
       if (cashbookResponse.ok && cashbookBody.ok) setCashbookEntries(cashbookBody.rows ?? []);
       if (debtResponse.ok && debtBody.ok) setOrderDebts(debtBody.rows ?? []);
+      if (promiseResponse.ok && promiseBody.ok) setPromises(promiseBody.rows ?? []);
     } catch {
       setReceipts([]);
       setSuppliers([]);
       setCashbookEntries([]);
       setOrderDebts([]);
+      setPromises([]);
     }
   };
 
@@ -190,6 +206,21 @@ export function Finance() {
   const selectedTotalPaid = selectedCustomerOrders.reduce((sum, order) => sum + order.paid, 0);
   const selectedOldestDebtAge = selectedCustomer ? debtAgeByCustomer.get(selectedCustomer.id) ?? 0 : 0;
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const selectedCustomerPromises = useMemo(() => {
+    if (!selectedCustomer) return [];
+    return promises
+      .filter((promise) => promise.customer_id === selectedCustomer.id)
+      .sort((a, b) => (a.status === "OPEN" ? -1 : 1) - (b.status === "OPEN" ? -1 : 1) || a.promised_date.localeCompare(b.promised_date));
+  }, [promises, selectedCustomer]);
+  const overduePromiseCustomerIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const promise of promises) {
+      if (promise.status === "OPEN" && promise.promised_date < todayIso) set.add(promise.customer_id);
+    }
+    return set;
+  }, [promises, todayIso]);
+
   const openFundDialog = (action: FundAction) => {
     setFundAction(action);
     setFundAmount("");
@@ -250,29 +281,102 @@ export function Finance() {
     setIsReceiptOpen(true);
   };
 
-  const adjustCustomerDebt = async (customer: Customer) => {
+  const openAdjustDialog = () => {
     if (!isAdmin(user)) return;
-    const rawDelta = window.prompt(`Nhập số điều chỉnh công nợ cho ${customer.name}. Tăng nợ nhập số dương, giảm nợ nhập số âm:`);
-    if (!rawDelta) return;
-    const delta = Number(rawDelta.replace(/[^0-9-]/g, ""));
-    if (!Number.isFinite(delta) || delta === 0) {
-      alert("Số điều chỉnh không hợp lệ.");
+    setAdjustDirection("DECREASE");
+    setAdjustAmount("");
+    setAdjustNote("");
+    setIsAdjustOpen(true);
+  };
+
+  const submitDebtAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomer || !isAdmin(user)) return;
+    const amount = Number(adjustAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Số tiền điều chỉnh không hợp lệ.");
       return;
     }
-    const note = window.prompt("Nhập lý do điều chỉnh công nợ:");
-    if (!note?.trim()) return;
-    const idempotencyKey = crypto.randomUUID();
-    const response = await fetch("/api/data/customer-debt-adjustments", {
-      method: "POST",
-      headers: { ...(await getAuthHeaders()), "content-type": "application/json", "idempotency-key": idempotencyKey },
-      body: JSON.stringify({ customerId: customer.id, delta, note: note.trim(), idempotencyKey })
-    });
-    const body = await response.json();
-    if (!response.ok || !body.ok) {
-      alert(body.error ?? "Không điều chỉnh được công nợ.");
+    if (!adjustNote.trim()) {
+      alert("Vui lòng nhập lý do điều chỉnh.");
       return;
     }
-    await Promise.all([loadLiveData(), loadFinanceRows()]);
+    const delta = adjustDirection === "INCREASE" ? amount : -amount;
+    setIsSavingAdjust(true);
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const response = await fetch("/api/data/customer-debt-adjustments", {
+        method: "POST",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json", "idempotency-key": idempotencyKey },
+        body: JSON.stringify({ customerId: selectedCustomer.id, delta, note: adjustNote.trim(), idempotencyKey })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không điều chỉnh được công nợ.");
+      setIsAdjustOpen(false);
+      await Promise.all([loadLiveData(), loadFinanceRows()]);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không điều chỉnh được công nợ.");
+    } finally {
+      setIsSavingAdjust(false);
+    }
+  };
+
+  const openPromiseForCustomer = (customer: Customer) => {
+    const defaultDate = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    setPromiseAmount(customer.oldDebt > 0 ? customer.oldDebt : "");
+    setPromiseDate(defaultDate);
+    setPromiseContact("");
+    setPromiseNote("");
+    setIsPromiseOpen(true);
+  };
+
+  const savePromise = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomer) return;
+    const amount = Number(promiseAmount);
+    if (amount <= 0 || !promiseDate) {
+      alert("Vui lòng nhập số tiền và ngày hẹn trả hợp lệ.");
+      return;
+    }
+    setIsSavingPromise(true);
+    try {
+      const response = await fetch("/api/data/payment-promises", {
+        method: "POST",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
+        body: JSON.stringify({
+          customerId: selectedCustomer.id,
+          promisedAmount: amount,
+          promisedDate: promiseDate,
+          contactName: promiseContact.trim() || undefined,
+          note: promiseNote.trim() || undefined
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không lưu được hẹn trả nợ.");
+      setIsPromiseOpen(false);
+      await loadFinanceRows();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không lưu được hẹn trả nợ.");
+    } finally {
+      setIsSavingPromise(false);
+    }
+  };
+
+  const resolvePromise = async (promiseId: string, status: "KEPT" | "BROKEN") => {
+    const label = status === "KEPT" ? "ĐÃ TRẢ đúng hẹn" : "THẤT HỨA";
+    if (!window.confirm(`Đánh dấu hẹn trả này là ${label}?`)) return;
+    try {
+      const response = await fetch("/api/data/payment-promises", {
+        method: "PATCH",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
+        body: JSON.stringify({ id: promiseId, status })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không cập nhật được hẹn trả.");
+      await loadFinanceRows();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không cập nhật được hẹn trả.");
+    }
   };
 
   const selectReceiptCustomer = (customerId: string) => {
@@ -615,13 +719,16 @@ export function Finance() {
                         <td className="px-5 py-4 whitespace-nowrap text-center">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                             customer.oldDebt > customer.creditLimit && customer.creditLimit > 0
-                              ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20' 
-                              : customer.oldDebt > 0 
+                              ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+                              : customer.oldDebt > 0
                                 ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20'
                                 : 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
                           }`}>
                             {customer.oldDebt > customer.creditLimit && customer.creditLimit > 0 ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
                           </span>
+                          {overduePromiseCustomerIds.has(customer.id) && (
+                            <span className="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold uppercase text-red-700">Trễ hẹn</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -644,15 +751,20 @@ export function Finance() {
                         <h3 className="mb-1 line-clamp-2 break-words text-base font-bold uppercase text-zinc-900">{customer.name}</h3>
                         <div className="truncate text-sm font-medium text-zinc-500">{customer.phone || "-"}</div>
                       </div>
-                      <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        customer.oldDebt > customer.creditLimit && customer.creditLimit > 0
-                          ? 'bg-red-50 text-red-700' 
-                          : customer.oldDebt > 0 
-                            ? 'bg-orange-50 text-orange-700'
-                            : 'bg-emerald-50 text-emerald-700'
-                      }`}>
-                        {customer.oldDebt > customer.creditLimit && customer.creditLimit > 0 ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
-                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          customer.oldDebt > customer.creditLimit && customer.creditLimit > 0
+                            ? 'bg-red-50 text-red-700'
+                            : customer.oldDebt > 0
+                              ? 'bg-orange-50 text-orange-700'
+                              : 'bg-emerald-50 text-emerald-700'
+                        }`}>
+                          {customer.oldDebt > customer.creditLimit && customer.creditLimit > 0 ? 'Vượt hạn mức' : customer.oldDebt > 0 ? 'Đang nợ' : 'An toàn'}
+                        </span>
+                        {overduePromiseCustomerIds.has(customer.id) && (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700">Trễ hẹn</span>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex justify-between items-end mt-4 pt-4 border-t border-zinc-100">
@@ -713,7 +825,7 @@ export function Finance() {
                     </div>
                   </div>
                   {isAdmin(user) && (
-                    <Button type="button" variant="outline" className="w-full" onClick={() => void adjustCustomerDebt(selectedCustomer)}>
+                    <Button type="button" variant="outline" className="w-full" onClick={openAdjustDialog}>
                       Điều chỉnh công nợ có ghi sổ
                     </Button>
                   )}
@@ -757,6 +869,45 @@ export function Finance() {
 
                   <div>
                     <div className="mb-2 flex items-center justify-between">
+                      <h3 className="font-bold text-zinc-900">Hẹn trả nợ</h3>
+                      <span className="text-xs font-bold text-amber-600">{selectedCustomerPromises.filter((promise) => promise.status === "OPEN").length}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {selectedCustomerPromises.slice(0, 5).map((promise) => {
+                        const isOverdue = promise.status === "OPEN" && promise.promised_date < todayIso;
+                        return (
+                          <div key={promise.id} className={`rounded-[var(--radius-control)] border p-3 text-sm ${isOverdue ? "border-red-200 bg-red-50" : "border-zinc-200 bg-white"}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-bold text-zinc-900">{new Date(promise.promised_date).toLocaleDateString("vi-VN")}</div>
+                                <div className="text-xs text-zinc-500">{promise.contact_name || promise.note || "—"}</div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className={`font-bold ${isOverdue ? "text-red-600" : "text-amber-600"}`}>{Number(promise.promised_amount ?? 0).toLocaleString()} ₫</div>
+                                <span className={`text-[10px] font-bold uppercase ${
+                                  promise.status === "KEPT" ? "text-emerald-600" : promise.status === "BROKEN" ? "text-red-500" : isOverdue ? "text-red-600" : "text-amber-600"
+                                }`}>
+                                  {promise.status === "KEPT" ? "Đã trả" : promise.status === "BROKEN" ? "Thất hứa" : isOverdue ? "Trễ hẹn" : "Chờ trả"}
+                                </span>
+                              </div>
+                            </div>
+                            {promise.status === "OPEN" && (
+                              <div className="mt-2 flex gap-2">
+                                <button type="button" onClick={() => void resolvePromise(promise.id, "KEPT")} className="flex-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100">Đã trả</button>
+                                <button type="button" onClick={() => void resolvePromise(promise.id, "BROKEN")} className="flex-1 rounded-md bg-red-50 px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-100">Thất hứa</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {selectedCustomerPromises.length === 0 && (
+                        <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 bg-zinc-50 py-4 text-center text-sm text-zinc-500">Chưa có hẹn trả nợ.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
                       <h3 className="font-bold text-zinc-900">Phiếu thu</h3>
                       <span className="text-xs font-bold text-emerald-600">{selectedCustomerReceipts.length}</span>
                     </div>
@@ -777,8 +928,9 @@ export function Finance() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 border-t border-zinc-100 p-4">
+                <div className="grid grid-cols-3 gap-2 border-t border-zinc-100 p-4">
                   <Button variant="outline" onClick={() => setSelectedCustomer(null)}>Bỏ chọn</Button>
+                  <Button variant="outline" className="text-amber-700 border-amber-200 hover:bg-amber-50" onClick={() => openPromiseForCustomer(selectedCustomer)}>Hẹn trả</Button>
                   <Button onClick={() => openReceiptForCustomer(selectedCustomer)}>Thu nợ</Button>
                 </div>
               </div>
@@ -958,6 +1110,93 @@ export function Finance() {
             >
               {isSavingReceipt ? "Đang xử lý..." : "Xác nhận thu tiền"}
             </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog isOpen={isPromiseOpen} onClose={() => setIsPromiseOpen(false)} title={`Hẹn trả nợ${selectedCustomer ? ` — ${selectedCustomer.name}` : ""}`}>
+        <form onSubmit={savePromise} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-bold text-zinc-700">Ngày hẹn trả *</label>
+              <Input type="date" value={promiseDate} min={todayIso} onChange={(event) => setPromiseDate(event.target.value)} required />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-bold text-zinc-700">Số tiền hẹn trả *</label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={promiseAmount}
+                onChange={(event) => setPromiseAmount(event.target.value === "" ? "" : Number(event.target.value))}
+                placeholder="0"
+                required
+              />
+            </div>
+          </div>
+          {typeof promiseAmount === "number" && promiseAmount > 0 && (
+            <div className="rounded-[var(--radius-control)] bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">{promiseAmount.toLocaleString()} ₫</div>
+          )}
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-zinc-700">Người hẹn / liên hệ</label>
+            <Input value={promiseContact} onChange={(event) => setPromiseContact(event.target.value)} placeholder="VD: Anh Ba - chủ cửa hàng" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-zinc-700">Ghi chú</label>
+            <textarea value={promiseNote} onChange={(event) => setPromiseNote(event.target.value)} rows={2} placeholder="VD: Hẹn trả sau khi bán xong lô hàng..." className="w-full resize-none rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsPromiseOpen(false)}>Hủy</Button>
+            <Button type="submit" disabled={isSavingPromise} className="flex-1">{isSavingPromise ? "Đang lưu..." : "Lưu hẹn trả"}</Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} title={`Điều chỉnh công nợ${selectedCustomer ? ` — ${selectedCustomer.name}` : ""}`}>
+        <form onSubmit={submitDebtAdjustment} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-zinc-700">Loại điều chỉnh</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAdjustDirection("DECREASE")}
+                className={`rounded-[var(--radius-control)] border px-3 py-2.5 text-sm font-bold ${adjustDirection === "DECREASE" ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-white text-zinc-600"}`}
+              >
+                Giảm nợ
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdjustDirection("INCREASE")}
+                className={`rounded-[var(--radius-control)] border px-3 py-2.5 text-sm font-bold ${adjustDirection === "INCREASE" ? "border-red-500 bg-red-50 text-red-600" : "border-zinc-200 bg-white text-zinc-600"}`}
+              >
+                Tăng nợ
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-zinc-700">Số tiền *</label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={adjustAmount}
+              onChange={(event) => setAdjustAmount(event.target.value === "" ? "" : Number(event.target.value))}
+              placeholder="0"
+              required
+            />
+            {typeof adjustAmount === "number" && adjustAmount > 0 && selectedCustomer && (
+              <div className={`mt-2 rounded-[var(--radius-control)] px-3 py-2 text-sm font-bold ${adjustDirection === "INCREASE" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
+                {adjustDirection === "INCREASE" ? "+" : "−"}{adjustAmount.toLocaleString()} ₫ → Nợ mới: {Math.max(0, selectedCustomer.oldDebt + (adjustDirection === "INCREASE" ? adjustAmount : -adjustAmount)).toLocaleString()} ₫
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-zinc-700">Lý do điều chỉnh *</label>
+            <textarea value={adjustNote} onChange={(event) => setAdjustNote(event.target.value)} rows={2} required placeholder="VD: Trừ nợ hàng trả lại, chốt sổ đầu kỳ..." className="w-full resize-none rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsAdjustOpen(false)}>Hủy</Button>
+            <Button type="submit" disabled={isSavingAdjust} className="flex-1">{isSavingAdjust ? "Đang lưu..." : "Xác nhận điều chỉnh"}</Button>
           </div>
         </form>
       </Dialog>

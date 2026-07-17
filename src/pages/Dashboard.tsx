@@ -1,8 +1,12 @@
 import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Plus } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDataStore } from "../store/data";
 import { useThemeStore } from "../store/theme";
+import { getAuthHeaders } from "../lib/supabase";
+
+type PromiseSummary = { customer_id: string; promised_amount: number; promised_date: string; status: string };
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -15,6 +19,19 @@ function money(value: number) {
 export function Dashboard() {
   const themeId = useThemeStore((state) => state.themeId);
   const { orders, products, customers, isLoadingLiveData, liveDataError } = useDataStore();
+  const [promises, setPromises] = useState<PromiseSummary[]>([]);
+  useEffect(() => {
+    // Không phải role nào cũng có quyền finance.view — lỗi thì bỏ qua, không chặn dashboard.
+    (async () => {
+      try {
+        const response = await fetch("/api/data/payment-promises", { headers: await getAuthHeaders() });
+        const body = await response.json();
+        if (response.ok && body.ok) setPromises(body.rows ?? []);
+      } catch {
+        setPromises([]);
+      }
+    })();
+  }, []);
   const today = startOfDay(new Date());
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -28,6 +45,11 @@ export function Dashboard() {
   const debtCustomers = customers.filter((customer) => customer.oldDebt > 0);
   const totalDebt = debtCustomers.reduce((sum, customer) => sum + customer.oldDebt, 0);
   const topDebtCustomers = [...debtCustomers].sort((a, b) => b.oldDebt - a.oldDebt).slice(0, 4);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const overduePromises = promises.filter((promise) => promise.status === "OPEN" && promise.promised_date < todayIso);
+  const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
+  const overduePromiseNames = Array.from(new Set(overduePromises.map((promise) => customerNameById.get(promise.customer_id) ?? ""))).filter(Boolean);
+  const overduePromiseTotal = overduePromises.reduce((sum, promise) => sum + Number(promise.promised_amount ?? 0), 0);
 
   const last7Days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today);
@@ -89,6 +111,14 @@ export function Dashboard() {
           ))}
           {topDebtCustomers.length === 0 && <div className="rounded-[var(--radius-control)] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">Chưa có công nợ cần cảnh báo.</div>}
         </div>
+        {overduePromises.length > 0 && (
+          <div className="mt-3 rounded-[var(--radius-control)] bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
+            <div className="text-sm font-bold text-amber-800">
+              ⏰ {overduePromiseNames.length} khách trễ hẹn trả nợ · tổng hẹn {money(overduePromiseTotal)}
+            </div>
+            <div className="mt-1 truncate text-xs font-semibold text-amber-700">{overduePromiseNames.slice(0, 4).join(" · ")}{overduePromiseNames.length > 4 ? ` +${overduePromiseNames.length - 4} khách khác` : ""}</div>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-7">

@@ -223,6 +223,8 @@ export function Settings() {
   const [clearHistoryGroups, setClearHistoryGroups] = useState<string[]>([]);
   const [clearHistoryConfirmation, setClearHistoryConfirmation] = useState("");
   const [clearHistoryResult, setClearHistoryResult] = useState<Record<string, number> | null>(null);
+  const [historyArchives, setHistoryArchives] = useState<Array<{ id: string; groups: string[]; row_counts: Record<string, number>; created_at: string }>>([]);
+  const [downloadingArchiveId, setDownloadingArchiveId] = useState("");
   const [isClearingHistory, setIsClearingHistory] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
@@ -575,22 +577,25 @@ export function Settings() {
     setOperationsError("");
     try {
       const headers = await getAuthHeaders();
-      const [readinessResponse, auditResponse, supplierResponse, purchaseResponse] = await Promise.all([
+      const [readinessResponse, auditResponse, supplierResponse, purchaseResponse, archivesResponse] = await Promise.all([
         fetch("/api/operations/readiness", { headers }),
         fetch("/api/data/audit_logs", { headers }),
         fetch("/api/data/suppliers", { headers }),
-        fetch("/api/data/purchase_orders", { headers })
+        fetch("/api/data/purchase_orders", { headers }),
+        fetch("/api/operations/clear-history-archives", { headers })
       ]);
       const readinessBody = await readinessResponse.json();
       const auditBody = await auditResponse.json();
       const supplierBody = await supplierResponse.json();
       const purchaseBody = await purchaseResponse.json();
+      const archivesBody = await archivesResponse.json();
       if (!readinessResponse.ok || !readinessBody.ok) throw new Error(readinessBody.error ?? "Không kiểm tra được trạng thái vận hành.");
       if (!auditResponse.ok || !auditBody.ok) throw new Error(auditBody.error ?? "Không đọc được audit logs.");
       setReadiness(readinessBody);
       setAuditLogs((auditBody.rows ?? []).slice(0, 12));
       setSupplierRows((supplierBody.rows ?? []).slice(0, 8));
       setPurchaseRows((purchaseBody.rows ?? []).slice(0, 8));
+      if (archivesResponse.ok && archivesBody.ok) setHistoryArchives(archivesBody.archives ?? []);
     } catch (error) {
       setOperationsError(error instanceof Error ? error.message : "Không tải được dữ liệu vận hành.");
     } finally {
@@ -660,13 +665,46 @@ export function Settings() {
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không xóa được lịch sử.");
       setClearHistoryResult(body.deleted ?? {});
-      setOperationsMessage(`Đã xóa ${Number(body.totalDeleted ?? 0).toLocaleString()} dòng lịch sử.`);
+      const resynced = body.resynced ?? {};
+      const resyncParts = [
+        resynced.customerDebts > 0 ? `${resynced.customerDebts} công nợ khách` : "",
+        resynced.supplierPayables > 0 ? `${resynced.supplierPayables} công nợ NCC` : "",
+        resynced.settledOrders > 0 ? `${resynced.settledOrders} đơn tất toán` : "",
+        resynced.customerSalesStats > 0 ? `${resynced.customerSalesStats} doanh thu KH` : ""
+      ].filter(Boolean);
+      setOperationsMessage(
+        `Đã xóa ${Number(body.totalDeleted ?? 0).toLocaleString()} dòng lịch sử.` +
+        (resyncParts.length > 0 ? ` Đã đồng bộ lại số dư: ${resyncParts.join(", ")}.` : "")
+      );
       setClearHistoryConfirmation("");
       await loadOperations();
     } catch (error) {
       setOperationsError(error instanceof Error ? error.message : "Không xóa được lịch sử.");
     } finally {
       setIsClearingHistory(false);
+    }
+  };
+
+  const downloadHistoryArchive = async (archiveId: string) => {
+    setDownloadingArchiveId(archiveId);
+    setOperationsError("");
+    try {
+      const response = await fetch(`/api/operations/clear-history-archives?id=${encodeURIComponent(archiveId)}`, {
+        headers: await getAuthHeaders()
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được bản lưu.");
+      const blob = new Blob([JSON.stringify(body.archive, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `backup-truoc-khi-xoa-${String(body.archive?.created_at ?? "").slice(0, 10)}-${archiveId.slice(0, 8)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setOperationsError(error instanceof Error ? error.message : "Không tải được bản lưu.");
+    } finally {
+      setDownloadingArchiveId("");
     }
   };
 
@@ -1448,6 +1486,35 @@ export function Settings() {
                         <span className="font-bold text-zinc-900">{count.toLocaleString()}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {historyArchives.length > 0 && (
+                <div className="mt-4 rounded-[var(--radius-control)] border border-zinc-200 bg-white p-3 text-sm">
+                  <div className="font-bold text-zinc-900">Bản lưu tự động trước khi xóa</div>
+                  <div className="mt-1 text-xs text-zinc-500">Mỗi lần xóa lịch sử, hệ thống tự lưu toàn bộ dữ liệu bị xóa. Tải JSON để lưu trữ ngoài.</div>
+                  <div className="mt-2 space-y-2">
+                    {historyArchives.slice(0, 6).map((archive) => {
+                      const totalRows = Object.values(archive.row_counts ?? {}).reduce<number>((sum, value) => sum + Number(value ?? 0), 0);
+                      return (
+                        <div key={archive.id} className="flex flex-col gap-2 rounded bg-zinc-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <span className="font-bold text-zinc-900">{new Date(archive.created_at).toLocaleString("vi-VN")}</span>
+                            <span className="ml-2 text-xs text-zinc-500">{(archive.groups ?? []).join(", ")} · {totalRows.toLocaleString()} dòng</span>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={downloadingArchiveId === archive.id}
+                            onClick={() => void downloadHistoryArchive(archive.id)}
+                          >
+                            {downloadingArchiveId === archive.id ? "Đang tải..." : "Tải JSON"}
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

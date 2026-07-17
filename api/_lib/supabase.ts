@@ -68,6 +68,21 @@ type ReadActor = {
   permissions: PermissionMap;
 };
 
+// PostgREST trả tối đa 1000 dòng mỗi request; phải phân trang để không mất dữ liệu
+// (ảnh hưởng cả app, export Excel và backup Google Sheets khi bảng vượt 1000 dòng).
+const SELECT_PAGE_SIZE = 1000;
+
+export async function selectAllPaginated(buildQuery: (from: number, to: number) => any, label: string) {
+  const rows: any[] = [];
+  for (let from = 0; ; from += SELECT_PAGE_SIZE) {
+    const { data, error } = await buildQuery(from, from + SELECT_PAGE_SIZE - 1);
+    if (error) throw new Error(`${label}: ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < SELECT_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 const TABLE_READ_PERMISSION: Partial<Record<ExportableTable, string>> = {
   customers: "customers.view",
   products: "products.view",
@@ -106,28 +121,31 @@ const TABLE_READ_PERMISSION: Partial<Record<ExportableTable, string>> = {
 async function fetchOwnedRows(table: ExportableTable, actorId: string) {
   const supabase = getSupabaseAdmin();
   if (table === "customers") {
-    const { data, error } = await supabase.from("customers").select("*").eq("assigned_sale_id", actorId).order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    return selectAllPaginated((from, to) =>
+      supabase.from("customers").select("*").eq("assigned_sale_id", actorId).order("created_at", { ascending: false }).range(from, to), table);
   }
   if (table === "sales_orders") {
-    const { data, error } = await supabase.from("sales_orders").select("*").eq("sale_id", actorId).order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    return selectAllPaginated((from, to) =>
+      supabase.from("sales_orders").select("*").eq("sale_id", actorId).order("created_at", { ascending: false }).range(from, to), table);
   }
   if (table === "sales_order_items") {
-    const { data: orders, error: orderError } = await supabase.from("sales_orders").select("id").eq("sale_id", actorId);
-    if (orderError) throw new Error(orderError.message);
-    const orderIds = (orders ?? []).map((row) => row.id);
+    const orders = await selectAllPaginated((from, to) =>
+      supabase.from("sales_orders").select("id").eq("sale_id", actorId).range(from, to), "sales_orders");
+    const orderIds = orders.map((row) => row.id);
     if (orderIds.length === 0) return [];
-    const { data, error } = await supabase.from("sales_order_items").select("*").in("order_id", orderIds).order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows: any[] = [];
+    // .in() với danh sách dài làm URL quá giới hạn — chia lô 200 id.
+    for (let index = 0; index < orderIds.length; index += 200) {
+      const batch = orderIds.slice(index, index + 200);
+      const batchRows = await selectAllPaginated((from, to) =>
+        supabase.from("sales_order_items").select("*").in("order_id", batch).order("created_at", { ascending: false }).range(from, to), table);
+      rows.push(...batchRows);
+    }
+    return rows;
   }
   if (table === "order_debts") {
-    const { data, error } = await supabase.from("order_debts").select("*").eq("sale_id", actorId).order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    return selectAllPaginated((from, to) =>
+      supabase.from("order_debts").select("*").eq("sale_id", actorId).order("created_at", { ascending: false }).range(from, to), table);
   }
   return [];
 }
@@ -144,11 +162,10 @@ export async function fetchTableRows(table: ExportableTable, actor?: ReadActor) 
     throw error;
   }
   if (effectiveScope === "own" && actor) return fetchOwnedRows(table, actor.id);
-  const { data, error } = await supabase
-    .from(table)
-    .select("*")
-    .order("created_at", { ascending: false, nullsFirst: false });
-
-  if (error) throw new Error(`${table}: ${error.message}`);
-  return data ?? [];
+  return selectAllPaginated((from, to) =>
+    supabase
+      .from(table)
+      .select("*")
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .range(from, to), table);
 }

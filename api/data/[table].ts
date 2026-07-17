@@ -1030,6 +1030,104 @@ async function createSupplierPayment(req: ApiRequest, res: ApiResponse) {
   res.status(200).json(data);
 }
 
+// Hẹn trả nợ: ghi nhận lời hứa thanh toán của khách để theo dõi thu hồi công nợ.
+async function handlePaymentPromises(req: ApiRequest, res: ApiResponse) {
+  const supabase = getSupabaseAdmin();
+
+  if (req.method === "GET") {
+    await requirePermission(req, "finance.view");
+    const customerId = getQueryValue(req.query?.customerId);
+    let query: any = supabase
+      .from("payment_promises")
+      .select("*")
+      .order("status", { ascending: false })
+      .order("promised_date", { ascending: true })
+      .limit(500);
+    if (customerId) query = query.eq("customer_id", customerId);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    res.status(200).json({ ok: true, rows: data ?? [] });
+    return;
+  }
+
+  if (req.method === "POST") {
+    const actor = await requirePermission(req, "finance.receipt.create");
+    const body = getJsonBody(req);
+    const customerId = optionalString(body.customerId);
+    const promisedAmount = toNumber(body.promisedAmount);
+    const promisedDateRaw = optionalString(body.promisedDate);
+    if (!customerId || promisedAmount <= 0 || !promisedDateRaw) {
+      res.status(400).json({ ok: false, error: "Thiếu khách hàng, số tiền hoặc ngày hẹn trả." });
+      return;
+    }
+    const promisedDate = new Date(promisedDateRaw);
+    if (Number.isNaN(promisedDate.getTime())) {
+      res.status(400).json({ ok: false, error: "Ngày hẹn trả không hợp lệ." });
+      return;
+    }
+    const { data: customer, error: customerError } = await supabase
+      .from("customers").select("id,name").eq("id", customerId).maybeSingle();
+    if (customerError) throw new Error(customerError.message);
+    if (!customer) {
+      res.status(400).json({ ok: false, error: "Không tìm thấy khách hàng." });
+      return;
+    }
+    const { data, error } = await supabase
+      .from("payment_promises")
+      .insert({
+        customer_id: customerId,
+        promised_amount: promisedAmount,
+        promised_date: promisedDate.toISOString().slice(0, 10),
+        status: "OPEN",
+        contact_name: optionalString(body.contactName),
+        contact_phone: optionalString(body.contactPhone),
+        note: optionalString(body.note),
+        created_by: actor.id
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    await supabase.from("audit_logs").insert({
+      actor_id: actor.id,
+      action: "CREATE",
+      entity_type: "payment_promise",
+      entity_id: data.id,
+      after_json: { promise: data, customerName: customer.name }
+    });
+    res.status(200).json({ ok: true, promise: data });
+    return;
+  }
+
+  if (req.method === "PATCH") {
+    const actor = await requirePermission(req, "finance.receipt.create");
+    const body = getJsonBody(req);
+    const promiseId = optionalString(body.id);
+    const status = toStringValue(body.status).trim().toUpperCase();
+    if (!promiseId || !["KEPT", "BROKEN", "OPEN"].includes(status)) {
+      res.status(400).json({ ok: false, error: "Thiếu phiếu hẹn trả hoặc trạng thái không hợp lệ (KEPT/BROKEN/OPEN)." });
+      return;
+    }
+    const { data, error } = await supabase
+      .from("payment_promises")
+      .update({ status, resolved_at: status === "OPEN" ? null : new Date().toISOString() })
+      .eq("id", promiseId)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    await supabase.from("audit_logs").insert({
+      actor_id: actor.id,
+      action: "UPDATE",
+      entity_type: "payment_promise",
+      entity_id: promiseId,
+      after_json: { status }
+    });
+    res.status(200).json({ ok: true, promise: data });
+    return;
+  }
+
+  return methodNotAllowed(res, ["GET", "POST", "PATCH"]);
+}
+
 async function cancelSalesOrder(req: ApiRequest, res: ApiResponse) {
   const actor = await requirePermission(req, "orders.create");
   if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
@@ -1394,6 +1492,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "sales-order-cancellations" && req.method === "POST") {
       await cancelSalesOrder(req, res);
+      return;
+    }
+
+    if (table === "payment-promises") {
+      await handlePaymentPromises(req, res);
       return;
     }
 

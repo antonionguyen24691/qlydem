@@ -125,9 +125,9 @@ function mapProduct(row: any, stockByProduct: Map<string, number>, minStockByPro
   };
 }
 
-function mapOrder(row: any, items: any[], customers: Customer[]): Order {
-  const customer = customers.find((item) => item.id === row.customer_id);
-  const orderItems = items.filter((item) => item.order_id === row.id).map((item) => ({
+function mapOrder(row: any, itemsByOrder: Map<string, any[]>, customersById: Map<string, Customer>): Order {
+  const customer = customersById.get(row.customer_id);
+  const orderItems = (itemsByOrder.get(row.id) ?? []).map((item) => ({
     id: item.product_id ?? item.product_code ?? item.id,
     name: item.product_name,
     size: "",
@@ -207,7 +207,15 @@ export const useDataStore = create<DataStore>((set, get) => ({
 
       const customers = customerRows.map(mapCustomer);
       const products = productRows.map((row: any) => mapProduct(row, stockByProduct, minStockByProduct));
-      const orders = orderRows.map((row: any) => mapOrder(row, orderItemRows, customers));
+      // Gom nhóm trước để tránh quét lại toàn bộ items/customers cho từng đơn (O(n²) khi dữ liệu lớn).
+      const customersById = new Map<string, Customer>(customers.map((customer: Customer) => [customer.id, customer]));
+      const itemsByOrder = new Map<string, any[]>();
+      for (const item of orderItemRows) {
+        const bucket = itemsByOrder.get(item.order_id);
+        if (bucket) bucket.push(item);
+        else itemsByOrder.set(item.order_id, [item]);
+      }
+      const orders = orderRows.map((row: any) => mapOrder(row, itemsByOrder, customersById));
       set({ customers, products, orders, isLiveData: true, isLoadingLiveData: false });
     } catch (error) {
       set({
