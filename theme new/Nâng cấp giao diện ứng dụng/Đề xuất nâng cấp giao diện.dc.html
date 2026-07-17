@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; background: #EDEDE8; color: #1C1C1A; }
+  a { color: #1B5E56; text-decoration: none; }
+  a:hover { color: #12463F; }
+</style>
+</helmet>
+<section style="padding:40px;">
+  <div id="6a" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#1B5E56;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">6a</span>
+      <div style="font-size:15px;font-weight:700;">Dialog &amp; mini-page (Moss) — 13 form/hộp thoại sau các nút: Phiếu thu · Chi phí · Sổ quỹ · Hàng hóa · Phiếu nhập · Kiểm kê &amp; duyệt · POS chọn SP · Khách hàng · Thanh toán NCC · Bộ lọc · Chi tiết SP · Bảng giá · Tab Cấu hình</div>
+    </div>
+    <div style="width:1900px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-A-dialogs" hint-size="1900px,2900px" style="width:1900px;"></dc-import>
+    </div>
+  </div>
+  <div id="6b" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#AE4F26;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">6b</span>
+      <div style="font-size:15px;font-weight:700;">Dialog &amp; mini-page (Terracotta) — bộ đại diện: Phiếu thu · Sổ quỹ · POS chọn SP · Hàng hóa (các dialog khác đổi theo token, xem ghi chú)</div>
+    </div>
+    <div style="width:1900px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-B-dialogs" hint-size="1900px,1750px" style="width:1900px;"></dc-import>
+    </div>
+  </div>
+  <div id="5a" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#1B5E56;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">5a</span>
+      <div style="font-size:15px;font-weight:700;">Web — trang còn thiếu (Moss): Đơn hàng · Chi tiết đơn · Sản phẩm · Tồn kho · Khách hàng · Chi tiết KH · NCC · Cấu hình · Đăng nhập</div>
+    </div>
+    <div style="width:1440px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-A-pages" hint-size="1440px,8300px" style="width:1440px;"></dc-import>
+    </div>
+  </div>
+  <div id="5b" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#AE4F26;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">5b</span>
+      <div style="font-size:15px;font-weight:700;">Web — trang còn thiếu (Terracotta): Đơn hàng · Chi tiết đơn · Sản phẩm · Tồn kho · Khách hàng · Chi tiết KH · NCC · Cấu hình · Đăng nhập</div>
+    </div>
+    <div style="width:1440px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-B-pages" hint-size="1440px,8300px" style="width:1440px;"></dc-import>
+    </div>
+  </div>
+  <div id="4a" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#AE4F26;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">4a</span>
+      <div style="font-size:15px;font-weight:700;">Mobile — form thao tác &amp; màn bổ sung: Phiếu thu · Phiếu nhập kho · Khách mới · Thông báo · Menu Moss · KH/NCC/Đơn hàng/Chi tiết đơn/Phiếu thu/Đăng nhập Terracotta</div>
+    </div>
+    <div style="width:1840px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-mobile-3" hint-size="1840px,2850px" style="width:1840px;"></dc-import>
+    </div>
+  </div>
+  <div id="3a" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#1B5E56;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">3a</span>
+      <div style="font-size:15px;font-weight:700;">Mobile — các màn còn lại &amp; trang chi tiết: Sản phẩm · Tồn kho · Khách hàng · NCC · Đăng nhập · Cấu hình theme · Chi tiết khách hàng · Chi tiết đơn hàng</div>
+    </div>
+    <div style="width:1840px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-mobile-2" hint-size="1840px,2850px" style="width:1840px;"></dc-import>
+    </div>
+  </div>
+  <div style="max-width:1000px;margin-bottom:28px;">
+    <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.02em;">Mockup mobile — 2 theme</h1>
+    <p style="margin:8px 0 0;font-size:15px;color:#55554E;line-height:1.6;">Tổng quan + POS trên điện thoại cho theme Moss (<a href="#1a">1a</a>) và Terracotta (<a href="#1b">1b</a>), kèm bottom tab bar đúng như <code>BottomTabBar.tsx</code> trong gói source đã bàn giao.</p>
+  </div>
+  <div id="2a" style="margin-bottom:48px;">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#122E29;color:#E9B44C;font-weight:800;font-size:14px;padding:4px 10px;">2a</span>
+      <div style="font-size:15px;font-weight:700;">Mobile — Moss &amp; Terracotta (Tổng quan · POS · tab bar)</div>
+    </div>
+    <div style="width:1840px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);">
+      <dc-import name="PMQL-mobile" hint-size="1840px,1900px" style="width:1840px;"></dc-import>
+    </div>
+  </div>
+  <div id="2b">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#059669;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">2b</span>
+      <div style="font-size:15px;font-weight:700;">Cấu hình → Giao diện (theme) — mục admin chọn theme, đối chiếu với <code>ThemeSettingsSection.tsx</code></div>
+    </div>
+    <div style="width:900px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);background:#fafafa;">
+      <dc-import name="PMQL-theme-picker" hint-size="900px,540px" style="width:900px;"></dc-import>
+    </div>
+  </div>
+</section>
+<section style="padding:40px;">
+  <div style="max-width:1000px;margin-bottom:28px;">
+    <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.02em;">Đề xuất nâng cấp giao diện PMQL</h1>
+    <p style="margin:8px 0 0;font-size:15px;color:#55554E;line-height:1.6;">Hai phương án cho 3 màn hình ưu tiên (Tổng quan · POS · Tài chính). Cả hai đều tương tác được — bấm menu bên trong từng phương án để chuyển màn hình. Bản tái hiện giao diện hiện tại đặt ở dưới cùng để đối chiếu.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;">
+    <div id="1a" style="flex-shrink:0;">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#122E29;color:#E9B44C;font-weight:800;font-size:14px;padding:4px 10px;">1a</span>
+        <div>
+          <div style="font-size:17px;font-weight:700;">Xanh rêu thanh lịch</div>
+          <div style="font-size:13px;color:#55554E;">Sidebar tối phân nhóm · POS chạm nhanh + bảng thanh toán tối · thanh tuổi nợ bấm-để-lọc</div>
+        </div>
+      </div>
+      <div style="width:1440px;height:900px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.15);background:#F4F4F0;">
+        <dc-import name="PMQL-A" hint-size="1440px,900px" style="width:1440px;height:900px;"></dc-import>
+      </div>
+    </div>
+    <div id="1b" style="flex-shrink:0;">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#AE4F26;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">1b</span>
+        <div>
+          <div style="font-size:17px;font-weight:700;">Đất nung hiện đại</div>
+          <div style="font-size:13px;color:#55554E;">Menu ngang, không sidebar · POS dạng lưới sản phẩm chạm · công nợ xếp cột theo tuổi nợ (kanban)</div>
+        </div>
+      </div>
+      <div style="width:1440px;height:900px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.15);background:#FBF7F2;">
+        <dc-import name="PMQL-B" hint-size="1440px,900px" style="width:1440px;height:900px;"></dc-import>
+      </div>
+    </div>
+    <div id="1c" style="flex-shrink:0;">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#71717a;color:#FFFFFF;font-weight:800;font-size:14px;padding:4px 10px;">Hiện tại</span>
+        <div>
+          <div style="font-size:17px;font-weight:700;">Giao diện hiện tại (tái hiện để đối chiếu)</div>
+          <div style="font-size:13px;color:#55554E;">Emerald/zinc · sidebar trắng · bảng truyền thống</div>
+        </div>
+      </div>
+      <div style="width:1440px;height:900px;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.12);background:#fafafa;">
+        <dc-import name="PMQL-hien-tai" hint-size="1440px,900px" style="width:1440px;height:900px;"></dc-import>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

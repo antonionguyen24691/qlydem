@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@600;700&amp;family=Instrument+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; background: #EDEDE8; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
+  a { color: #1B5E56; text-decoration: none; }
+  a:hover { color: #12463F; }
+</style>
+</helmet>
+<div style="display:flex;gap:36px;padding:36px;flex-wrap:wrap;align-items:flex-start;">
+
+  <!-- ============ MOSS · Lập phiếu thu ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Moss · Lập phiếu thu</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#F4F4F0;font-family:'Geist',sans-serif;">
+        <div style="padding:58px 18px 12px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:10px;background:#FFFFFF;border:1px solid #E2E2DA;color:#6B6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></span>
+            <div style="font-size:17px;font-weight:800;">Lập phiếu thu</div>
+          </div>
+          <span style="font-size:12px;color:#8A8A80;">PT00215</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:10px;">
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Khách hàng</div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">CÔNG TY TNHH XD AN PHÁT</div>
+                <div style="font-size:11px;color:#C2452D;font-weight:600;">Nợ hiện tại 42.500.000 ₫ · 3 đơn</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Số tiền thu</div>
+            <div style="margin-top:8px;display:flex;align-items:baseline;justify-content:space-between;border-radius:12px;background:#F4F4F0;padding:14px;">
+              <span style="font-family:'Geist Mono',monospace;font-size:26px;font-weight:700;color:#1B5E56;">10.000.000</span>
+              <span style="font-size:14px;color:#8A8A80;font-weight:600;">₫</span>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;">
+              <span style="flex:1;border-radius:9999px;border:1px solid #E2E2DA;background:#FFFFFF;color:#6B6B62;padding:7px 0;text-align:center;font-size:12px;font-weight:600;">5 tr</span>
+              <span style="flex:1;border-radius:9999px;border:1px solid #E2E2DA;background:#FFFFFF;color:#6B6B62;padding:7px 0;text-align:center;font-size:12px;font-weight:600;">10 tr</span>
+              <span style="flex:1;border-radius:9999px;border:1px solid #E2E2DA;background:#FFFFFF;color:#6B6B62;padding:7px 0;text-align:center;font-size:12px;font-weight:600;">Toàn bộ</span>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Gán vào đơn (tự động từ cũ nhất)</div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F5F5EF;font-size:13px;">
+              <span style="font-weight:700;color:#1B5E56;">HD002344 <span style="font-weight:500;color:#8A8A80;font-size:11px;">18/06</span></span>
+              <span style="font-family:'Geist Mono',monospace;font-weight:700;color:#1B5E56;">8.800.000 ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13px;">
+              <span style="font-weight:700;color:#1B5E56;">HD002391 <span style="font-weight:500;color:#8A8A80;font-size:11px;">24/06</span></span>
+              <span style="font-family:'Geist Mono',monospace;font-weight:700;color:#1B5E56;">1.200.000 / 15,2 tr</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <span style="flex:1;border-radius:12px;background:#ECFDF5;box-shadow:inset 0 0 0 2px #059669;color:#047857;padding:12px 0;text-align:center;font-size:13px;font-weight:700;">Tiền mặt</span>
+            <span style="flex:1;border-radius:12px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E2E2DA;color:#6B6B62;padding:12px 0;text-align:center;font-size:13px;font-weight:600;">Chuyển khoản</span>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding:12px 18px 40px;">
+          <div style="border-radius:12px;background:#1B5E56;color:#FFFFFF;padding:15px 0;text-align:center;font-size:15px;font-weight:700;">Lưu phiếu thu — còn nợ 32.500.000 ₫</div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ MOSS · Phiếu nhập kho ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Moss · Phiếu nhập kho</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#F4F4F0;font-family:'Geist',sans-serif;">
+        <div style="padding:58px 18px 12px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:10px;background:#FFFFFF;border:1px solid #E2E2DA;color:#6B6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></span>
+            <div style="font-size:17px;font-weight:800;">Phiếu nhập kho</div>
+          </div>
+          <span style="font-size:12px;color:#8A8A80;">PN00183</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:10px;">
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Nhà cung cấp</div>
+              <div style="margin-top:4px;font-size:14px;font-weight:600;">Xi măng Hà Tiên — Đại lý Nam SG</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;overflow:hidden;">
+            <div style="padding:12px 14px;border-bottom:1px solid #F5F5EF;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;font-weight:600;">Xi măng PCB40 Hà Tiên</span>
+                <span style="font-size:11px;color:#C2452D;font-weight:700;">tồn 18</span>
+              </div>
+              <div style="margin-top:8px;display:flex;gap:8px;">
+                <div style="flex:1;border-radius:10px;background:#F4F4F0;padding:9px 12px;font-size:13px;"><span style="color:#8A8A80;">SL:</span> <strong style="font-family:'Geist Mono',monospace;">100 bao</strong></div>
+                <div style="flex:1;border-radius:10px;background:#F4F4F0;padding:9px 12px;font-size:13px;"><span style="color:#8A8A80;">Giá:</span> <strong style="font-family:'Geist Mono',monospace;">88.000</strong></div>
+              </div>
+            </div>
+            <div style="padding:12px 14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:14px;font-weight:600;">Cát xây tô (khối)</span>
+                <span style="font-size:11px;color:#C2452D;font-weight:700;">tồn 6</span>
+              </div>
+              <div style="margin-top:8px;display:flex;gap:8px;">
+                <div style="flex:1;border-radius:10px;background:#F4F4F0;padding:9px 12px;font-size:13px;"><span style="color:#8A8A80;">SL:</span> <strong style="font-family:'Geist Mono',monospace;">20 khối</strong></div>
+                <div style="flex:1;border-radius:10px;background:#F4F4F0;padding:9px 12px;font-size:13px;"><span style="color:#8A8A80;">Giá:</span> <strong style="font-family:'Geist Mono',monospace;">290.000</strong></div>
+              </div>
+            </div>
+          </div>
+          <div style="border-radius:12px;border:1px dashed #C8DCD0;background:#F6FAF8;color:#1B5E56;padding:12px 0;text-align:center;font-size:13px;font-weight:700;">+ Thêm mặt hàng</div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#6B6B62;"><span>Tổng tiền nhập</span><span style="font-family:'Geist Mono',monospace;font-weight:700;color:#1C1C1A;">14.600.000 ₫</span></div>
+            <div style="margin-top:8px;display:flex;gap:6px;">
+              <span style="flex:1;border-radius:9999px;background:#122E29;color:#FFFFFF;padding:8px 0;text-align:center;font-size:12px;font-weight:700;">Ghi nợ NCC</span>
+              <span style="flex:1;border-radius:9999px;border:1px solid #E2E2DA;background:#FFFFFF;color:#6B6B62;padding:8px 0;text-align:center;font-size:12px;font-weight:600;">Trả ngay</span>
+            </div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding:12px 18px 40px;">
+          <div style="border-radius:12px;background:#1B5E56;color:#FFFFFF;padding:15px 0;text-align:center;font-size:15px;font-weight:700;">Nhập kho — cập nhật tồn ngay</div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ MOSS · Khách hàng mới ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Moss · Thêm khách hàng</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#F4F4F0;font-family:'Geist',sans-serif;">
+        <div style="padding:58px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:10px;">
+          <span style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:10px;background:#FFFFFF;border:1px solid #E2E2DA;color:#6B6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></span>
+          <div style="font-size:17px;font-weight:800;">Thêm khách hàng</div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:10px;">
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:4px 14px;">
+            <div style="padding:12px 0;border-bottom:1px solid #F5F5EF;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Tên khách hàng *</div>
+              <div style="margin-top:4px;font-size:14px;font-weight:600;">CÔNG TY CP XÂY DỰNG THÀNH ĐẠT</div>
+            </div>
+            <div style="padding:12px 0;border-bottom:1px solid #F5F5EF;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Số điện thoại *</div>
+              <div style="margin-top:4px;font-size:14px;font-weight:600;">0912 445 887</div>
+            </div>
+            <div style="padding:12px 0;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Địa chỉ</div>
+              <div style="margin-top:4px;font-size:14px;color:#A3A39B;">Số nhà, đường, phường/xã…</div>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">Cho phép ghi nợ</div>
+                <div style="font-size:11px;color:#8A8A80;">Khách được mua chịu theo hạn mức</div>
+              </div>
+              <div style="width:44px;height:26px;border-radius:9999px;background:#1B5E56;position:relative;"><span style="position:absolute;top:3px;right:3px;height:20px;width:20px;border-radius:9999px;background:#FFFFFF;"></span></div>
+            </div>
+            <div style="margin-top:12px;border-top:1px solid #F5F5EF;padding-top:12px;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Hạn mức công nợ</div>
+              <div style="margin-top:6px;border-radius:10px;background:#F4F4F0;padding:11px 12px;font-family:'Geist Mono',monospace;font-size:15px;font-weight:700;">30.000.000 ₫</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding:12px 18px 40px;display:flex;gap:8px;">
+          <span style="flex:1;border-radius:12px;border:1px solid #E2E2DA;background:#FFFFFF;color:#1C1C1A;padding:14px 0;text-align:center;font-size:14px;font-weight:600;">Hủy</span>
+          <span style="flex:2;border-radius:12px;background:#1B5E56;color:#FFFFFF;padding:14px 0;text-align:center;font-size:14px;font-weight:700;">Lưu khách hàng</span>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ MOSS · Thông báo ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Moss · Thông báo</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#F4F4F0;font-family:'Geist',sans-serif;">
+        <div style="padding:62px 18px 0;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;">Thông báo</div>
+          <span style="font-size:12px;font-weight:700;color:#1B5E56;">✓✓ Đã đọc tất cả</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:12px 18px 0;display:flex;flex-direction:column;gap:8px;">
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;display:flex;gap:10px;">
+            <span style="margin-top:5px;height:8px;width:8px;border-radius:9999px;background:#C2452D;flex-shrink:0;"></span>
+            <div>
+              <div style="font-size:13px;font-weight:700;">Khách vượt hạn mức công nợ</div>
+              <div style="margin-top:2px;font-size:12px;color:#6B6B62;line-height:1.45;">ANH TUẤN — THẦU KHOÁN Q.7 nợ 18,2 tr, vượt hạn mức 15 tr đã 34 ngày.</div>
+              <div style="margin-top:4px;font-size:11px;color:#A3A39B;">11/07 08:00</div>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;display:flex;gap:10px;">
+            <span style="margin-top:5px;height:8px;width:8px;border-radius:9999px;background:#C2452D;flex-shrink:0;"></span>
+            <div>
+              <div style="font-size:13px;font-weight:700;">3 mặt hàng dưới định mức tồn</div>
+              <div style="margin-top:2px;font-size:12px;color:#6B6B62;line-height:1.45;">Xi măng PCB40 (18), Cát xây tô (6), Thép Ø6 — cần tạo phiếu nhập.</div>
+              <div style="margin-top:4px;font-size:11px;color:#A3A39B;">11/07 07:30</div>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;display:flex;gap:10px;">
+            <span style="margin-top:5px;height:8px;width:8px;border-radius:9999px;background:#C2452D;flex-shrink:0;"></span>
+            <div>
+              <div style="font-size:13px;font-weight:700;">Phiếu thu PT00214 đã ghi sổ</div>
+              <div style="margin-top:2px;font-size:12px;color:#6B6B62;line-height:1.45;">Thu 10 tr từ An Phát (tiền mặt) — gán vào HD002344, HD002391.</div>
+              <div style="margin-top:4px;font-size:11px;color:#A3A39B;">10/07 16:20</div>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#FFFFFF;border:1px solid #E8E8E0;padding:14px;display:flex;gap:10px;opacity:0.6;">
+            <span style="margin-top:5px;height:8px;width:8px;border-radius:9999px;background:#D1D1C7;flex-shrink:0;"></span>
+            <div>
+              <div style="font-size:13px;font-weight:700;">Đến hạn trả NCC Hòa Phát</div>
+              <div style="margin-top:2px;font-size:12px;color:#6B6B62;line-height:1.45;">22 tr đến hạn 15/07 — đã lên lịch chuyển khoản.</div>
+              <div style="margin-top:4px;font-size:11px;color:#A3A39B;">09/07 10:05</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;display:flex;border-top:1px solid #E2E2DA;background:#FFFFFF;padding:6px 6px 26px;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#8A8A80;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg><span style="font-size:10px;font-weight:500;">Tổng quan</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#8A8A80;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg><span style="font-size:10px;font-weight:500;">Bán hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#8A8A80;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg><span style="font-size:10px;font-weight:500;">Đơn hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#8A8A80;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg><span style="font-size:10px;font-weight:500;">Tài chính</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#1B5E56;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg><span style="font-size:10px;font-weight:700;">Menu</span></div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ MOSS · Menu drawer ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Moss · Menu (drawer)</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="position:relative;display:flex;flex-direction:column;height:100%;background:#F4F4F0;font-family:'Geist',sans-serif;">
+        <div style="position:absolute;inset:0;background:rgba(18,46,41,0.55);"></div>
+        <div style="position:absolute;top:0;bottom:0;left:0;width:78%;background:#122E29;color:#E8EDE9;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,0.3);">
+          <div style="padding:62px 18px 14px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;height:34px;width:34px;align-items:center;justify-content:center;border-radius:10px;background:#E9B44C;color:#122E29;font-weight:800;font-size:14px;">P</div>
+            <div>
+              <div style="font-weight:700;font-size:15px;color:#FFFFFF;">PMQL</div>
+              <div style="font-size:11px;color:#7FA096;">Chủ cửa hàng · ADMIN</div>
+            </div>
+          </div>
+          <div style="flex:1;min-height:0;overflow:hidden;padding:8px 12px;display:flex;flex-direction:column;gap:2px;">
+            <div style="padding:8px 12px 4px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Vận hành</div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;">Sản phẩm</div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;">Tồn kho</div>
+            <div style="padding:8px 12px 4px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Đối tác</div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;">Khách hàng</div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;">Nhà cung cấp</div>
+            <div style="padding:8px 12px 4px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Hệ thống</div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:700;color:#FFFFFF;background:rgba(233,180,76,0.14);box-shadow:inset 2px 0 0 #E9B44C;">Cấu hình · chọn theme</div>
+            <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;">Thông báo</div>
+          </div>
+          <div style="flex-shrink:0;padding:12px 18px 44px;border-top:1px solid rgba(255,255,255,0.08);font-size:13px;font-weight:600;color:#D89A93;">Đăng xuất</div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ TERRACOTTA · Khách hàng ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Terracotta · Khách hàng</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#FBF7F2;font-family:'Instrument Sans',sans-serif;">
+        <div style="padding:62px 18px 0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">Khách hàng</div>
+            <span style="border-radius:9999px;background:#2B2420;color:#FBF7F2;padding:7px 14px;font-size:12px;font-weight:600;">+ Khách mới</span>
+          </div>
+          <div style="margin-top:10px;border-radius:12px;border:1px solid #EBE2D8;background:#FFFFFF;padding:11px 14px;font-size:14px;color:#B3A79D;">Tìm theo tên hoặc SĐT…</div>
+          <div style="margin-top:10px;display:flex;gap:6px;">
+            <span style="border-radius:9999px;background:#2B2420;color:#FBF7F2;padding:6px 12px;font-size:12px;font-weight:700;white-space:nowrap;">Tất cả · 148</span>
+            <span style="border-radius:9999px;background:#FFFFFF;border:1px solid #EBE2D8;color:#7A6A5D;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap;">Đang nợ · 12</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:8px 18px 0;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#FBEEE6;color:#AE4F26;font-weight:700;font-size:14px;">A</div>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#2B2420;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CÔNG TY TNHH XD AN PHÁT</div>
+              <div style="font-size:11px;color:#A08D7D;">0903 442 118 · doanh số 186,4 tr</div>
+            </div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;flex-shrink:0;">nợ 42,5 tr</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#FBEEE6;color:#AE4F26;font-weight:700;font-size:14px;">T</div>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#2B2420;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">ANH TUẤN — THẦU KHOÁN Q.7</div>
+              <div style="font-size:11px;color:#A08D7D;">0987 224 561 · <span style="color:#AE4F26;font-weight:700;">vượt hạn mức</span></div>
+            </div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;flex-shrink:0;">nợ 18,2 tr</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#FBEEE6;color:#AE4F26;font-weight:700;font-size:14px;">B</div>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#2B2420;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CT TRƯỜNG TH BÌNH AN</div>
+              <div style="font-size:11px;color:#A08D7D;">0913 887 240 · doanh số 152,7 tr</div>
+            </div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;flex-shrink:0;">nợ 27,3 tr</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#FBEEE6;color:#AE4F26;font-weight:700;font-size:14px;">H</div>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#2B2420;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CHỊ HỒNG — VLXD MINH HỒNG</div>
+              <div style="font-size:11px;color:#A08D7D;">0938 664 902 · doanh số 64,3 tr</div>
+            </div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;flex-shrink:0;">nợ 8,75 tr</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;">
+            <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#FBEEE6;color:#AE4F26;font-weight:700;font-size:14px;">L</div>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#2B2420;">Khách lẻ</div>
+              <div style="font-size:11px;color:#A08D7D;">Không ghi nợ · doanh số 214,6 tr</div>
+            </div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#3D7A4A;flex-shrink:0;">0 ₫</span>
+          </div>
+        </div>
+        <div style="flex-shrink:0;display:flex;border-top:1px solid #EBE2D8;background:#FFFFFF;padding:6px 6px 26px;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg><span style="font-size:10px;font-weight:500;">Tổng quan</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg><span style="font-size:10px;font-weight:500;">Bán hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg><span style="font-size:10px;font-weight:500;">Đơn hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg><span style="font-size:10px;font-weight:500;">Tài chính</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#AE4F26;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg><span style="font-size:10px;font-weight:700;">Menu</span></div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ TERRACOTTA · Đơn hàng ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Terracotta · Đơn hàng</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#FBF7F2;font-family:'Instrument Sans',sans-serif;">
+        <div style="padding:62px 18px 0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">Đơn hàng</div>
+            <span style="font-size:12px;color:#7A6A5D;">Hôm nay · 14 đơn</span>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;">
+            <span style="border-radius:9999px;background:#2B2420;color:#FBF7F2;padding:6px 12px;font-size:12px;font-weight:700;white-space:nowrap;">Tất cả</span>
+            <span style="border-radius:9999px;background:#FFFFFF;border:1px solid #EBE2D8;color:#7A6A5D;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap;">Còn nợ</span>
+            <span style="border-radius:9999px;background:#FFFFFF;border:1px solid #EBE2D8;color:#7A6A5D;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap;">Đã thanh toán</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:8px 18px 0;">
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;font-weight:700;color:#2B2420;">HD002431 <span style="margin-left:6px;font-size:10px;font-weight:700;color:#3D7A4A;background:#EAF3EC;border-radius:4px;padding:2px 6px;">Đã TT</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#2B2420;">5.965.000 ₫</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">ANH DŨNG — NHÀ PHỐ THỦ ĐỨC · 09:42 · Tiền mặt</div>
+          </div>
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;font-weight:700;color:#2B2420;">HD002430 <span style="margin-left:6px;font-size:10px;font-weight:700;color:#AE4F26;background:#FBEEE6;border-radius:4px;padding:2px 6px;">Ghi nợ</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#2B2420;">12.480.000 ₫</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">CÔNG TY TNHH XD AN PHÁT · 09:15 · Ghi nợ</div>
+          </div>
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;font-weight:700;color:#2B2420;">HD002429 <span style="margin-left:6px;font-size:10px;font-weight:700;color:#3D7A4A;background:#EAF3EC;border-radius:4px;padding:2px 6px;">Đã TT</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#2B2420;">640.000 ₫</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">Khách lẻ · 08:56 · Chuyển khoản</div>
+          </div>
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;font-weight:700;color:#2B2420;">HD002428 <span style="margin-left:6px;font-size:10px;font-weight:700;color:#3D7A4A;background:#EAF3EC;border-radius:4px;padding:2px 6px;">Đã TT</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#2B2420;">3.120.000 ₫</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">CHỊ HỒNG — VLXD MINH HỒNG · 08:30 · Tiền mặt</div>
+          </div>
+          <div style="padding:12px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;font-weight:700;color:#2B2420;">HD002427 <span style="margin-left:6px;font-size:10px;font-weight:700;color:#AE4F26;background:#FBEEE6;border-radius:4px;padding:2px 6px;">Nợ một phần</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#2B2420;">19.300.000 ₫</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">CT TRƯỜNG TH BÌNH AN · 08:02 · TM + nợ</div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;display:flex;border-top:1px solid #EBE2D8;background:#FFFFFF;padding:6px 6px 26px;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg><span style="font-size:10px;font-weight:500;">Tổng quan</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg><span style="font-size:10px;font-weight:500;">Bán hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#AE4F26;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg><span style="font-size:10px;font-weight:700;">Đơn hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg><span style="font-size:10px;font-weight:500;">Tài chính</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg><span style="font-size:10px;font-weight:500;">Menu</span></div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ TERRACOTTA · Chi tiết đơn hàng ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Terracotta · Chi tiết đơn hàng</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#FBF7F2;font-family:'Instrument Sans',sans-serif;">
+        <div style="padding:58px 18px 0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:9999px;background:#FFFFFF;border:1px solid #EBE2D8;color:#7A6A5D;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></span>
+              <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:#2B2420;">HD002430</div>
+                <div style="font-size:11px;color:#A08D7D;">11/07 09:15 · Chủ cửa hàng</div>
+              </div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#AE4F26;background:#FBEEE6;border-radius:4px;padding:3px 8px;">Ghi nợ</span>
+          </div>
+          <div style="margin-top:12px;border-top:1px solid #EBE2D8;border-bottom:1px solid #EBE2D8;padding:12px 0;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#2B2420;">CÔNG TY TNHH XD AN PHÁT</div>
+              <div style="font-size:11px;color:#A08D7D;">Giao tại công trình Q.7</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A08D7D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+          </div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:12px 18px 0;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#2B2420;margin-bottom:4px;">6 mặt hàng</div>
+          <div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #EBE2D8;font-size:13px;">
+            <div><div style="font-weight:600;color:#2B2420;">Xi măng PCB40 Hà Tiên</div><div style="font-size:11px;color:#A08D7D;">40 bao × 95.000</div></div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#2B2420;">3.800.000</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #EBE2D8;font-size:13px;">
+            <div><div style="font-weight:600;color:#2B2420;">Thép cuộn Ø6 Hòa Phát</div><div style="font-size:11px;color:#A08D7D;">300 kg × 15.500</div></div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#2B2420;">4.650.000</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #EBE2D8;font-size:13px;">
+            <div><div style="font-weight:600;color:#2B2420;">Gạch ống 4 lỗ Tuynel</div><div style="font-size:11px;color:#A08D7D;">2.000 viên × 1.450</div></div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#2B2420;">2.900.000</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:11px 0;font-size:13px;">
+            <div><div style="font-weight:600;color:#2B2420;">Cát xây tô + đá 1x2</div><div style="font-size:11px;color:#A08D7D;">2 khối + 1,5 khối</div></div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#2B2420;">1.130.000</span>
+          </div>
+        </div>
+        <div style="flex-shrink:0;background:#FFFFFF;border-top:1px solid #EBE2D8;padding:14px 18px 34px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:#7A6A5D;"><span>Tổng tiền hàng</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#2B2420;">12.480.000 ₫</span></div>
+          <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed #EBE2D8;padding-top:10px;">
+            <span style="font-size:13px;font-weight:700;color:#2B2420;">Còn nợ</span>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#AE4F26;">12.480.000 ₫</span>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <span style="flex:1;border-radius:9999px;border:1px solid #EBE2D8;background:#FFFFFF;color:#2B2420;padding:11px 0;text-align:center;font-size:13px;font-weight:600;">In bill</span>
+            <span style="flex:1;border-radius:9999px;background:#AE4F26;color:#FFFFFF;padding:11px 0;text-align:center;font-size:13px;font-weight:700;">Thu nợ đơn này</span>
+          </div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ TERRACOTTA · Nhà cung cấp ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Terracotta · Nhà cung cấp</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#FBF7F2;font-family:'Instrument Sans',sans-serif;">
+        <div style="padding:62px 18px 0;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">Nhà cung cấp</div>
+            <span style="border-radius:9999px;background:#2B2420;color:#FBF7F2;padding:7px 14px;font-size:12px;font-weight:600;">+ NCC mới</span>
+          </div>
+          <div style="margin-top:12px;border-top:1px solid #EBE2D8;border-bottom:1px solid #EBE2D8;display:grid;grid-template-columns:1fr 1fr;">
+            <div style="padding:12px 14px 12px 0;border-right:1px solid #EBE2D8;">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Phải trả NCC</div>
+              <div style="margin-top:4px;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;color:#AE4F26;">64,2 tr</div>
+            </div>
+            <div style="padding:12px 0 12px 14px;">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Đến hạn tuần này</div>
+              <div style="margin-top:4px;font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;color:#2B2420;">22 tr</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:8px 18px 0;">
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:14px;font-weight:600;color:#2B2420;">Thép Hòa Phát — CN Q.7</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;">nợ 22 tr</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">0283 776 210 · <span style="color:#AE4F26;font-weight:700;">hạn trả 15/07</span> · nhập 86,8 tr</div>
+          </div>
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:14px;font-weight:600;color:#2B2420;">XM Hà Tiên — Đại lý Nam SG</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;">nợ 30,2 tr</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">0909 553 812 · hạn trả 20/07 · nhập 117,8 tr</div>
+          </div>
+          <div style="padding:12px 0;border-bottom:1px solid #EBE2D8;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:14px;font-weight:600;color:#2B2420;">Cát đá Đồng Nai — Anh Sáu</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#AE4F26;">nợ 12 tr</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">0918 224 090 · hạn trả 25/07 · nhập 42,2 tr</div>
+          </div>
+          <div style="padding:12px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:14px;font-weight:600;color:#2B2420;">Sơn Dulux — NPP Miền Nam</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#3D7A4A;">0 ₫</span>
+            </div>
+            <div style="margin-top:3px;font-size:11px;color:#A08D7D;">1900 555 561 · thanh toán đủ · nhập 39,9 tr</div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;display:flex;border-top:1px solid #EBE2D8;background:#FFFFFF;padding:6px 6px 26px;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg><span style="font-size:10px;font-weight:500;">Tổng quan</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg><span style="font-size:10px;font-weight:500;">Bán hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg><span style="font-size:10px;font-weight:500;">Đơn hàng</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#A08D7D;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg><span style="font-size:10px;font-weight:500;">Tài chính</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#AE4F26;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg><span style="font-size:10px;font-weight:700;">Menu</span></div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ TERRACOTTA · Lập phiếu thu ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Terracotta · Lập phiếu thu</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#FBF7F2;font-family:'Instrument Sans',sans-serif;">
+        <div style="padding:58px 18px 12px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:9999px;background:#FFFFFF;border:1px solid #EBE2D8;color:#7A6A5D;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></span>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#2B2420;">Lập phiếu thu</div>
+          </div>
+          <span style="font-size:12px;color:#A08D7D;">PT00215</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:12px;">
+          <div style="border-top:1px solid #EBE2D8;border-bottom:1px solid #EBE2D8;padding:12px 0;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Khách hàng</div>
+              <div style="margin-top:3px;font-size:14px;font-weight:600;color:#2B2420;">CÔNG TY TNHH XD AN PHÁT</div>
+              <div style="font-size:11px;color:#AE4F26;font-weight:600;">Nợ 42.500.000 ₫ · 3 đơn</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A08D7D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Số tiền thu</div>
+            <div style="margin-top:6px;display:flex;align-items:baseline;justify-content:space-between;border-radius:14px;background:#FFFFFF;border:1px solid #EBE2D8;padding:16px;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#AE4F26;">10.000.000</span>
+              <span style="font-size:14px;color:#A08D7D;font-weight:600;">₫</span>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;">
+              <span style="flex:1;border-radius:9999px;border:1px solid #EBE2D8;background:#FFFFFF;color:#7A6A5D;padding:8px 0;text-align:center;font-size:12px;font-weight:600;">5 tr</span>
+              <span style="flex:1;border-radius:9999px;border:1px solid #AE4F26;background:#FBEEE6;color:#AE4F26;padding:8px 0;text-align:center;font-size:12px;font-weight:700;">10 tr</span>
+              <span style="flex:1;border-radius:9999px;border:1px solid #EBE2D8;background:#FFFFFF;color:#7A6A5D;padding:8px 0;text-align:center;font-size:12px;font-weight:600;">Toàn bộ</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Gán vào đơn — từ cũ nhất</div>
+            <div style="margin-top:4px;display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EBE2D8;font-size:13px;">
+              <span style="font-weight:700;color:#2B2420;">HD002344 <span style="font-weight:500;color:#A08D7D;font-size:11px;">18/06</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#3D7A4A;">8.800.000 ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;">
+              <span style="font-weight:700;color:#2B2420;">HD002391 <span style="font-weight:500;color:#A08D7D;font-size:11px;">24/06</span></span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#2B2420;">1.200.000 / 15,2 tr</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <span style="flex:1;border-radius:9999px;border:1px solid #AE4F26;background:#FBEEE6;color:#AE4F26;padding:10px 0;text-align:center;font-size:13px;font-weight:700;">Tiền mặt</span>
+            <span style="flex:1;border-radius:9999px;border:1px solid #EBE2D8;background:#FFFFFF;color:#7A6A5D;padding:10px 0;text-align:center;font-size:13px;font-weight:600;">Chuyển khoản</span>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding:12px 18px 40px;">
+          <div style="border-radius:9999px;background:#AE4F26;color:#FFFFFF;padding:15px 0;text-align:center;font-size:15px;font-weight:700;">Lưu phiếu thu — còn nợ 32.500.000 ₫</div>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ============ TERRACOTTA · Đăng nhập ============ -->
+  <div>
+    <div style="margin-bottom:10px;font-size:13px;font-weight:700;color:#55554E;">Terracotta · Đăng nhập</div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="394px,856px">
+      <div style="display:flex;flex-direction:column;height:100%;background:#FBF7F2;font-family:'Instrument Sans',sans-serif;">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 28px;">
+          <div style="display:flex;height:52px;width:52px;align-items:center;justify-content:center;border-radius:16px;background:#AE4F26;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;">P</div>
+          <div style="margin-top:20px;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">PMQL</div>
+          <div style="margin-top:6px;font-size:14px;color:#7A6A5D;">Quản lý bán hàng vật liệu xây dựng</div>
+          <div style="margin-top:28px;display:flex;flex-direction:column;gap:10px;">
+            <div style="border-radius:14px;background:#FFFFFF;border:1px solid #EBE2D8;padding:14px;font-size:14px;color:#B3A79D;">Tên đăng nhập</div>
+            <div style="border-radius:14px;background:#FFFFFF;border:1px solid #EBE2D8;padding:14px;font-size:14px;color:#B3A79D;">Mật khẩu</div>
+          </div>
+          <div style="margin-top:16px;border-radius:9999px;background:#AE4F26;color:#FFFFFF;padding:15px 0;text-align:center;font-size:15px;font-weight:700;">Đăng nhập</div>
+          <div style="margin-top:14px;text-align:center;font-size:12px;color:#A08D7D;">Quên mật khẩu? Liên hệ quản trị viên</div>
+        </div>
+        <div style="flex-shrink:0;padding:0 0 40px;text-align:center;font-size:11px;color:#C9B8A8;">© 2026 PMQL</div>
+      </div>
+    </x-import>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

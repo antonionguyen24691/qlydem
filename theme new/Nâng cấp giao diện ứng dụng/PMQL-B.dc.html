@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif; background: #FBF7F2; color: #2B2420; -webkit-font-smoothing: antialiased; }
+  a { color: #AE4F26; text-decoration: none; }
+  a:hover { color: #8C3C1B; }
+  input { font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif; }
+  input::placeholder { color: #B3A79D; }
+  input:focus { outline: 2px solid #AE4F26; outline-offset: -1px; border-radius: 10px; }
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;height:100%;overflow:hidden;background:#FBF7F2;">
+  <header style="display:flex;height:60px;flex-shrink:0;align-items:center;gap:24px;padding:0 28px;box-sizing:border-box;border-bottom:1px solid #EBE2D8;background:#FBF7F2;">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <div style="display:flex;height:30px;width:30px;align-items:center;justify-content:center;border-radius:8px;background:#AE4F26;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;">P</div>
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;letter-spacing:-0.01em;">PMQL</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:4px;flex:1;">
+      <button onClick="{{ goDashboard }}" style="{{ navDashboardStyle }}">Tổng quan</button>
+      <button onClick="{{ goPos }}" style="{{ navPosStyle }}">Bán hàng</button>
+      <button style="border:none;background:transparent;padding:8px 14px;border-radius:9999px;font-size:14px;font-weight:500;color:#7A6A5D;font-family:inherit;cursor:pointer;" style-hover="background:#F2EAE0;">Đơn hàng</button>
+      <button style="border:none;background:transparent;padding:8px 14px;border-radius:9999px;font-size:14px;font-weight:500;color:#7A6A5D;font-family:inherit;cursor:pointer;" style-hover="background:#F2EAE0;">Kho</button>
+      <button style="border:none;background:transparent;padding:8px 14px;border-radius:9999px;font-size:14px;font-weight:500;color:#7A6A5D;font-family:inherit;cursor:pointer;" style-hover="background:#F2EAE0;">Khách hàng</button>
+      <button onClick="{{ goFinance }}" style="{{ navFinanceStyle }}">Tài chính</button>
+    </nav>
+    <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+      <div style="position:relative;">
+        <div style="position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:12px;pointer-events:none;color:#B3A79D;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        </div>
+        <input type="text" placeholder="Tìm kiếm" style="width:190px;box-sizing:border-box;border-radius:9999px;border:1px solid #EBE2D8;padding:8px 14px 8px 34px;font-size:13px;color:#2B2420;background:#FFFFFF;">
+      </div>
+      <button style="position:relative;display:flex;padding:8px;color:#7A6A5D;background:transparent;border:none;border-radius:9999px;cursor:pointer;" style-hover="background:#F2EAE0;">
+        <span style="position:absolute;top:2px;right:2px;height:8px;width:8px;border-radius:9999px;background:#AE4F26;border:2px solid #FBF7F2;"></span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+      </button>
+      <div style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:9999px;background:#2B2420;color:#FBF7F2;font-weight:700;font-size:13px;cursor:pointer;">C</div>
+    </div>
+  </header>
+  <main style="flex:1;overflow-y:auto;min-width:0;">
+    <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ true }}">
+      <section data-screen-label="B — Tổng quan" style="margin:0 auto;width:100%;max-width:1160px;padding:36px 28px 48px;box-sizing:border-box;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+          <div>
+            <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;">Hôm nay, 11 tháng 7</h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#7A6A5D;">Cửa hàng đang vận hành tốt — 3 việc cần chú ý.</p>
+          </div>
+          <button onClick="{{ goPos }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:9999px;background:#AE4F26;color:#FFFFFF;border:none;padding:0 20px;height:42px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;flex-shrink:0;" style-hover="background:#8C3C1B;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+            Bán hàng mới
+          </button>
+        </div>
+        <div style="margin-top:28px;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #EBE2D8;border-bottom:1px solid #EBE2D8;">
+          <div style="padding:22px 24px 22px 0;border-right:1px solid #EBE2D8;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Doanh thu hôm nay</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">18,45 tr ₫</div>
+            <div style="margin-top:6px;font-size:13px;color:#3D7A4A;font-weight:600;">↑ 12,4% so với hôm qua</div>
+          </div>
+          <div style="padding:22px 24px;border-right:1px solid #EBE2D8;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Đơn hàng</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">14</div>
+            <div style="margin-top:6px;font-size:13px;color:#7A6A5D;">11 đơn hôm qua</div>
+          </div>
+          <div style="padding:22px 24px;border-right:1px solid #EBE2D8;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Công nợ phải thu</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:#AE4F26;">128,4 tr ₫</div>
+            <div style="margin-top:6px;font-size:13px;color:#7A6A5D;">12 khách · 2 vượt hạn mức</div>
+          </div>
+          <div style="padding:22px 0 22px 24px;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Quỹ &amp; ngân hàng</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:#2B2420;">228,8 tr ₫</div>
+            <div style="margin-top:6px;font-size:13px;color:#7A6A5D;">Tiền mặt 86,3 · Bank 142,5</div>
+          </div>
+        </div>
+        <div style="margin-top:28px;display:grid;grid-template-columns:1.5fr 1fr;gap:40px;">
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px;">
+              <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;">Doanh thu 7 ngày</h2>
+              <span style="font-size:13px;color:#7A6A5D;">102,95 tr ₫ · 77 đơn</span>
+            </div>
+            <div style="display:flex;height:200px;align-items:flex-end;gap:10px;">
+              <sc-for list="{{ bars }}" as="bar" hint-placeholder-count="7">
+                <div style="display:flex;height:100%;flex:1;flex-direction:column;justify-content:flex-end;gap:8px;">
+                  <div style="text-align:center;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;color:#A08D7D;">{{ bar.valLabel }}</div>
+                  <div style="position:relative;display:flex;flex:1;align-items:flex-end;">
+                    <div style="{{ bar.barStyle }}" title="{{ bar.tip }}"></div>
+                  </div>
+                  <div style="text-align:center;font-size:12px;color:#7A6A5D;">{{ bar.dayLabel }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:32px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+                <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;">Bán chạy trong tuần</h2>
+                <a href="#">Tất cả sản phẩm</a>
+              </div>
+              <div>
+                <sc-for list="{{ topProducts }}" as="tp" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #F2EAE0;">
+                    <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#C9B8A8;width:24px;">{{ tp.rank }}</span>
+                    <span style="flex:1;font-size:14px;font-weight:600;color:#2B2420;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ tp.name }}</span>
+                    <span style="font-size:13px;color:#7A6A5D;flex-shrink:0;">{{ tp.soldLabel }}</span>
+                    <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#2B2420;flex-shrink:0;width:76px;text-align:right;">{{ tp.revLabel }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h2 style="margin:0 0 14px;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;">Cần chú ý</h2>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div onClick="{{ goFinance }}" style="border-radius:14px;background:#FFFFFF;border:1px solid #EBE2D8;padding:16px;cursor:pointer;" style-hover="border-color:#AE4F26;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#AE4F26;">
+                  <span style="height:7px;width:7px;border-radius:9999px;background:#AE4F26;"></span>
+                  Công nợ quá hạn
+                </div>
+                <div style="margin-top:8px;font-size:14px;font-weight:600;color:#2B2420;line-height:1.45;">ANH TUẤN — THẦU KHOÁN Q.7 nợ 18,2 tr đã 34 ngày, vượt hạn mức 15 tr.</div>
+                <div style="margin-top:8px;font-size:13px;color:#AE4F26;font-weight:600;">Xem sổ công nợ →</div>
+              </div>
+              <div style="border-radius:14px;background:#FFFFFF;border:1px solid #EBE2D8;padding:16px;cursor:pointer;" style-hover="border-color:#B9924A;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#B9924A;">
+                  <span style="height:7px;width:7px;border-radius:9999px;background:#B9924A;"></span>
+                  Sắp hết kho
+                </div>
+                <div style="margin-top:8px;font-size:14px;font-weight:600;color:#2B2420;line-height:1.45;">Xi măng PCB40 còn 18 bao — dưới mức tối thiểu. Cát xây tô, thép Ø6 cũng sắp hết.</div>
+                <div style="margin-top:8px;font-size:13px;color:#B9924A;font-weight:600;">Tạo phiếu nhập kho →</div>
+              </div>
+              <div style="border-radius:14px;background:#FFFFFF;border:1px solid #EBE2D8;padding:16px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#3D7A4A;">
+                  <span style="height:7px;width:7px;border-radius:9999px;background:#3D7A4A;"></span>
+                  Thu nợ hôm nay
+                </div>
+                <div style="margin-top:8px;font-size:14px;font-weight:600;color:#2B2420;line-height:1.45;">Đã thu 10 tr từ An Phát (PT00214). Còn 2 khách hẹn trả trong tuần.</div>
+              </div>
+              <div style="border-radius:14px;background:#2B2420;color:#FBF7F2;padding:16px;">
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#C9B8A8;">Chốt ngày hôm qua</div>
+                <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:13px;color:#C9B8A8;"><span>Doanh thu</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#FBF7F2;">17,3 tr ₫</span></div>
+                <div style="margin-top:6px;display:flex;justify-content:space-between;font-size:13px;color:#C9B8A8;"><span>Tiền về quỹ</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#FBF7F2;">14,1 tr ₫</span></div>
+                <div style="margin-top:6px;display:flex;justify-content:space-between;font-size:13px;color:#C9B8A8;"><span>Ghi nợ mới</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#E8A87E;">3,2 tr ₫</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+    <sc-if value="{{ showPos }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="B — POS" style="display:grid;grid-template-columns:minmax(0,1fr) 380px;height:100%;box-sizing:border-box;">
+        <div style="display:flex;flex-direction:column;overflow:hidden;padding:20px 24px;box-sizing:border-box;gap:16px;">
+          <div style="display:flex;gap:10px;flex-shrink:0;align-items:center;">
+            <div style="position:relative;flex:1;">
+              <div style="position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:14px;pointer-events:none;color:#B3A79D;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+              </div>
+              <input type="text" placeholder="Quét mã hoặc tìm sản phẩm..." style="display:block;width:100%;box-sizing:border-box;border-radius:12px;border:1px solid #EBE2D8;padding:12px 14px 12px 44px;font-size:15px;color:#2B2420;background:#FFFFFF;">
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button onClick="{{ setCatAll }}" style="{{ catAllStyle }}">Tất cả</button>
+              <button onClick="{{ setCatXM }}" style="{{ catXMStyle }}">Xi măng &amp; cát đá</button>
+              <button onClick="{{ setCatTH }}" style="{{ catTHStyle }}">Thép &amp; tôn</button>
+              <button onClick="{{ setCatKH }}" style="{{ catKHStyle }}">Khác</button>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+              <sc-for list="{{ catalog }}" as="p" hint-placeholder-count="9">
+                <button onClick="{{ p.add }}" style="{{ p.tileStyle }}">
+                  <span style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                    <span style="font-size:11px;font-weight:700;letter-spacing:0.04em;color:#AE4F26;">{{ p.code }}</span>
+                    <span style="{{ p.qtyBadgeStyle }}">{{ p.qtyLabel }}</span>
+                  </span>
+                  <span style="font-size:14px;font-weight:600;color:#2B2420;line-height:1.35;text-align:left;display:block;">{{ p.name }}</span>
+                  <span style="display:flex;align-items:baseline;justify-content:space-between;width:100%;margin-top:auto;">
+                    <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#2B2420;">{{ p.priceLabel }}</span>
+                    <span style="font-size:11px;color:#A08D7D;">tồn {{ p.stockLabel }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;background:#FFFFFF;border-left:1px solid #EBE2D8;overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid #F2EAE0;flex-shrink:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;">Đơn hàng · {{ cartCount }}</span>
+              <a href="#">+ Chọn khách</a>
+            </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;border-radius:10px;background:#FBF7F2;padding:8px 12px;">
+              <span style="height:8px;width:8px;border-radius:9999px;background:#AE4F26;flex-shrink:0;"></span>
+              <span style="font-size:13px;font-weight:600;color:#2B2420;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CTY TNHH XD AN PHÁT</span>
+              <span style="margin-left:auto;font-size:12px;color:#AE4F26;font-weight:600;flex-shrink:0;">nợ 42,5 tr</span>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:8px 20px;">
+            <sc-for list="{{ cartRows }}" as="row" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid #F2EAE0;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                  <span style="font-size:14px;font-weight:600;color:#2B2420;line-height:1.35;min-width:0;">{{ row.name }}</span>
+                  <button onClick="{{ row.remove }}" style="display:flex;padding:4px;border:none;background:transparent;color:#C9B8A8;cursor:pointer;border-radius:6px;flex-shrink:0;" style-hover="color:#AE4F26;background:#FBF7F2;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="display:flex;align-items:center;gap:2px;">
+                    <button onClick="{{ row.dec }}" style="display:flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:8px;border:1px solid #EBE2D8;background:#FFFFFF;color:#7A6A5D;cursor:pointer;" style-hover="background:#FBF7F2;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path></svg></button>
+                    <span style="width:38px;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;">{{ row.qty }}</span>
+                    <button onClick="{{ row.inc }}" style="display:flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:8px;border:1px solid #EBE2D8;background:#FFFFFF;color:#7A6A5D;cursor:pointer;" style-hover="background:#FBF7F2;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button>
+                    <span style="margin-left:8px;font-size:12px;color:#A08D7D;">× {{ row.priceLabel }}</span>
+                  </div>
+                  <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#2B2420;">{{ row.totalLabel }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex-shrink:0;border-top:1px solid #F2EAE0;padding:16px 20px 20px;background:#FFFFFF;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#7A6A5D;"><span>Tạm tính</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#2B2420;">{{ subTotalLabel }}</span></div>
+            <div style="margin-top:6px;display:flex;justify-content:space-between;font-size:13px;color:#7A6A5D;"><span>Chiết khấu</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#2B2420;">0 ₫</span></div>
+            <div style="margin:14px 0;border-top:1px dashed #EBE2D8;"></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;">
+              <span style="font-size:14px;font-weight:700;">Khách cần trả</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;color:#AE4F26;">{{ finalTotalLabel }}</span>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:6px;">
+              <button onClick="{{ setCash }}" style="{{ cashBtnStyle }}">Tiền mặt</button>
+              <button onClick="{{ setTransfer }}" style="{{ transferBtnStyle }}">CK</button>
+              <button onClick="{{ setDebt }}" style="{{ debtBtnStyle }}">Ghi nợ</button>
+            </div>
+            <button style="margin-top:12px;width:100%;height:50px;border-radius:12px;background:#AE4F26;color:#FFFFFF;border:none;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;" style-hover="background:#8C3C1B;">Thanh toán &amp; in bill</button>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+    <sc-if value="{{ showFinance }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="B — Tài chính" style="margin:0 auto;width:100%;max-width:1160px;padding:36px 28px 48px;box-sizing:border-box;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+          <div>
+            <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;">Tài chính &amp; công nợ</h1>
+            <p style="margin:6px 0 0;font-size:14px;color:#7A6A5D;">Kỳ: tháng 7/2026 · cập nhật 09:45</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button style="border-radius:9999px;background:#FFFFFF;color:#2B2420;border:1px solid #EBE2D8;padding:0 16px;height:40px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#F2EAE0;">Chuyển quỹ</button>
+            <button style="border-radius:9999px;background:#2B2420;color:#FBF7F2;border:none;padding:0 18px;height:40px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#463A32;">+ Lập phiếu thu</button>
+          </div>
+        </div>
+        <div style="margin-top:28px;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #EBE2D8;border-bottom:1px solid #EBE2D8;">
+          <div style="padding:22px 24px 22px 0;border-right:1px solid #EBE2D8;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Doanh thu kỳ</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#2B2420;">312,48 tr ₫</div>
+          </div>
+          <div style="padding:22px 24px;border-right:1px solid #EBE2D8;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Đã thu · 79%</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#3D7A4A;">246,85 tr ₫</div>
+          </div>
+          <div style="padding:22px 24px;border-right:1px solid #EBE2D8;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Phải thu</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#AE4F26;">128,4 tr ₫</div>
+          </div>
+          <div style="padding:22px 0 22px 24px;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#A08D7D;">Phải trả NCC</div>
+            <div style="margin-top:10px;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#2B2420;">64,2 tr ₫</div>
+          </div>
+        </div>
+        <div style="margin-top:32px;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;">Sổ công nợ theo tuổi nợ</h2>
+            <span style="font-size:13px;color:#7A6A5D;">Kéo mắt từ trái sang phải — càng phải càng gấp</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:2px solid #3D7A4A;">
+                <span style="font-size:13px;font-weight:700;color:#3D7A4A;">0–7 ngày</span>
+                <span style="margin-left:auto;font-size:12px;color:#7A6A5D;">14,15 tr</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+                <sc-for list="{{ col07 }}" as="c" hint-placeholder-count="2">
+                  <div onClick="{{ c.select }}" style="{{ c.cardStyle }}">
+                    <div style="font-size:13px;font-weight:600;color:#2B2420;line-height:1.35;">{{ c.name }}</div>
+                    <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:baseline;">
+                      <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#AE4F26;">{{ c.debtLabel }}</span>
+                      <span style="font-size:11px;color:#A08D7D;">{{ c.ageLabel }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:2px solid #B9924A;">
+                <span style="font-size:13px;font-weight:700;color:#B9924A;">8–15 ngày</span>
+                <span style="margin-left:auto;font-size:12px;color:#7A6A5D;">42,5 tr</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+                <sc-for list="{{ col815 }}" as="c" hint-placeholder-count="1">
+                  <div onClick="{{ c.select }}" style="{{ c.cardStyle }}">
+                    <div style="font-size:13px;font-weight:600;color:#2B2420;line-height:1.35;">{{ c.name }}</div>
+                    <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:baseline;">
+                      <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#AE4F26;">{{ c.debtLabel }}</span>
+                      <span style="font-size:11px;color:#A08D7D;">{{ c.ageLabel }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:2px solid #C77B3B;">
+                <span style="font-size:13px;font-weight:700;color:#C77B3B;">16–30 ngày</span>
+                <span style="margin-left:auto;font-size:12px;color:#7A6A5D;">27,3 tr</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+                <sc-for list="{{ col1630 }}" as="c" hint-placeholder-count="1">
+                  <div onClick="{{ c.select }}" style="{{ c.cardStyle }}">
+                    <div style="font-size:13px;font-weight:600;color:#2B2420;line-height:1.35;">{{ c.name }}</div>
+                    <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:baseline;">
+                      <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#AE4F26;">{{ c.debtLabel }}</span>
+                      <span style="font-size:11px;color:#A08D7D;">{{ c.ageLabel }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:2px solid #AE4F26;">
+                <span style="font-size:13px;font-weight:700;color:#AE4F26;">Trên 30 ngày</span>
+                <span style="margin-left:auto;font-size:12px;color:#7A6A5D;">18,2 tr</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+                <sc-for list="{{ col30 }}" as="c" hint-placeholder-count="1">
+                  <div onClick="{{ c.select }}" style="{{ c.cardStyle }}">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;background:#AE4F26;color:#FFFFFF;border-radius:4px;padding:2px 6px;">Vượt hạn mức</span>
+                    </div>
+                    <div style="margin-top:6px;font-size:13px;font-weight:600;color:#2B2420;line-height:1.35;">{{ c.name }}</div>
+                    <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:baseline;">
+                      <span style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:#AE4F26;">{{ c.debtLabel }}</span>
+                      <span style="font-size:11px;color:#A08D7D;">{{ c.ageLabel }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:32px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:40px;align-items:start;">
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;">
+              <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;">Sổ quỹ gần đây</h2>
+              <span style="font-size:13px;color:#7A6A5D;">Tiền mặt 86,32 tr · Bank 142,5 tr</span>
+            </div>
+            <sc-for list="{{ cashbook }}" as="e" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid #F2EAE0;">
+                <div style="{{ e.dotStyle }}"></div>
+                <div style="min-width:0;flex:1;">
+                  <div style="font-size:14px;font-weight:600;color:#2B2420;">{{ e.title }}</div>
+                  <div style="font-size:12px;color:#A08D7D;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e.meta }}</div>
+                </div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:{{ e.amountColor }};flex-shrink:0;">{{ e.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-radius:16px;background:#FFFFFF;border:1px solid #EBE2D8;padding:20px;position:sticky;top:16px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#AE4F26;">{{ selPhone }}</div>
+            <div style="margin-top:4px;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;line-height:1.3;">{{ selName }}</div>
+            <div style="margin-top:4px;font-size:13px;color:#7A6A5D;">{{ selAddress }}</div>
+            <div style="margin-top:16px;display:flex;align-items:baseline;justify-content:space-between;border-radius:12px;background:#FBF7F2;padding:14px;">
+              <span style="font-size:13px;font-weight:600;color:#7A6A5D;">Nợ hiện tại</span>
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#AE4F26;">{{ selDebt }}</span>
+            </div>
+            <div style="margin-top:12px;">
+              <sc-for list="{{ selOrders }}" as="o" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F2EAE0;font-size:13px;">
+                  <div>
+                    <span style="font-weight:700;color:#2B2420;">{{ o.code }}</span>
+                    <span style="margin-left:8px;color:#A08D7D;font-size:12px;">{{ o.date }}</span>
+                  </div>
+                  <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:#AE4F26;">{{ o.remainLabel }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button style="height:40px;border-radius:9999px;border:1px solid #EBE2D8;background:#FFFFFF;color:#2B2420;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#F2EAE0;">Nhắc nợ</button>
+              <button style="height:40px;border-radius:9999px;border:none;background:#AE4F26;color:#FFFFFF;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#8C3C1B;">Thu nợ</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;startPage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;dashboard&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;pos&quot;,&quot;finance&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    page: this.props.startPage ?? "dashboard",
+    cart: [
+      { id: "p1", code: "XM001", name: "Xi măng PCB40 Hà Tiên (bao 50kg)", price: 95000, qty: 20 },
+      { id: "p2", code: "TH002", name: "Thép cuộn Ø6 Hòa Phát", price: 15500, qty: 150 },
+      { id: "p3", code: "GA003", name: "Gạch ống 4 lỗ Tuynel 8x8x18", price: 1450, qty: 1200 }
+    ],
+    pay: "CASH",
+    cat: "all",
+    selCust: 1
+  };
+
+  fmt(n) { return n.toLocaleString("vi-VN"); }
+
+  products = [
+    { id: "p1", code: "XM001", name: "Xi măng PCB40 Hà Tiên (bao 50kg)", price: 95000, stock: 18, cat: "XM" },
+    { id: "p4", code: "CA004", name: "Cát xây tô (khối)", price: 320000, stock: 6, cat: "XM" },
+    { id: "p5", code: "DA005", name: "Đá 1x2 (khối)", price: 380000, stock: 12, cat: "XM" },
+    { id: "p2", code: "TH002", name: "Thép cuộn Ø6 Hòa Phát", price: 15500, stock: 850, cat: "TH" },
+    { id: "p9", code: "TH010", name: "Thép hộp 40x80 dày 1.4mm", price: 210000, stock: 64, cat: "TH" },
+    { id: "p7", code: "TO007", name: "Tôn lạnh màu 0.45mm (mét)", price: 98000, stock: 380, cat: "TH" },
+    { id: "p3", code: "GA003", name: "Gạch ống 4 lỗ Tuynel 8x8x18", price: 1450, stock: 8600, cat: "KH" },
+    { id: "p6", code: "SO006", name: "Sơn Dulux ngoại thất 18L", price: 2850000, stock: 9, cat: "KH" },
+    { id: "p8", code: "ON008", name: "Ống PVC Bình Minh Ø90", price: 145000, stock: 42, cat: "KH" }
+  ];
+
+  customers = [
+    { name: "ANH DŨNG — NHÀ PHỐ THỦ ĐỨC", phone: "0909 118 335", address: "Linh Đông, TP. Thủ Đức", debt: 5400000, age: 3, band: "0-7", orders: [{ code: "HD002431", date: "08/07", remain: 5400000 }] },
+    { name: "CHỊ HỒNG — VLXD MINH HỒNG", phone: "0938 664 902", address: "Chợ Phú Xuân, Nhà Bè", debt: 8750000, age: 6, band: "0-7", orders: [{ code: "HD002402", date: "03/07", remain: 8750000 }] },
+    { name: "CÔNG TY TNHH XD AN PHÁT", phone: "0903 442 118", address: "125 Nguyễn Văn Linh, Q.7, TP.HCM", debt: 42500000, age: 12, band: "8-15", orders: [
+      { code: "HD002418", date: "29/06", remain: 18500000 },
+      { code: "HD002391", date: "24/06", remain: 15200000 },
+      { code: "HD002344", date: "18/06", remain: 8800000 }
+    ]},
+    { name: "CT TRƯỜNG TH BÌNH AN", phone: "0913 887 240", address: "Bình An, TP. Thủ Đức", debt: 27300000, age: 21, band: "16-30", orders: [
+      { code: "HD002203", date: "17/06", remain: 19300000 },
+      { code: "HD002199", date: "16/06", remain: 8000000 }
+    ]},
+    { name: "ANH TUẤN — THẦU KHOÁN Q.7", phone: "0987 224 561", address: "34 Lâm Văn Bền, Q.7, TP.HCM", debt: 18200000, age: 34, band: "30+", orders: [
+      { code: "HD002102", date: "07/06", remain: 12400000 },
+      { code: "HD002078", date: "02/06", remain: 5800000 }
+    ]}
+  ];
+
+  addProduct(p) {
+    this.setState((s) => {
+      const idx = s.cart.findIndex((it) => it.id === p.id);
+      if (idx >= 0) return { cart: s.cart.map((it, i) => i === idx ? { ...it, qty: it.qty + 1 } : it) };
+      return { cart: [...s.cart, { id: p.id, code: p.code, name: p.name, price: p.price, qty: 1 }] };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const fmt = (n) => this.fmt(n);
+
+    const navStyle = (active) => ({
+      border: "none", padding: "8px 14px", borderRadius: "9999px", fontSize: "14px",
+      fontFamily: "inherit", cursor: "pointer",
+      fontWeight: active ? 700 : 500,
+      color: active ? "#FBF7F2" : "#7A6A5D",
+      background: active ? "#2B2420" : "transparent"
+    });
+
+    const revs = [12100000, 9800000, 15400000, 8200000, 21700000, 17300000, 18450000];
+    const labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+    const maxRev = Math.max(...revs);
+    const bars = revs.map((r, i) => ({
+      dayLabel: labels[i],
+      valLabel: (r / 1000000).toFixed(1).replace(".", ","),
+      tip: labels[i] + ": " + fmt(r) + " ₫",
+      barStyle: { width: "100%", borderRadius: "6px 6px 0 0", background: i === revs.length - 1 ? "#AE4F26" : "#E4D5C6", height: Math.max(6, Math.round((r / maxRev) * 100)) + "%" }
+    }));
+
+    const topProducts = [
+      { rank: "01", name: "Xi măng PCB40 Hà Tiên", soldLabel: "1.240 bao", revLabel: "117,8 tr" },
+      { rank: "02", name: "Thép cuộn Ø6 Hòa Phát", soldLabel: "5.600 kg", revLabel: "86,8 tr" },
+      { rank: "03", name: "Gạch ống 4 lỗ Tuynel", soldLabel: "42.000 viên", revLabel: "60,9 tr" },
+      { rank: "04", name: "Cát xây tô", soldLabel: "132 khối", revLabel: "42,2 tr" },
+      { rank: "05", name: "Sơn Dulux ngoại thất 18L", soldLabel: "14 thùng", revLabel: "39,9 tr" }
+    ];
+
+    // POS
+    const catBtn = (active) => ({
+      border: "1px solid " + (active ? "#2B2420" : "#EBE2D8"),
+      background: active ? "#2B2420" : "#FFFFFF",
+      color: active ? "#FBF7F2" : "#7A6A5D",
+      borderRadius: "9999px", padding: "0 14px", height: "42px", fontSize: "13px",
+      fontWeight: 600, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap"
+    });
+    const catalog = this.products.filter((p) => s.cat === "all" || p.cat === s.cat).map((p) => {
+      const inCart = s.cart.find((it) => it.id === p.id);
+      return {
+        code: p.code, name: p.name,
+        priceLabel: fmt(p.price) + " ₫",
+        stockLabel: fmt(p.stock),
+        qtyLabel: inCart ? "×" + inCart.qty : "",
+        qtyBadgeStyle: {
+          fontSize: "11px", fontWeight: 700, borderRadius: "6px", padding: "1px 6px",
+          background: inCart ? "#AE4F26" : "transparent", color: inCart ? "#FFFFFF" : "transparent"
+        },
+        tileStyle: {
+          display: "flex", flexDirection: "column", gap: "8px", borderRadius: "14px",
+          border: "1px solid " + (inCart ? "#D9A488" : "#EBE2D8"),
+          background: "#FFFFFF", padding: "14px", fontFamily: "inherit", cursor: "pointer",
+          textAlign: "left", minHeight: "110px", boxSizing: "border-box",
+          boxShadow: inCart ? "0 0 0 1px #D9A488" : "none"
+        },
+        add: () => this.addProduct(p)
+      };
+    });
+    const cartRows = s.cart.map((it, i) => ({
+      name: it.name, qty: it.qty,
+      priceLabel: fmt(it.price) + " ₫",
+      totalLabel: fmt(it.price * it.qty) + " ₫",
+      inc: () => this.setState((st) => ({ cart: st.cart.map((x, j) => j === i ? { ...x, qty: x.qty + 1 } : x) })),
+      dec: () => this.setState((st) => ({ cart: st.cart.map((x, j) => j === i ? { ...x, qty: Math.max(1, x.qty - 1) } : x) })),
+      remove: () => this.setState((st) => ({ cart: st.cart.filter((_, j) => j !== i) }))
+    }));
+    const subTotal = s.cart.reduce((sum, it) => sum + it.price * it.qty, 0);
+    const payBtn = (active) => ({
+      flex: 1, borderRadius: "9999px", padding: "9px 0", textAlign: "center", fontWeight: 700,
+      fontSize: "13px", cursor: "pointer", fontFamily: "inherit",
+      border: "1px solid " + (active ? "#AE4F26" : "#EBE2D8"),
+      background: active ? "#FBEEE6" : "#FFFFFF",
+      color: active ? "#AE4F26" : "#7A6A5D"
+    });
+
+    // Finance
+    const custCard = (c, i) => ({
+      name: c.name,
+      debtLabel: fmt(c.debt) + " ₫",
+      ageLabel: c.age + " ngày",
+      cardStyle: {
+        borderRadius: "12px", border: "1px solid " + (s.selCust === i ? "#AE4F26" : "#EBE2D8"),
+        background: "#FFFFFF", padding: "12px", cursor: "pointer",
+        boxShadow: s.selCust === i ? "0 0 0 1px #AE4F26" : "none"
+      },
+      select: () => this.setState({ selCust: i })
+    });
+    const byBand = (band) => this.customers.map((c, i) => ({ c, i })).filter(({ c }) => c.band === band).map(({ c, i }) => custCard(c, i));
+    const sel = this.customers[s.selCust] ?? this.customers[0];
+
+    const dot = (color) => ({ height: "10px", width: "10px", borderRadius: "9999px", background: color, flexShrink: 0 });
+    const cashbook = [
+      { title: "Bán hàng — HD002431", meta: "Tiền mặt · 11/07 09:42", amount: "+18.450.000 ₫", amountColor: "#3D7A4A", dotStyle: dot("#3D7A4A") },
+      { title: "Thu nợ khách An Phát — PT00214", meta: "Tiền mặt · 10/07 16:20", amount: "+10.000.000 ₫", amountColor: "#3D7A4A", dotStyle: dot("#3D7A4A") },
+      { title: "Trả nhà cung cấp thép Hòa Phát", meta: "Ngân hàng · Kế toán · 10/07 10:05", amount: "−22.000.000 ₫", amountColor: "#AE4F26", dotStyle: dot("#AE4F26") },
+      { title: "Chuyển quỹ — nộp tiền mặt vào TK", meta: "Ngân hàng · 09/07 17:40", amount: "+15.000.000 ₫", amountColor: "#3D7A4A", dotStyle: dot("#3D7A4A") },
+      { title: "Chi phí xăng xe giao hàng", meta: "Tiền mặt · Anh Bảy · 09/07 08:15", amount: "−1.250.000 ₫", amountColor: "#AE4F26", dotStyle: dot("#AE4F26") }
+    ];
+
+    return {
+      showDashboard: s.page === "dashboard",
+      showPos: s.page === "pos",
+      showFinance: s.page === "finance",
+      goDashboard: () => this.setState({ page: "dashboard" }),
+      goPos: () => this.setState({ page: "pos" }),
+      goFinance: () => this.setState({ page: "finance" }),
+      navDashboardStyle: navStyle(s.page === "dashboard"),
+      navPosStyle: navStyle(s.page === "pos"),
+      navFinanceStyle: navStyle(s.page === "finance"),
+      bars, topProducts,
+      catalog, cartRows,
+      cartCount: s.cart.length + " món",
+      subTotalLabel: fmt(subTotal) + " ₫",
+      finalTotalLabel: fmt(subTotal) + " ₫",
+      catAllStyle: catBtn(s.cat === "all"),
+      catXMStyle: catBtn(s.cat === "XM"),
+      catTHStyle: catBtn(s.cat === "TH"),
+      catKHStyle: catBtn(s.cat === "KH"),
+      setCatAll: () => this.setState({ cat: "all" }),
+      setCatXM: () => this.setState({ cat: "XM" }),
+      setCatTH: () => this.setState({ cat: "TH" }),
+      setCatKH: () => this.setState({ cat: "KH" }),
+      cashBtnStyle: payBtn(s.pay === "CASH"),
+      transferBtnStyle: payBtn(s.pay === "TRANSFER"),
+      debtBtnStyle: payBtn(s.pay === "DEBT"),
+      setCash: () => this.setState({ pay: "CASH" }),
+      setTransfer: () => this.setState({ pay: "TRANSFER" }),
+      setDebt: () => this.setState({ pay: "DEBT" }),
+      col07: byBand("0-7"),
+      col815: byBand("8-15"),
+      col1630: byBand("16-30"),
+      col30: byBand("30+"),
+      cashbook,
+      selName: sel.name, selPhone: sel.phone, selAddress: sel.address,
+      selDebt: fmt(sel.debt) + " ₫",
+      selOrders: sel.orders.map((o) => ({ code: o.code, date: o.date, remainLabel: fmt(o.remain) + " ₫" }))
+    };
+  }
+}
+</script>
+</body>
+</html>

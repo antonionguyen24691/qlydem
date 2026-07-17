@@ -13,3 +13,4 @@ coverage/
 *.csv
 *.zip
 firebase-applet-config.json
+.codex-remote-attachments/

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+</style>
+</helmet>
+<aside style="width:248px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;background:#122E29;color:#E8EDE9;">
+  <div style="display:flex;height:68px;flex-shrink:0;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;">
+    <div style="display:flex;height:34px;width:34px;flex-shrink:0;align-items:center;justify-content:center;border-radius:10px;background:#E9B44C;color:#122E29;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path></svg>
+    </div>
+    <div>
+      <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em;color:#FFFFFF;">PMQL</div>
+      <div style="font-size:11px;color:#7FA096;">Vật liệu xây dựng</div>
+    </div>
+  </div>
+  <div style="margin:4px 20px 12px;height:1px;background:rgba(255,255,255,0.08);"></div>
+  <nav style="flex:1;overflow-y:auto;padding:0 12px;display:flex;flex-direction:column;gap:4px;">
+    <div style="padding:4px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Vận hành</div>
+    <div style="{{ stDashboard }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+      <span>Tổng quan</span>
+    </div>
+    <div style="{{ stPos }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
+      <span>Bán hàng (POS)</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:700;background:#E9B44C;color:#122E29;border-radius:6px;padding:2px 6px;">F2</span>
+    </div>
+    <div style="{{ stOrders }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+      <span>Đơn hàng</span>
+    </div>
+    <div style="{{ stProducts }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg>
+      <span>Sản phẩm</span>
+    </div>
+    <div style="{{ stInventory }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35"></path><path d="M6 18h12"></path><path d="M6 14h12"></path><rect width="12" height="12" x="6" y="10"></rect></svg>
+      <span>Tồn kho</span>
+    </div>
+    <div style="padding:14px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Đối tác</div>
+    <div style="{{ stCustomers }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+      <span>Khách hàng</span>
+    </div>
+    <div style="{{ stSuppliers }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path><circle cx="17" cy="18" r="2"></circle><circle cx="7" cy="18" r="2"></circle></svg>
+      <span>Nhà cung cấp</span>
+    </div>
+    <div style="padding:14px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Tài chính</div>
+    <div style="{{ stFinance }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>
+      <span>Báo cáo tài chính</span>
+    </div>
+    <div style="{{ stExpenses }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
+      <span>Chi phí &amp; báo cáo</span>
+    </div>
+    <div style="padding:14px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Hệ thống</div>
+    <div style="{{ stSettings }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <span>Cấu hình</span>
+    </div>
+  </nav>
+  <div style="margin:12px;display:flex;align-items:center;gap:10px;border-radius:12px;background:rgba(255,255,255,0.06);padding:10px 12px;">
+    <div style="display:flex;height:32px;width:32px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#E9B44C;color:#122E29;font-weight:800;font-size:13px;">C</div>
+    <div style="font-size:13px;line-height:1.3;min-width:0;">
+      <div style="font-weight:600;color:#FFFFFF;">Chủ cửa hàng</div>
+      <div style="font-size:11px;color:#7FA096;">ADMIN</div>
+    </div>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:248,&quot;height&quot;:900},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;orders&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;pos&quot;,&quot;orders&quot;,&quot;products&quot;,&quot;inventory&quot;,&quot;customers&quot;,&quot;suppliers&quot;,&quot;finance&quot;,&quot;expenses&quot;,&quot;settings&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  navStyle(active) {
+    return {
+      display: "flex", alignItems: "center", gap: "12px", borderRadius: "10px",
+      padding: "10px 12px", fontSize: "14px", cursor: "pointer",
+      fontWeight: active ? 700 : 500,
+      color: active ? "#FFFFFF" : "#9DB5AC",
+      background: active ? "rgba(233,180,76,0.14)" : "transparent",
+      boxShadow: active ? "inset 2px 0 0 #E9B44C" : "none"
+    };
+  }
+  renderVals() {
+    const a = this.props.active ?? "dashboard";
+    const st = (k) => this.navStyle(a === k);
+    return {
+      stDashboard: st("dashboard"), stPos: st("pos"), stOrders: st("orders"),
+      stProducts: st("products"), stInventory: st("inventory"),
+      stCustomers: st("customers"), stSuppliers: st("suppliers"),
+      stFinance: st("finance"), stExpenses: st("expenses"), stSettings: st("settings")
+    };
+  }
+}
+</script>
+</body>
+</html>

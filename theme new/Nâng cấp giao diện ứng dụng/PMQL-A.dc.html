@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; background: #F4F4F0; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
+  a { color: #1B5E56; text-decoration: none; }
+  a:hover { color: #12463F; }
+  input { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; }
+  input::placeholder { color: #A3A39B; }
+  input:focus { outline: 2px solid #1B5E56; outline-offset: -1px; border-radius: 10px; }
+</style>
+</helmet>
+<div style="display:flex;height:100%;overflow:hidden;background:#F4F4F0;">
+  <aside style="width:248px;flex-shrink:0;display:flex;flex-direction:column;background:#122E29;color:#E8EDE9;">
+    <div style="display:flex;height:68px;flex-shrink:0;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;">
+      <div style="display:flex;height:34px;width:34px;flex-shrink:0;align-items:center;justify-content:center;border-radius:10px;background:#E9B44C;color:#122E29;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path></svg>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em;color:#FFFFFF;">PMQL</div>
+        <div style="font-size:11px;color:#7FA096;">Vật liệu xây dựng</div>
+      </div>
+    </div>
+    <div style="margin:4px 20px 12px;height:1px;background:rgba(255,255,255,0.08);"></div>
+    <nav style="flex:1;overflow-y:auto;padding:0 12px;display:flex;flex-direction:column;gap:4px;">
+      <div style="padding:4px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Vận hành</div>
+      <div onClick="{{ goDashboard }}" style="{{ navDashboardStyle }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+        <span>Tổng quan</span>
+      </div>
+      <div onClick="{{ goPos }}" style="{{ navPosStyle }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
+        <span>Bán hàng (POS)</span>
+        <span style="margin-left:auto;font-size:10px;font-weight:700;background:#E9B44C;color:#122E29;border-radius:6px;padding:2px 6px;">F2</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);color:#E8EDE9;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+        <span>Đơn hàng</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);color:#E8EDE9;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg>
+        <span>Sản phẩm &amp; tồn kho</span>
+      </div>
+      <div style="padding:14px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Đối tác</div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);color:#E8EDE9;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+        <span>Khách hàng</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);color:#E8EDE9;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path><circle cx="17" cy="18" r="2"></circle><circle cx="7" cy="18" r="2"></circle></svg>
+        <span>Nhà cung cấp</span>
+      </div>
+      <div style="padding:14px 12px 6px;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#5E7F76;">Tài chính</div>
+      <div onClick="{{ goFinance }}" style="{{ navFinanceStyle }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>
+        <span>Báo cáo tài chính</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:#9DB5AC;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);color:#E8EDE9;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        <span>Cấu hình</span>
+      </div>
+    </nav>
+    <div style="margin:12px;display:flex;align-items:center;gap:10px;border-radius:12px;background:rgba(255,255,255,0.06);padding:10px 12px;">
+      <div style="display:flex;height:32px;width:32px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#E9B44C;color:#122E29;font-weight:800;font-size:13px;">C</div>
+      <div style="font-size:13px;line-height:1.3;min-width:0;">
+        <div style="font-weight:600;color:#FFFFFF;">Chủ cửa hàng</div>
+        <div style="font-size:11px;color:#7FA096;">ADMIN</div>
+      </div>
+    </div>
+  </aside>
+  <div style="display:flex;flex:1;flex-direction:column;overflow:hidden;min-width:0;">
+    <header style="display:flex;height:68px;flex-shrink:0;align-items:center;gap:16px;background:#F4F4F0;padding:0 28px;box-sizing:border-box;">
+      <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#1C1C1A;white-space:nowrap;">{{ pageTitle }}</h1>
+      <div style="flex:1;"></div>
+      <div style="position:relative;width:360px;">
+        <div style="position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:14px;pointer-events:none;color:#A3A39B;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        </div>
+        <input type="text" placeholder="Tìm kiếm (F3)" style="display:block;width:100%;box-sizing:border-box;border-radius:10px;border:1px solid #E2E2DA;padding:9px 14px 9px 40px;font-size:14px;color:#1C1C1A;background:#FFFFFF;">
+      </div>
+      <button style="position:relative;display:flex;padding:9px;color:#6B6B62;background:#FFFFFF;border:1px solid #E2E2DA;border-radius:10px;cursor:pointer;" style-hover="background:#FAFAF6;">
+        <span style="position:absolute;top:-4px;right:-4px;display:flex;height:16px;min-width:16px;align-items:center;justify-content:center;border-radius:9999px;background:#C2452D;padding:0 4px;font-size:9px;font-weight:700;color:#FFFFFF;box-sizing:border-box;">3</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+      </button>
+      <button onClick="{{ goPos }}" style="display:inline-flex;align-items:center;gap:8px;border-radius:10px;background:#1B5E56;color:#FFFFFF;border:none;padding:0 16px;height:38px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#12463F;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+        Bán hàng mới
+      </button>
+    </header>
+    <main style="flex:1;overflow-y:auto;min-width:0;">
+      <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ true }}">
+        <section data-screen-label="A — Tổng quan" style="margin:0 auto;width:100%;max-width:1200px;padding:8px 28px 40px;box-sizing:border-box;">
+          <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;">
+            <div style="border-radius:16px;background:#122E29;color:#FFFFFF;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:150px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:13px;font-weight:600;color:#9DB5AC;">Doanh thu hôm nay · 11/07</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;border-radius:9999px;background:rgba(233,180,76,0.15);color:#E9B44C;padding:3px 10px;font-size:12px;font-weight:700;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+                  +12,4%
+                </span>
+              </div>
+              <div>
+                <div style="font-family:'Geist Mono',monospace;font-size:38px;font-weight:700;letter-spacing:-0.02em;line-height:1;">18.450.000 ₫</div>
+                <div style="margin-top:10px;font-size:13px;color:#7FA096;">14 đơn hàng · trung bình 1.317.000 ₫/đơn</div>
+              </div>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;padding:20px;border:1px solid #E8E8E0;display:flex;flex-direction:column;justify-content:space-between;">
+              <div style="font-size:13px;font-weight:600;color:#6B6B62;">Tiền mặt + ngân hàng</div>
+              <div>
+                <div style="font-family:'Geist Mono',monospace;font-size:24px;font-weight:700;color:#1C1C1A;">228,8 tr ₫</div>
+                <div style="margin-top:6px;font-size:12px;color:#8A8A80;">Quỹ 86,3 tr · Bank 142,5 tr</div>
+              </div>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;padding:20px;border:1px solid #E8E8E0;display:flex;flex-direction:column;justify-content:space-between;">
+              <div style="font-size:13px;font-weight:600;color:#6B6B62;">Khách đang nợ</div>
+              <div>
+                <div style="font-family:'Geist Mono',monospace;font-size:24px;font-weight:700;color:#C2452D;">128,4 tr ₫</div>
+                <div style="margin-top:6px;font-size:12px;color:#8A8A80;">12 khách · 2 vượt hạn mức</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:1.4fr 1fr;gap:14px;">
+            <div style="border-radius:16px;background:#FFFFFF;padding:24px;border:1px solid #E8E8E0;">
+              <div style="margin-bottom:20px;display:flex;align-items:baseline;justify-content:space-between;">
+                <h2 style="margin:0;font-size:15px;font-weight:700;color:#1C1C1A;">Doanh thu 7 ngày</h2>
+                <span style="font-size:12px;color:#8A8A80;">77 đơn · 102,95 tr ₫</span>
+              </div>
+              <div style="display:flex;height:210px;align-items:flex-end;gap:14px;">
+                <sc-for list="{{ bars }}" as="bar" hint-placeholder-count="7">
+                  <div style="display:flex;height:100%;flex:1;flex-direction:column;justify-content:flex-end;gap:8px;">
+                    <div style="position:relative;display:flex;flex:1;align-items:flex-end;">
+                      <div style="{{ bar.barStyle }}" title="{{ bar.tip }}"></div>
+                    </div>
+                    <div style="text-align:center;font-size:11px;font-weight:600;color:{{ bar.labelColor }};">{{ bar.dayLabel }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;padding:24px;border:1px solid #E8E8E0;">
+              <h2 style="margin:0 0 16px;font-size:15px;font-weight:700;color:#1C1C1A;">Việc cần làm hôm nay</h2>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div onClick="{{ goFinance }}" style="display:flex;align-items:center;gap:12px;border-radius:12px;background:#FDF3F0;padding:12px 14px;cursor:pointer;" style-hover="background:#FBE9E4;">
+                  <div style="display:flex;height:34px;width:34px;flex-shrink:0;align-items:center;justify-content:center;border-radius:10px;background:#C2452D;color:#FFFFFF;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+                  </div>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:13px;font-weight:700;color:#1C1C1A;">Nhắc nợ 2 khách vượt hạn mức</div>
+                    <div style="font-size:12px;color:#8A8A80;">Anh Tuấn Q.7 (18,2 tr) · An Phát (42,5 tr)</div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;border-radius:12px;background:#FBF6EA;padding:12px 14px;cursor:pointer;" style-hover="background:#F7EEDA;">
+                  <div style="display:flex;height:34px;width:34px;flex-shrink:0;align-items:center;justify-content:center;border-radius:10px;background:#E9B44C;color:#122E29;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path></svg>
+                  </div>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:13px;font-weight:700;color:#1C1C1A;">Nhập kho 3 mặt hàng sắp hết</div>
+                    <div style="font-size:12px;color:#8A8A80;">Xi măng PCB40 · Cát xây tô · Thép Ø6</div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;border-radius:12px;background:#EFF4F0;padding:12px 14px;cursor:pointer;" style-hover="background:#E4EDE6;">
+                  <div style="display:flex;height:34px;width:34px;flex-shrink:0;align-items:center;justify-content:center;border-radius:10px;background:#1B5E56;color:#FFFFFF;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                  </div>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:13px;font-weight:700;color:#1C1C1A;">Đối soát sổ quỹ cuối ngày</div>
+                    <div style="font-size:12px;color:#8A8A80;">5 giao dịch chưa xác nhận</div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;border-radius:16px;background:#FFFFFF;padding:24px;border:1px solid #E8E8E0;">
+            <div style="margin-bottom:16px;display:flex;align-items:baseline;justify-content:space-between;">
+              <h2 style="margin:0;font-size:15px;font-weight:700;color:#1C1C1A;">Sản phẩm bán chạy trong tuần</h2>
+              <a href="#">Xem tất cả</a>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+              <sc-for list="{{ topProducts }}" as="tp" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:12px;border-radius:12px;border:1px solid #EFEFE8;padding:12px 14px;">
+                  <div style="font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:#B0B0A6;width:22px;">{{ tp.rank }}</div>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:13px;font-weight:600;color:#1C1C1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ tp.name }}</div>
+                    <div style="font-size:12px;color:#8A8A80;">{{ tp.soldLabel }}</div>
+                  </div>
+                  <div style="font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:#1B5E56;flex-shrink:0;">{{ tp.revLabel }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+      <sc-if value="{{ showPos }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="A — POS" style="display:flex;height:100%;gap:14px;padding:0 28px 20px;box-sizing:border-box;">
+          <div style="display:flex;flex:1;flex-direction:column;gap:14px;min-width:0;overflow:hidden;">
+            <div style="display:flex;gap:10px;flex-shrink:0;">
+              <div style="position:relative;flex:1;">
+                <div style="position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:14px;pointer-events:none;color:#A3A39B;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+                </div>
+                <input type="text" placeholder="Quét mã hoặc gõ tên sản phẩm — Enter để thêm vào giỏ" style="display:block;width:100%;box-sizing:border-box;border-radius:12px;border:1px solid #E2E2DA;padding:13px 14px 13px 44px;font-size:15px;color:#1C1C1A;background:#FFFFFF;">
+              </div>
+              <button style="display:inline-flex;align-items:center;gap:8px;border-radius:12px;background:#FFFFFF;color:#1C1C1A;border:1px solid #E2E2DA;padding:0 18px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;flex-shrink:0;" style-hover="background:#FAFAF6;">Danh mục</button>
+            </div>
+            <div style="flex-shrink:0;">
+              <div style="margin-bottom:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;">Chạm nhanh — bán chạy</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                <sc-for list="{{ quickTiles }}" as="q" hint-placeholder-count="8">
+                  <button onClick="{{ q.add }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;border-radius:12px;border:1px solid #E2E2DA;background:#FFFFFF;padding:10px 12px;font-family:inherit;cursor:pointer;text-align:left;min-height:56px;" style-hover="border-color:#1B5E56;background:#F6FAF8;">
+                    <span style="font-size:13px;font-weight:600;color:#1C1C1A;line-height:1.3;overflow:hidden;display:block;max-width:100%;text-overflow:ellipsis;white-space:nowrap;">{{ q.name }}</span>
+                    <span style="font-family:'Geist Mono',monospace;font-size:12px;font-weight:700;color:#1B5E56;">{{ q.priceLabel }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex:1;flex-direction:column;border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:1fr 120px 110px 120px 40px;gap:8px;padding:12px 20px;border-bottom:1px solid #EFEFE8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;flex-shrink:0;">
+                <span>Sản phẩm</span><span style="text-align:center;">Số lượng</span><span style="text-align:right;">Đơn giá</span><span style="text-align:right;">Thành tiền</span><span></span>
+              </div>
+              <div style="flex:1;overflow-y:auto;">
+                <sc-for list="{{ cartRows }}" as="row" hint-placeholder-count="3">
+                  <div style="display:grid;grid-template-columns:1fr 120px 110px 120px 40px;gap:8px;align-items:center;padding:12px 20px;border-bottom:1px solid #F5F5EF;">
+                    <div style="min-width:0;">
+                      <div style="font-size:14px;font-weight:600;color:#1C1C1A;line-height:1.35;">{{ row.name }}</div>
+                      <div style="margin-top:2px;font-size:12px;color:#8A8A80;">{{ row.code }} · {{ row.unit }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+                      <button onClick="{{ row.dec }}" style="display:flex;height:30px;width:30px;align-items:center;justify-content:center;border-radius:8px;border:1px solid #E2E2DA;background:#FFFFFF;color:#6B6B62;cursor:pointer;" style-hover="background:#FAFAF6;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path></svg></button>
+                      <span style="width:40px;text-align:center;font-family:'Geist Mono',monospace;font-weight:700;color:#1C1C1A;font-size:14px;">{{ row.qty }}</span>
+                      <button onClick="{{ row.inc }}" style="display:flex;height:30px;width:30px;align-items:center;justify-content:center;border-radius:8px;border:1px solid #E2E2DA;background:#FFFFFF;color:#6B6B62;cursor:pointer;" style-hover="background:#FAFAF6;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button>
+                    </div>
+                    <div style="text-align:right;font-family:'Geist Mono',monospace;font-size:13px;color:#6B6B62;">{{ row.priceLabel }}</div>
+                    <div style="text-align:right;font-family:'Geist Mono',monospace;font-size:14px;font-weight:700;color:#1C1C1A;">{{ row.totalLabel }}</div>
+                    <button onClick="{{ row.remove }}" style="display:flex;padding:6px;border-radius:8px;border:none;background:transparent;color:#B0B0A6;cursor:pointer;justify-self:end;" style-hover="color:#C2452D;background:#FDF3F0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;width:360px;flex-shrink:0;flex-direction:column;gap:14px;">
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:16px;">
+              <div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;">Khách hàng</span>
+                <a href="#">Đổi</a>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#EFF4F0;color:#1B5E56;font-weight:800;font-size:14px;">A</div>
+                <div style="min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:#1C1C1A;">CTY TNHH XD AN PHÁT</div>
+                  <div style="font-size:12px;color:#C2452D;font-weight:600;">Nợ cũ 42,5 tr · hạn mức 50 tr</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex:1;flex-direction:column;border-radius:16px;background:#122E29;color:#FFFFFF;padding:20px;box-sizing:border-box;">
+              <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;color:#9DB5AC;">
+                  <span>Tổng tiền hàng</span>
+                  <span style="font-family:'Geist Mono',monospace;color:#E8EDE9;">{{ subTotalLabel }}</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;color:#9DB5AC;">
+                  <span>Chiết khấu</span>
+                  <span style="font-family:'Geist Mono',monospace;color:#E8EDE9;">0 ₫</span>
+                </div>
+              </div>
+              <div style="margin:16px 0;height:1px;background:rgba(255,255,255,0.12);"></div>
+              <div>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7FA096;">Khách cần trả</div>
+                <div style="margin-top:6px;font-family:'Geist Mono',monospace;font-size:34px;font-weight:700;letter-spacing:-0.02em;line-height:1;">{{ finalTotalLabel }}</div>
+              </div>
+              <div style="margin-top:18px;display:flex;gap:8px;">
+                <button onClick="{{ setCash }}" style="{{ cashBtnStyle }}">Tiền mặt</button>
+                <button onClick="{{ setTransfer }}" style="{{ transferBtnStyle }}">Chuyển khoản</button>
+                <button onClick="{{ setDebt }}" style="{{ debtBtnStyle }}">Ghi nợ</button>
+              </div>
+              <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <span style="font-size:13px;color:#9DB5AC;flex-shrink:0;">Khách đưa</span>
+                <input type="text" placeholder="0" style="width:150px;box-sizing:border-box;text-align:right;border-radius:10px;border:1px solid rgba(255,255,255,0.15);padding:9px 12px;font-size:15px;font-weight:600;background:rgba(255,255,255,0.07);color:#FFFFFF;">
+              </div>
+              <div style="flex:1;"></div>
+              <button style="margin-top:16px;width:100%;height:54px;border-radius:12px;background:#E9B44C;color:#122E29;border:none;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:0.01em;" style-hover="background:#DFA636;">Hoàn tất — In hóa đơn (F9)</button>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button style="flex:1;height:38px;border-radius:10px;background:transparent;color:#9DB5AC;border:1px solid rgba(255,255,255,0.15);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);">Lưu nháp</button>
+                <button style="flex:1;height:38px;border-radius:10px;background:transparent;color:#D89A93;border:1px solid rgba(255,255,255,0.15);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:rgba(255,255,255,0.06);">Hủy đơn</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+      <sc-if value="{{ showFinance }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="A — Báo cáo tài chính" style="margin:0 auto;width:100%;max-width:1200px;padding:8px 28px 40px;box-sizing:border-box;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+            <div style="display:flex;border-radius:10px;background:#EAEAE2;padding:3px;font-size:13px;font-weight:600;">
+              <span style="border-radius:8px;background:#FFFFFF;padding:7px 14px;color:#1B5E56;box-shadow:0 1px 2px rgba(0,0,0,0.06);">Tổng quan &amp; công nợ</span>
+              <span style="border-radius:8px;padding:7px 14px;color:#6B6B62;cursor:pointer;">Chi phí &amp; kết quả</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button style="display:inline-flex;align-items:center;gap:8px;border-radius:10px;background:#FFFFFF;color:#1C1C1A;border:1px solid #E2E2DA;padding:0 14px;height:38px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#FAFAF6;">Chuyển quỹ</button>
+              <button style="display:inline-flex;align-items:center;gap:8px;border-radius:10px;background:#1B5E56;color:#FFFFFF;border:none;padding:0 14px;height:38px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#12463F;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                Lập phiếu thu
+              </button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:18px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;">Doanh thu kỳ</div>
+              <div style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:22px;font-weight:700;color:#1B5E56;">312,48 tr ₫</div>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:18px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;">Đã thu kỳ</div>
+              <div style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:22px;font-weight:700;color:#1B5E56;">246,85 tr ₫</div>
+              <div style="margin-top:10px;height:6px;border-radius:9999px;background:#EAEAE2;overflow:hidden;"><div style="height:100%;width:79%;border-radius:9999px;background:#1B5E56;"></div></div>
+              <div style="margin-top:6px;font-size:11px;color:#8A8A80;">79% doanh thu kỳ</div>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:18px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;">Phải thu</div>
+              <div style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:22px;font-weight:700;color:#C2452D;">128,4 tr ₫</div>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:18px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8A8A80;">Quỹ &amp; ngân hàng</div>
+              <div style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:22px;font-weight:700;color:#1C1C1A;">228,82 tr ₫</div>
+              <div style="margin-top:6px;font-size:11px;color:#8A8A80;">Tiền mặt 86,32 · Bank 142,5</div>
+            </div>
+          </div>
+          <div style="margin-top:14px;border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:24px;">
+            <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+              <h2 style="margin:0;font-size:15px;font-weight:700;color:#1C1C1A;">Tuổi nợ — bấm để lọc danh sách</h2>
+              <span style="font-size:12px;color:#8A8A80;">128,4 tr ₫ trên 12 khách</span>
+            </div>
+            <div style="display:flex;height:14px;border-radius:9999px;overflow:hidden;gap:2px;">
+              <div onClick="{{ setAging07 }}" title="0-7 ngày" style="{{ seg07Style }}"></div>
+              <div onClick="{{ setAging815 }}" title="8-15 ngày" style="{{ seg815Style }}"></div>
+              <div onClick="{{ setAging1630 }}" title="16-30 ngày" style="{{ seg1630Style }}"></div>
+              <div onClick="{{ setAging30 }}" title=">30 ngày" style="{{ seg30Style }}"></div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:20px;flex-wrap:wrap;">
+              <div onClick="{{ setAging07 }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><span style="width:10px;height:10px;border-radius:3px;background:#1B5E56;"></span><span style="color:#6B6B62;">0-7 ngày</span><strong style="color:#1C1C1A;">14,15 tr · 2 khách</strong></div>
+              <div onClick="{{ setAging815 }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><span style="width:10px;height:10px;border-radius:3px;background:#4E937A;"></span><span style="color:#6B6B62;">8-15</span><strong style="color:#1C1C1A;">42,5 tr · 1 khách</strong></div>
+              <div onClick="{{ setAging1630 }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><span style="width:10px;height:10px;border-radius:3px;background:#E9B44C;"></span><span style="color:#6B6B62;">16-30</span><strong style="color:#1C1C1A;">27,3 tr · 1 khách</strong></div>
+              <div onClick="{{ setAging30 }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><span style="width:10px;height:10px;border-radius:3px;background:#C2452D;"></span><span style="color:#6B6B62;">&gt;30 ngày</span><strong style="color:#C2452D;">18,2 tr · 1 khách</strong></div>
+              <div onClick="{{ setAgingAll }}" style="margin-left:auto;font-size:13px;font-weight:600;color:#1B5E56;cursor:pointer;">Bỏ lọc</div>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start;">
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid #EFEFE8;">
+                <h2 style="margin:0;font-size:15px;font-weight:700;color:#1C1C1A;">Sổ công nợ · {{ debtRowCount }}</h2>
+                <input type="text" placeholder="Tìm khách..." style="width:200px;box-sizing:border-box;border-radius:10px;border:1px solid #E2E2DA;padding:8px 12px;font-size:13px;color:#1C1C1A;background:#FAFAF6;">
+              </div>
+              <sc-for list="{{ debtRows }}" as="dr" hint-placeholder-count="5">
+                <div onClick="{{ dr.select }}" style="{{ dr.rowStyle }}">
+                  <div style="display:flex;height:38px;width:38px;flex-shrink:0;align-items:center;justify-content:center;border-radius:9999px;background:#EFF4F0;color:#1B5E56;font-weight:800;font-size:14px;">{{ dr.initial }}</div>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:14px;font-weight:600;color:#1C1C1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ dr.name }}</div>
+                    <div style="font-size:12px;color:#8A8A80;">{{ dr.phone }} · tuổi nợ {{ dr.ageLabel }}</div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-family:'Geist Mono',monospace;font-size:14px;font-weight:700;color:#C2452D;">{{ dr.debtLabel }}</div>
+                    <div style="{{ dr.badgeStyle }}">{{ dr.badgeText }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-radius:16px;background:#FFFFFF;border:1px solid #E8E8E0;padding:20px;position:sticky;top:8px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#1B5E56;">{{ selPhone }}</div>
+              <div style="margin-top:4px;font-size:17px;font-weight:800;color:#1C1C1A;line-height:1.3;">{{ selName }}</div>
+              <div style="margin-top:4px;font-size:13px;color:#8A8A80;">{{ selAddress }}</div>
+              <div style="margin-top:16px;border-radius:12px;background:#FDF3F0;padding:14px;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;">
+                  <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#C2452D;">Nợ hiện tại</span>
+                  <span style="font-family:'Geist Mono',monospace;font-size:22px;font-weight:700;color:#C2452D;">{{ selDebt }}</span>
+                </div>
+                <div style="margin-top:10px;height:6px;border-radius:9999px;background:rgba(194,69,45,0.15);overflow:hidden;"><div style="{{ selLimitBarStyle }}"></div></div>
+                <div style="margin-top:6px;font-size:11px;color:#A6675A;">{{ selLimitNote }}</div>
+              </div>
+              <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+                <div style="border-radius:10px;background:#FAFAF6;padding:10px 6px;">
+                  <div style="font-size:11px;color:#8A8A80;">Tuổi nợ</div>
+                  <div style="margin-top:2px;font-size:15px;font-weight:700;color:#1C1C1A;">{{ selAge }}</div>
+                </div>
+                <div style="border-radius:10px;background:#FAFAF6;padding:10px 6px;">
+                  <div style="font-size:11px;color:#8A8A80;">Đơn còn nợ</div>
+                  <div style="margin-top:2px;font-size:15px;font-weight:700;color:#1C1C1A;">{{ selOpenOrders }}</div>
+                </div>
+                <div style="border-radius:10px;background:#FAFAF6;padding:10px 6px;">
+                  <div style="font-size:11px;color:#8A8A80;">Đã thu</div>
+                  <div style="margin-top:2px;font-size:13px;font-weight:700;color:#1B5E56;">{{ selPaid }}</div>
+                </div>
+              </div>
+              <div style="margin-top:14px;">
+                <div style="margin-bottom:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8A8A80;">Đơn hàng còn nợ</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <sc-for list="{{ selOrders }}" as="o" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;justify-content:space-between;border-radius:10px;border:1px solid #EFEFE8;padding:10px 12px;font-size:13px;">
+                      <div>
+                        <span style="font-weight:700;color:#1B5E56;">{{ o.code }}</span>
+                        <span style="margin-left:8px;color:#8A8A80;font-size:12px;">{{ o.date }}</span>
+                      </div>
+                      <span style="font-family:'Geist Mono',monospace;font-weight:700;color:#C2452D;">{{ o.remainLabel }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button style="height:40px;border-radius:10px;border:1px solid #E2E2DA;background:#FFFFFF;color:#1C1C1A;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#FAFAF6;">Nhắc nợ Zalo</button>
+                <button style="height:40px;border-radius:10px;border:none;background:#1B5E56;color:#FFFFFF;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#12463F;">Thu nợ</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;startPage&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;dashboard&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;pos&quot;,&quot;finance&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    page: this.props.startPage ?? "dashboard",
+    cart: [
+      { id: "p1", code: "XM001", name: "Xi măng PCB40 Hà Tiên (bao 50kg)", unit: "BAO", price: 95000, qty: 20 },
+      { id: "p2", code: "TH002", name: "Thép cuộn Ø6 Hòa Phát", unit: "KG", price: 15500, qty: 150 },
+      { id: "p3", code: "GA003", name: "Gạch ống 4 lỗ Tuynel 8x8x18", unit: "VIÊN", price: 1450, qty: 1200 }
+    ],
+    pay: "CASH",
+    aging: "all",
+    selCust: 0
+  };
+
+  fmt(n) { return n.toLocaleString("vi-VN"); }
+
+  customers = [
+    { name: "CÔNG TY TNHH XD AN PHÁT", phone: "0903 442 118", address: "125 Nguyễn Văn Linh, Q.7, TP.HCM", debt: 42500000, limit: 50000000, age: 12, openOrders: 3, paid: 143900000, orders: [
+      { code: "HD002418", date: "29/06", remain: 18500000 },
+      { code: "HD002391", date: "24/06", remain: 15200000 },
+      { code: "HD002344", date: "18/06", remain: 8800000 }
+    ]},
+    { name: "ANH TUẤN — THẦU KHOÁN Q.7", phone: "0987 224 561", address: "34 Lâm Văn Bền, Q.7, TP.HCM", debt: 18200000, limit: 15000000, age: 34, openOrders: 2, paid: 78300000, orders: [
+      { code: "HD002102", date: "07/06", remain: 12400000 },
+      { code: "HD002078", date: "02/06", remain: 5800000 }
+    ]},
+    { name: "CT TRƯỜNG TH BÌNH AN", phone: "0913 887 240", address: "Bình An, TP. Thủ Đức", debt: 27300000, limit: 40000000, age: 21, openOrders: 2, paid: 125400000, orders: [
+      { code: "HD002203", date: "17/06", remain: 19300000 },
+      { code: "HD002199", date: "16/06", remain: 8000000 }
+    ]},
+    { name: "CHỊ HỒNG — VLXD MINH HỒNG", phone: "0938 664 902", address: "Chợ Phú Xuân, Nhà Bè", debt: 8750000, limit: 20000000, age: 6, openOrders: 1, paid: 55550000, orders: [
+      { code: "HD002402", date: "03/07", remain: 8750000 }
+    ]},
+    { name: "ANH DŨNG — NHÀ PHỐ THỦ ĐỨC", phone: "0909 118 335", address: "Linh Đông, TP. Thủ Đức", debt: 5400000, limit: 10000000, age: 3, openOrders: 1, paid: 23500000, orders: [
+      { code: "HD002431", date: "08/07", remain: 5400000 }
+    ]}
+  ];
+
+  quickProducts = [
+    { id: "p1", name: "Xi măng PCB40", price: 95000, unit: "BAO", code: "XM001" },
+    { id: "p2", name: "Thép Ø6 Hòa Phát", price: 15500, unit: "KG", code: "TH002" },
+    { id: "p3", name: "Gạch ống 4 lỗ", price: 1450, unit: "VIÊN", code: "GA003" },
+    { id: "p4", name: "Cát xây tô (khối)", price: 320000, unit: "KHỐI", code: "CA004" },
+    { id: "p5", name: "Đá 1x2 (khối)", price: 380000, unit: "KHỐI", code: "DA005" },
+    { id: "p6", name: "Sơn Dulux 18L", price: 2850000, unit: "THÙNG", code: "SO006" },
+    { id: "p7", name: "Tôn lạnh 0.45mm", price: 98000, unit: "MÉT", code: "TO007" },
+    { id: "p8", name: "Ống PVC Ø90", price: 145000, unit: "CÂY", code: "ON008" }
+  ];
+
+  addProduct(p) {
+    this.setState((s) => {
+      const idx = s.cart.findIndex((it) => it.id === p.id);
+      if (idx >= 0) return { cart: s.cart.map((it, i) => i === idx ? { ...it, qty: it.qty + 1 } : it) };
+      return { cart: [...s.cart, { id: p.id, code: p.code, name: p.name, unit: p.unit, price: p.price, qty: 1 }] };
+    });
+  }
+
+  navStyle(active) {
+    return {
+      display: "flex", alignItems: "center", gap: "12px", borderRadius: "10px",
+      padding: "10px 12px", fontSize: "14px", cursor: "pointer",
+      fontWeight: active ? 700 : 500,
+      color: active ? "#FFFFFF" : "#9DB5AC",
+      background: active ? "rgba(233,180,76,0.14)" : "transparent",
+      boxShadow: active ? "inset 2px 0 0 #E9B44C" : "none"
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const fmt = (n) => this.fmt(n);
+    const titles = { dashboard: "Chào buổi sáng 👋", pos: "Bán hàng mới", finance: "Báo cáo tài chính" };
+
+    const revs = [12100000, 9800000, 15400000, 8200000, 21700000, 17300000, 18450000];
+    const labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+    const maxRev = Math.max(...revs);
+    const bars = revs.map((r, i) => ({
+      dayLabel: labels[i],
+      labelColor: i === revs.length - 1 ? "#1B5E56" : "#8A8A80",
+      tip: labels[i] + ": " + fmt(r) + " ₫",
+      barStyle: { width: "100%", borderRadius: "8px", background: i === revs.length - 1 ? "#1B5E56" : "#D7E3DC", height: Math.max(6, Math.round((r / maxRev) * 100)) + "%" }
+    }));
+
+    const topProducts = [
+      { rank: "01", name: "Xi măng PCB40 Hà Tiên", soldLabel: "1.240 bao", revLabel: "117,8 tr" },
+      { rank: "02", name: "Thép cuộn Ø6 Hòa Phát", soldLabel: "5.600 kg", revLabel: "86,8 tr" },
+      { rank: "03", name: "Gạch ống 4 lỗ Tuynel", soldLabel: "42.000 viên", revLabel: "60,9 tr" },
+      { rank: "04", name: "Cát xây tô", soldLabel: "132 khối", revLabel: "42,2 tr" },
+      { rank: "05", name: "Sơn Dulux ngoại thất 18L", soldLabel: "14 thùng", revLabel: "39,9 tr" },
+      { rank: "06", name: "Tôn lạnh màu 0.45mm", soldLabel: "380 m", revLabel: "37,2 tr" }
+    ];
+
+    const quickTiles = this.quickProducts.map((p) => ({
+      name: p.name,
+      priceLabel: fmt(p.price) + " ₫",
+      add: () => this.addProduct(p)
+    }));
+
+    const cartRows = s.cart.map((it, i) => ({
+      code: it.code, name: it.name, unit: it.unit, qty: it.qty,
+      priceLabel: fmt(it.price),
+      totalLabel: fmt(it.price * it.qty),
+      inc: () => this.setState((st) => ({ cart: st.cart.map((x, j) => j === i ? { ...x, qty: x.qty + 1 } : x) })),
+      dec: () => this.setState((st) => ({ cart: st.cart.map((x, j) => j === i ? { ...x, qty: Math.max(1, x.qty - 1) } : x) })),
+      remove: () => this.setState((st) => ({ cart: st.cart.filter((_, j) => j !== i) }))
+    }));
+    const subTotal = s.cart.reduce((sum, it) => sum + it.price * it.qty, 0);
+
+    const payBtn = (active) => ({
+      flex: 1, borderRadius: "10px", padding: "10px 0", textAlign: "center", fontWeight: 700,
+      fontSize: "13px", cursor: "pointer", border: "none", fontFamily: "inherit",
+      background: active ? "#E9B44C" : "rgba(255,255,255,0.07)",
+      color: active ? "#122E29" : "#9DB5AC",
+      boxShadow: active ? "none" : "inset 0 0 0 1px rgba(255,255,255,0.15)"
+    });
+
+    // Finance
+    const agingSegs = { "0-7": 14150000, "8-15": 42500000, "16-30": 27300000, "30+": 18200000 };
+    const totalDebt = Object.values(agingSegs).reduce((a, b) => a + b, 0);
+    const segColors = { "0-7": "#1B5E56", "8-15": "#4E937A", "16-30": "#E9B44C", "30+": "#C2452D" };
+    const segStyle = (key) => ({
+      width: Math.round((agingSegs[key] / totalDebt) * 100) + "%",
+      background: segColors[key],
+      cursor: "pointer",
+      opacity: s.aging === "all" || s.aging === key ? 1 : 0.25,
+      transition: "opacity 0.15s"
+    });
+    const inAging = (c) => {
+      if (s.aging === "all") return true;
+      if (s.aging === "0-7") return c.age <= 7;
+      if (s.aging === "8-15") return c.age >= 8 && c.age <= 15;
+      if (s.aging === "16-30") return c.age >= 16 && c.age <= 30;
+      return c.age > 30;
+    };
+    const badge = (c) => {
+      if (c.debt > c.limit) return { text: "Vượt hạn mức", color: "#C2452D", bg: "#FDF3F0" };
+      return { text: "Đang nợ", color: "#A16207", bg: "#FBF6EA" };
+    };
+    const debtRows = this.customers.map((c, i) => ({ c, i })).filter(({ c }) => inAging(c)).map(({ c, i }) => {
+      const b = badge(c);
+      return {
+        name: c.name, phone: c.phone,
+        initial: c.name.replace(/^(CÔNG TY TNHH |CT |CHỊ |ANH )/, "").charAt(0),
+        debtLabel: fmt(c.debt) + " ₫",
+        ageLabel: c.age + " ngày",
+        badgeText: b.text,
+        badgeStyle: { marginTop: "4px", display: "inline-block", borderRadius: "6px", padding: "2px 8px", fontSize: "11px", fontWeight: 700, background: b.bg, color: b.color },
+        rowStyle: { display: "flex", alignItems: "center", gap: "12px", padding: "14px 20px", borderBottom: "1px solid #F5F5EF", cursor: "pointer", background: s.selCust === i ? "#F6FAF8" : "transparent" },
+        select: () => this.setState({ selCust: i })
+      };
+    });
+    const sel = this.customers[s.selCust] ?? this.customers[0];
+    const overLimit = sel.debt > sel.limit;
+    const limitPct = Math.min(100, Math.round((sel.debt / sel.limit) * 100));
+
+    return {
+      pageTitle: titles[s.page],
+      showDashboard: s.page === "dashboard",
+      showPos: s.page === "pos",
+      showFinance: s.page === "finance",
+      goDashboard: () => this.setState({ page: "dashboard" }),
+      goPos: () => this.setState({ page: "pos" }),
+      goFinance: () => this.setState({ page: "finance" }),
+      navDashboardStyle: this.navStyle(s.page === "dashboard"),
+      navPosStyle: this.navStyle(s.page === "pos"),
+      navFinanceStyle: this.navStyle(s.page === "finance"),
+      bars, topProducts, quickTiles, cartRows,
+      subTotalLabel: fmt(subTotal) + " ₫",
+      finalTotalLabel: fmt(subTotal) + " ₫",
+      cashBtnStyle: payBtn(s.pay === "CASH"),
+      transferBtnStyle: payBtn(s.pay === "TRANSFER"),
+      debtBtnStyle: payBtn(s.pay === "DEBT"),
+      setCash: () => this.setState({ pay: "CASH" }),
+      setTransfer: () => this.setState({ pay: "TRANSFER" }),
+      setDebt: () => this.setState({ pay: "DEBT" }),
+      seg07Style: segStyle("0-7"),
+      seg815Style: segStyle("8-15"),
+      seg1630Style: segStyle("16-30"),
+      seg30Style: segStyle("30+"),
+      setAging07: () => this.setState({ aging: s.aging === "0-7" ? "all" : "0-7" }),
+      setAging815: () => this.setState({ aging: s.aging === "8-15" ? "all" : "8-15" }),
+      setAging1630: () => this.setState({ aging: s.aging === "16-30" ? "all" : "16-30" }),
+      setAging30: () => this.setState({ aging: s.aging === "30+" ? "all" : "30+" }),
+      setAgingAll: () => this.setState({ aging: "all" }),
+      debtRows,
+      debtRowCount: debtRows.length + " khách",
+      selName: sel.name, selPhone: sel.phone, selAddress: sel.address,
+      selDebt: fmt(sel.debt) + " ₫",
+      selAge: sel.age + " ngày",
+      selOpenOrders: String(sel.openOrders),
+      selPaid: fmt(sel.paid) + " ₫",
+      selLimitBarStyle: { height: "100%", borderRadius: "9999px", width: limitPct + "%", background: overLimit ? "#C2452D" : "#E9925C" },
+      selLimitNote: overLimit ? "Đã vượt hạn mức " + fmt(sel.limit) + " ₫" : "Hạn mức " + fmt(sel.limit) + " ₫ · đã dùng " + limitPct + "%",
+      selOrders: sel.orders.map((o) => ({ code: o.code, date: o.date, remainLabel: fmt(o.remain) + " ₫" }))
+    };
+  }
+}
+</script>
+</body>
+</html>

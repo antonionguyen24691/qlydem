@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; background: #fafafa; color: #18181b; -webkit-font-smoothing: antialiased; }
+  a { color: #047857; text-decoration: none; }
+  a:hover { color: #065f46; }
+  input { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; }
+  input::placeholder { color: #a1a1aa; }
+  input:focus { outline: 2px solid #059669; outline-offset: -1px; border-radius: 8px; }
+</style>
+</helmet>
+<div style="display:flex;height:100%;overflow:hidden;background:#fafafa;">
+  <aside style="width:280px;flex-shrink:0;display:flex;flex-direction:column;background:#ffffff;border-right:1px solid #e4e4e7;">
+    <div style="display:flex;height:64px;flex-shrink:0;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #f4f4f5;box-sizing:border-box;">
+      <div style="display:flex;height:36px;width:36px;flex-shrink:0;align-items:center;justify-content:center;border-radius:8px;background:#18181b;color:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path></svg>
+      </div>
+      <span style="font-weight:600;font-size:16px;letter-spacing:-0.02em;color:#18181b;white-space:nowrap;">PMQL</span>
+    </div>
+    <nav style="flex:1;overflow-y:auto;padding:16px 12px;display:flex;flex-direction:column;gap:6px;">
+      <div onClick="{{ goDashboard }}" style="{{ navDashboardStyle }}">
+        <span style="{{ navDashboardIconStyle }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg></span>
+        <span>Tổng quan</span>
+      </div>
+      <div onClick="{{ goPos }}" style="{{ navPosStyle }}">
+        <span style="{{ navPosIconStyle }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg></span>
+        <span>Bán hàng (POS)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:8px;padding:10px 12px;min-height:24px;font-size:14px;font-weight:500;color:#71717a;cursor:pointer;">
+        <span style="display:flex;color:#a1a1aa;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></span>
+        <span>Đơn hàng</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:8px;padding:10px 12px;min-height:24px;font-size:14px;font-weight:500;color:#71717a;cursor:pointer;">
+        <span style="display:flex;color:#a1a1aa;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg></span>
+        <span>Sản phẩm</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:8px;padding:10px 12px;min-height:24px;font-size:14px;font-weight:500;color:#71717a;cursor:pointer;">
+        <span style="display:flex;color:#a1a1aa;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path></svg></span>
+        <span>Tồn kho</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:8px;padding:10px 12px;min-height:24px;font-size:14px;font-weight:500;color:#71717a;cursor:pointer;">
+        <span style="display:flex;color:#a1a1aa;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg></span>
+        <span>Khách hàng</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:8px;padding:10px 12px;min-height:24px;font-size:14px;font-weight:500;color:#71717a;cursor:pointer;">
+        <span style="display:flex;color:#a1a1aa;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path><circle cx="17" cy="18" r="2"></circle><circle cx="7" cy="18" r="2"></circle></svg></span>
+        <span>Nhà cung cấp</span>
+      </div>
+      <div onClick="{{ goFinance }}" style="{{ navFinanceStyle }}">
+        <span style="{{ navFinanceIconStyle }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg></span>
+        <span>Báo cáo tài chính</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;border-radius:8px;padding:10px 12px;min-height:24px;font-size:14px;font-weight:500;color:#71717a;cursor:pointer;">
+        <span style="display:flex;color:#a1a1aa;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+        <span>Cấu hình</span>
+      </div>
+    </nav>
+  </aside>
+  <div style="display:flex;flex:1;flex-direction:column;overflow:hidden;min-width:0;">
+    <header style="position:relative;display:flex;height:64px;flex-shrink:0;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;background:#ffffff;padding:0 16px;box-sizing:border-box;">
+      <div style="pointer-events:none;position:absolute;left:192px;right:192px;display:flex;justify-content:center;">
+        <h1 style="margin:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:18px;font-weight:700;color:#18181b;">{{ pageTitle }}</h1>
+      </div>
+      <div style="display:flex;flex:1;align-items:center;gap:16px;">
+        <button style="display:flex;padding:8px;margin-left:-8px;color:#6b7280;background:none;border:none;border-radius:6px;cursor:pointer;" style-hover="background:#f3f4f6;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
+        </button>
+        <div style="position:relative;width:100%;max-width:448px;">
+          <div style="position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:12px;pointer-events:none;color:#9ca3af;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+          </div>
+          <input type="text" placeholder="Tìm kiếm thông tin (F3)..." style="display:block;width:100%;box-sizing:border-box;border-radius:6px;border:1px solid #d1d5db;padding:7px 12px 7px 40px;font-size:14px;color:#111827;background:#ffffff;">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button style="position:relative;display:flex;padding:8px;color:#9ca3af;background:none;border:none;border-radius:6px;cursor:pointer;" style-hover="color:#6b7280;">
+          <span style="position:absolute;top:-2px;right:-2px;display:flex;height:20px;min-width:20px;align-items:center;justify-content:center;border-radius:9999px;background:#ef4444;padding:0 4px;font-size:10px;font-weight:700;color:#ffffff;box-shadow:0 0 0 2px #ffffff;box-sizing:border-box;">3</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+        </button>
+        <div style="display:flex;align-items:center;gap:8px;border-left:1px solid #e5e7eb;padding-left:16px;cursor:pointer;">
+          <div style="display:flex;height:32px;width:32px;align-items:center;justify-content:center;border-radius:9999px;background:#e5e7eb;color:#6b7280;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div style="font-size:14px;line-height:1.3;">
+            <div style="font-weight:500;color:#374151;">Chủ cửa hàng</div>
+            <div style="font-size:12px;color:#6b7280;">ADMIN</div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main style="flex:1;overflow-y:auto;min-width:0;">
+      <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ true }}">
+        <section data-screen-label="Tổng quan" style="position:relative;margin:0 auto;width:100%;max-width:1280px;padding:32px;box-sizing:border-box;">
+          <div style="margin-bottom:24px;">
+            <h1 style="margin:0;font-size:30px;font-weight:600;letter-spacing:-0.025em;color:#18181b;">Tổng quan</h1>
+            <p style="margin:4px 0 0;font-size:14px;color:#71717a;">Số liệu được đồng bộ theo đơn hàng, tồn kho và công nợ.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+            <div style="display:flex;min-height:140px;flex-direction:column;justify-content:space-between;border-radius:16px;background:#ffffff;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(228,228,231,0.7);">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <p style="margin:0;font-size:14px;font-weight:600;color:#71717a;">Doanh thu hôm nay</p>
+                <span style="display:flex;color:#a1a1aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
+              </div>
+              <div>
+                <p style="margin:0;font-size:24px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">18.450.000 đ</p>
+                <p style="margin:8px 0 0;display:inline-flex;align-items:center;border-radius:9999px;background:#ecfdf5;color:#059669;padding:2px 8px;font-size:12px;font-weight:500;gap:4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+                  12.4% so với hôm qua
+                </p>
+              </div>
+            </div>
+            <div style="display:flex;min-height:140px;flex-direction:column;justify-content:space-between;border-radius:16px;background:#ffffff;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(228,228,231,0.7);">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <p style="margin:0;font-size:14px;font-weight:600;color:#71717a;">Đơn hàng hôm nay</p>
+                <span style="display:flex;color:#a1a1aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg></span>
+              </div>
+              <div>
+                <p style="margin:0;font-size:24px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">14</p>
+                <p style="margin:8px 0 0;display:inline-block;border-radius:9999px;background:#f4f4f5;color:#52525b;padding:2px 8px;font-size:12px;font-weight:500;">11 đơn hôm qua</p>
+              </div>
+            </div>
+            <div style="display:flex;min-height:140px;flex-direction:column;justify-content:space-between;border-radius:16px;background:#ffffff;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(228,228,231,0.7);">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <p style="margin:0;font-size:14px;font-weight:600;color:#71717a;">Sản phẩm hết kho</p>
+                <span style="display:flex;color:#a1a1aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg></span>
+              </div>
+              <div>
+                <p style="margin:0;font-size:24px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">3</p>
+                <p style="margin:8px 0 0;display:inline-block;border-radius:9999px;background:#fef2f2;color:#dc2626;padding:2px 8px;font-size:12px;font-weight:500;">Cần nhập/kiểm kho</p>
+              </div>
+            </div>
+            <div style="display:flex;min-height:140px;flex-direction:column;justify-content:space-between;border-radius:16px;background:#ffffff;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(228,228,231,0.7);">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <p style="margin:0;font-size:14px;font-weight:600;color:#71717a;">Khách hàng nợ</p>
+                <span style="display:flex;color:#a1a1aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg></span>
+              </div>
+              <div>
+                <p style="margin:0;font-size:24px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">12</p>
+                <p style="margin:8px 0 0;display:inline-block;border-radius:9999px;background:#f4f4f5;color:#52525b;padding:2px 8px;font-size:12px;font-weight:500;">Tổng nợ: 128.400.000 đ</p>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:16px;border-radius:16px;background:#ffffff;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid #fee2e2;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div>
+                <h2 style="margin:0;font-size:16px;font-weight:700;color:#18181b;">Cảnh báo công nợ</h2>
+                <p style="margin:2px 0 0;font-size:14px;color:#71717a;">12 khách đang nợ, tổng 128.400.000 đ</p>
+              </div>
+              <a href="#" onClick="{{ goFinance }}" style="display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid #fecaca;padding:8px 12px;font-size:14px;font-weight:700;color:#b91c1c;" style-hover="background:#fef2f2;">Xem sổ công nợ</a>
+            </div>
+            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+              <sc-for list="{{ debtCards }}" as="card" hint-placeholder-count="4">
+                <div style="min-width:0;border-radius:8px;background:#fef2f2;padding:8px 12px;border:1px solid #fee2e2;">
+                  <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700;color:#991b1b;">{{ card.name }}</div>
+                  <div style="font-size:12px;font-weight:600;color:#dc2626;">{{ card.debt }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:4fr 3fr;gap:16px;">
+            <div style="border-radius:16px;background:#ffffff;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(228,228,231,0.7);">
+              <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+                <h2 style="margin:0;font-size:16px;font-weight:600;color:#18181b;">Doanh thu 7 ngày</h2>
+                <span style="font-size:12px;color:#71717a;">77 đơn hàng</span>
+              </div>
+              <div style="display:flex;height:288px;align-items:flex-end;gap:12px;border-bottom:1px solid #e4e4e7;border-left:1px solid #e4e4e7;padding:0 8px 8px;">
+                <sc-for list="{{ bars }}" as="bar" hint-placeholder-count="7">
+                  <div style="display:flex;height:100%;flex:1;flex-direction:column;justify-content:flex-end;gap:8px;">
+                    <div style="text-align:center;font-size:11px;color:#71717a;">{{ bar.countLabel }}</div>
+                    <div style="position:relative;display:flex;flex:1;align-items:flex-end;">
+                      <div style="{{ bar.barStyle }}" title="{{ bar.tip }}"></div>
+                    </div>
+                    <div style="text-align:center;font-size:12px;color:#52525b;">{{ bar.dayLabel }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border-radius:16px;background:#ffffff;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(228,228,231,0.7);">
+              <h2 style="margin:0 0 20px;font-size:16px;font-weight:600;color:#18181b;">Sản phẩm bán chạy</h2>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <sc-for list="{{ topProducts }}" as="tp" hint-placeholder-count="5">
+                  <div style="border-radius:8px;border:1px solid #e4e4e7;padding:12px;">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                      <div style="min-width:0;">
+                        <div style="font-weight:500;color:#18181b;font-size:14px;line-height:1.4;">{{ tp.name }}</div>
+                        <div style="font-size:12px;color:#71717a;">{{ tp.soldLabel }}</div>
+                      </div>
+                      <div style="max-width:130px;flex-shrink:0;text-align:right;font-size:14px;font-weight:600;color:#006B68;">{{ tp.revLabel }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div onClick="{{ goPos }}" title="Bán hàng nhanh" style="position:absolute;bottom:20px;right:20px;z-index:40;display:flex;height:56px;width:56px;align-items:center;justify-content:center;border-radius:9999px;background:#059669;color:#ffffff;box-shadow:0 10px 15px -3px rgba(6,78,59,0.2);border:4px solid #ffffff;cursor:pointer;" style-hover="background:#047857;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+          </div>
+        </section>
+      </sc-if>
+      <sc-if value="{{ showPos }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="Bán hàng (POS)" style="display:flex;height:100%;flex-direction:column;background:#fafafa;box-sizing:border-box;">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;padding:12px 16px;border-bottom:1px solid #e4e4e7;flex-shrink:0;">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+              <button style="display:inline-flex;align-items:center;gap:6px;border-radius:8px;background:#059669;color:#ffffff;border:none;padding:0 12px;height:36px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#047857;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg>
+                Chọn sản phẩm
+              </button>
+              <button style="display:inline-flex;align-items:center;border-radius:8px;background:#dc2626;color:#ffffff;border:none;padding:0 12px;height:36px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#b91c1c;">Hủy đơn</button>
+              <button style="display:inline-flex;align-items:center;border-radius:8px;background:#ffffff;color:#3f3f46;border:1px solid #e4e4e7;padding:0 12px;height:36px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#fafafa;">Lưu nháp</button>
+              <button style="display:inline-flex;align-items:center;border-radius:8px;background:#ffffff;color:#3f3f46;border:1px solid #e4e4e7;padding:0 12px;height:36px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#fafafa;">Xóa nháp</button>
+              <button style="display:inline-flex;align-items:center;border-radius:8px;background:#ffffff;color:#3f3f46;border:1px solid #e4e4e7;padding:0 12px;height:36px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#fafafa;">Khách mới</button>
+            </div>
+          </div>
+          <div style="display:flex;flex:1;overflow:hidden;">
+            <div style="display:flex;flex:1;flex-direction:column;gap:16px;padding:16px;border-right:1px solid #e4e4e7;overflow-y:auto;min-width:0;">
+              <div style="background:#ffffff;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,0.05),inset 0 0 0 1px #e4e4e7;padding:16px;flex-shrink:0;">
+                <div style="position:relative;">
+                  <div style="position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:12px;pointer-events:none;color:#a1a1aa;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+                  </div>
+                  <input type="text" placeholder="Tìm kiếm sản phẩm theo tên hoặc mã..." style="display:block;width:100%;box-sizing:border-box;border-radius:8px;border:1px solid #e4e4e7;padding:9px 12px 9px 40px;font-size:14px;color:#18181b;background:#ffffff;">
+                </div>
+              </div>
+              <div style="display:flex;flex:1;flex-direction:column;background:#ffffff;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,0.05),inset 0 0 0 1px #e4e4e7;overflow:hidden;">
+                <div style="flex:1;overflow-x:auto;">
+                  <table style="width:100%;border-collapse:collapse;table-layout:fixed;min-width:760px;">
+                    <colgroup><col style="width:118px;"><col><col style="width:72px;"><col style="width:124px;"><col style="width:124px;"><col style="width:136px;"><col style="width:48px;"></colgroup>
+                    <thead style="background:rgba(250,250,250,0.5);">
+                      <tr>
+                        <th style="padding:12px;text-align:left;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;border-bottom:1px solid #e4e4e7;">Mã</th>
+                        <th style="padding:12px;text-align:left;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;border-bottom:1px solid #e4e4e7;">Tên hàng</th>
+                        <th style="padding:12px;text-align:left;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;border-bottom:1px solid #e4e4e7;">ĐVT</th>
+                        <th style="padding:12px;text-align:center;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;border-bottom:1px solid #e4e4e7;">SL</th>
+                        <th style="padding:12px;text-align:right;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;border-bottom:1px solid #e4e4e7;">Đơn giá</th>
+                        <th style="padding:12px;text-align:right;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;border-bottom:1px solid #e4e4e7;">Thành tiền</th>
+                        <th style="padding:12px 8px;border-bottom:1px solid #e4e4e7;"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <sc-for list="{{ cartRows }}" as="row" hint-placeholder-count="3">
+                        <tr style-hover="background:rgba(250,250,250,0.6);">
+                          <td style="padding:12px;vertical-align:top;font-size:12px;font-weight:600;color:#047857;border-bottom:1px solid #f4f4f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ row.code }}</td>
+                          <td style="padding:12px;vertical-align:top;font-size:14px;font-weight:600;line-height:1.4;color:#18181b;border-bottom:1px solid #f4f4f5;">
+                            <div>{{ row.name }}</div>
+                            <div style="margin-top:4px;font-size:12px;font-weight:500;color:#71717a;">{{ row.size }}</div>
+                          </td>
+                          <td style="padding:12px;vertical-align:top;white-space:nowrap;font-size:14px;color:#71717a;border-bottom:1px solid #f4f4f5;">{{ row.unit }}</td>
+                          <td style="padding:12px;vertical-align:top;text-align:center;border-bottom:1px solid #f4f4f5;">
+                            <div style="display:flex;align-items:center;justify-content:center;gap:4px;background:#f4f4f5;border-radius:6px;padding:2px;width:fit-content;margin:0 auto;">
+                              <button onClick="{{ row.dec }}" style="display:flex;padding:6px;border-radius:4px;border:none;background:transparent;color:#52525b;cursor:pointer;" style-hover="background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.05);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path></svg></button>
+                              <span style="width:32px;text-align:center;font-weight:600;color:#18181b;font-size:14px;">{{ row.qty }}</span>
+                              <button onClick="{{ row.inc }}" style="display:flex;padding:6px;border-radius:4px;border:none;background:transparent;color:#52525b;cursor:pointer;" style-hover="background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.05);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button>
+                            </div>
+                          </td>
+                          <td style="padding:12px;vertical-align:top;text-align:right;border-bottom:1px solid #f4f4f5;">
+                            <div style="display:inline-block;box-sizing:border-box;width:100%;border-radius:8px;border:1px solid #e4e4e7;background:#fafafa;color:#71717a;padding:7px 10px;font-size:14px;font-weight:600;text-align:right;">{{ row.priceLabel }}</div>
+                          </td>
+                          <td style="padding:12px;vertical-align:top;white-space:nowrap;text-align:right;font-size:14px;font-weight:700;color:#18181b;border-bottom:1px solid #f4f4f5;">{{ row.totalLabel }}</td>
+                          <td style="padding:12px 8px;vertical-align:top;text-align:center;border-bottom:1px solid #f4f4f5;">
+                            <button onClick="{{ row.remove }}" style="display:flex;padding:6px;border-radius:6px;border:none;background:transparent;color:#a1a1aa;cursor:pointer;" style-hover="color:#dc2626;background:#fef2f2;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                          </td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;width:400px;flex-shrink:0;flex-direction:column;background:#ffffff;border-left:1px solid #e4e4e7;">
+              <div style="display:flex;flex:1;flex-direction:column;gap:16px;overflow-y:auto;padding:16px;">
+                <div style="background:#fafafa;border-radius:12px;padding:16px;box-shadow:inset 0 0 0 1px rgba(228,228,231,0.6);">
+                  <h3 style="margin:0 0 12px;font-size:14px;font-weight:700;color:#18181b;text-transform:uppercase;letter-spacing:0.05em;">Khách hàng</h3>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border-radius:12px;background:#ffffff;border:1px solid #a7f3d0;box-shadow:0 0 0 1px rgba(16,185,129,0.2),0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="min-width:0;">
+                      <div style="font-size:14px;font-weight:600;color:#18181b;line-height:1.4;">CÔNG TY TNHH XD AN PHÁT</div>
+                      <div style="margin-top:2px;font-size:12px;color:#71717a;">Nợ cũ: <span style="color:#dc2626;font-weight:500;">42.500.000đ</span></div>
+                    </div>
+                    <button style="display:flex;padding:8px;border:none;background:transparent;border-radius:8px;color:#71717a;cursor:pointer;" style-hover="background:#f4f4f5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+                  </div>
+                </div>
+                <div style="display:flex;flex:1;flex-direction:column;background:#fafafa;border-radius:12px;padding:16px;box-shadow:inset 0 0 0 1px rgba(228,228,231,0.6);">
+                  <h3 style="margin:0 0 12px;font-size:14px;font-weight:700;color:#18181b;text-transform:uppercase;letter-spacing:0.05em;">Thanh toán</h3>
+                  <div style="display:flex;flex:1;flex-direction:column;gap:16px;font-size:14px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <span style="color:#71717a;font-weight:500;">Tổng tiền hàng</span>
+                      <span style="font-weight:600;color:#18181b;">{{ subTotalLabel }}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <span style="color:#71717a;font-weight:500;">Chiết khấu (%)</span>
+                      <input type="number" value="0" style="width:96px;box-sizing:border-box;text-align:right;border-radius:8px;border:1px solid #e4e4e7;padding:7px 10px;font-size:14px;background:#ffffff;color:#18181b;">
+                    </div>
+                    <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:16px;border-top:1px dashed #e4e4e7;">
+                      <span style="font-weight:700;color:#18181b;font-size:16px;">Khách cần trả</span>
+                      <span style="font-size:30px;font-weight:700;line-height:1;color:#059669;">{{ finalTotalLabel }}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;">
+                      <span style="color:#71717a;font-weight:500;">Khách đưa</span>
+                      <div style="position:relative;">
+                        <input type="text" placeholder="0" style="width:144px;box-sizing:border-box;text-align:right;border-radius:8px;border:1px solid #e4e4e7;padding:9px 32px 9px 10px;font-size:16px;font-weight:600;background:#ffffff;color:#18181b;">
+                        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#a1a1aa;font-weight:500;">đ</span>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:8px;padding-top:16px;">
+                      <button onClick="{{ setCash }}" style="{{ cashBtnStyle }}">Tiền mặt</button>
+                      <button onClick="{{ setTransfer }}" style="{{ transferBtnStyle }}">Chuyển khoản</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="padding-top:8px;">
+                  <button style="width:100%;height:56px;border-radius:8px;background:#059669;color:#ffffff;border:none;font-size:18px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.05);" style-hover="background:#047857;">Hoàn tất thanh toán</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+      <sc-if value="{{ showFinance }}" hint-placeholder-val="{{ false }}">
+        <section data-screen-label="Báo cáo tài chính" style="display:flex;min-height:100%;flex-direction:column;background:#fafafa;box-sizing:border-box;">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;padding:16px 24px;border-bottom:1px solid #e4e4e7;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;border-radius:8px;background:#f4f4f5;padding:4px;font-size:14px;font-weight:700;">
+                <span style="border-radius:6px;background:#ffffff;padding:6px 12px;color:#047857;box-shadow:0 1px 2px rgba(0,0,0,0.05);">Tổng quan &amp; công nợ</span>
+                <a href="#" style="border-radius:6px;padding:6px 12px;color:#52525b;">Chi phí &amp; kết quả</a>
+              </div>
+              <div style="height:36px;border-radius:8px;border:1px solid #e4e4e7;background:#ffffff;padding:0 12px;font-size:14px;display:flex;align-items:center;color:#18181b;gap:8px;">
+                Tháng này
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button style="display:inline-flex;align-items:center;gap:8px;border-radius:8px;background:#ffffff;color:#3f3f46;border:1px solid #e4e4e7;padding:0 16px;height:40px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#fafafa;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>
+                Chuyển quỹ
+              </button>
+              <button style="display:inline-flex;align-items:center;gap:8px;border-radius:8px;background:#ffffff;color:#3f3f46;border:1px solid #e4e4e7;padding:0 16px;height:40px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#fafafa;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+                Rút quỹ
+              </button>
+              <button style="display:inline-flex;align-items:center;gap:8px;border-radius:8px;background:#059669;color:#ffffff;border:none;padding:0 16px;height:40px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#047857;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                Lập phiếu thu
+              </button>
+            </div>
+          </div>
+          <div style="display:flex;flex:1;flex-direction:column;gap:24px;padding:24px;">
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;">
+              <div style="min-width:0;background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg><span>Doanh thu kỳ</span></div>
+                <div style="font-size:22px;font-weight:700;color:#059669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;">312.480.000 ₫</div>
+              </div>
+              <div style="min-width:0;background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="12" x2="12" y1="2" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg><span>Đã thu kỳ</span></div>
+                <div style="font-size:22px;font-weight:700;color:#059669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;">246.850.000 ₫</div>
+              </div>
+              <div style="min-width:0;background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg><span>Phải thu</span></div>
+                <div style="font-size:22px;font-weight:700;color:#dc2626;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;">128.400.000 ₫</div>
+              </div>
+              <div style="min-width:0;background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg><span>Phải trả</span></div>
+                <div style="font-size:22px;font-weight:700;color:#dc2626;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;">64.200.000 ₫</div>
+              </div>
+              <div style="min-width:0;background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg><span>Sổ quỹ tiền mặt</span></div>
+                <div style="font-size:22px;font-weight:700;color:#18181b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;">86.320.000 ₫</div>
+              </div>
+              <div style="min-width:0;background:#ffffff;padding:16px;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M10 18v-7"></path><path d="M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z"></path><path d="M14 18v-7"></path><path d="M18 18v-7"></path><path d="M3 22h18"></path><path d="M6 18v-7"></path></svg><span>Số dư ngân hàng</span></div>
+                <div style="font-size:22px;font-weight:700;color:#18181b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;">142.500.000 ₫</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px;">
+              <div style="border-radius:12px;border:1px solid #e4e4e7;background:#ffffff;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <h2 style="margin:0;font-size:16px;font-weight:700;color:#18181b;">Tuổi nợ</h2>
+                  <div style="display:flex;gap:8px;overflow-x:auto;">
+                    <button onClick="{{ setAgingAll }}" style="{{ chipAllStyle }}">Tất cả</button>
+                    <button onClick="{{ setAging07 }}" style="{{ chip07Style }}">0-7 ngày</button>
+                    <button onClick="{{ setAging815 }}" style="{{ chip815Style }}">8-15</button>
+                    <button onClick="{{ setAging1630 }}" style="{{ chip1630Style }}">16-30</button>
+                    <button onClick="{{ setAging30 }}" style="{{ chip30Style }}">&gt;30</button>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+                  <div style="border-radius:8px;background:#fafafa;padding:12px;">
+                    <div style="font-size:12px;font-weight:700;color:#71717a;">0-7</div>
+                    <div style="margin-top:4px;font-size:20px;font-weight:900;color:#18181b;">2</div>
+                  </div>
+                  <div style="border-radius:8px;background:#fafafa;padding:12px;">
+                    <div style="font-size:12px;font-weight:700;color:#71717a;">8-15</div>
+                    <div style="margin-top:4px;font-size:20px;font-weight:900;color:#18181b;">1</div>
+                  </div>
+                  <div style="border-radius:8px;background:#fafafa;padding:12px;">
+                    <div style="font-size:12px;font-weight:700;color:#71717a;">16-30</div>
+                    <div style="margin-top:4px;font-size:20px;font-weight:900;color:#18181b;">1</div>
+                  </div>
+                  <div style="border-radius:8px;background:#fafafa;padding:12px;">
+                    <div style="font-size:12px;font-weight:700;color:#71717a;">&gt;30</div>
+                    <div style="margin-top:4px;font-size:20px;font-weight:900;color:#18181b;">1</div>
+                  </div>
+                </div>
+              </div>
+              <div style="border-radius:12px;border:1px solid #e4e4e7;background:#ffffff;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+                  <h2 style="margin:0;font-size:16px;font-weight:700;color:#18181b;">Phiếu thu gần nhất</h2>
+                  <span style="border-radius:9999px;background:#ecfdf5;padding:4px 8px;font-size:12px;font-weight:700;color:#047857;">5</span>
+                </div>
+                <div style="max-height:208px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;">
+                  <sc-for list="{{ receipts }}" as="r" hint-placeholder-count="4">
+                    <div style="border-radius:8px;border:1px solid #f4f4f5;background:#fafafa;padding:12px;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                        <div style="min-width:0;">
+                          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:#047857;font-size:14px;">{{ r.code }}</div>
+                          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#71717a;">{{ r.cust }}</div>
+                        </div>
+                        <div style="flex-shrink:0;text-align:right;">
+                          <div style="font-weight:700;color:#18181b;font-size:14px;">{{ r.amount }}</div>
+                          <div style="font-size:12px;color:#71717a;">{{ r.method }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f4f4f5;padding-top:12px;font-size:12px;"><span style="font-weight:600;color:#71717a;">Chi từ sổ quỹ trong kỳ</span><span style="font-weight:900;font-variant-numeric:tabular-nums;color:#dc2626;">23.250.000 ₫</span></div>
+              </div>
+            </div>
+            <div style="border-radius:12px;border:1px solid #e4e4e7;background:#ffffff;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+              <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+                <h2 style="margin:0;font-size:16px;font-weight:700;color:#18181b;">Sổ quỹ gần đây</h2>
+                <span style="font-size:12px;font-weight:600;color:#71717a;">Tiền mặt 86.320.000 ₫ · Ngân hàng 142.500.000 ₫</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ cashbook }}" as="e" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:8px;border:1px solid #f4f4f5;background:#fafafa;padding:8px 12px;font-size:14px;">
+                    <div style="min-width:0;">
+                      <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:#18181b;">{{ e.title }}<span style="{{ e.accStyle }}">{{ e.acc }}</span></div>
+                      <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#71717a;">{{ e.meta }}</div>
+                    </div>
+                    <div style="flex-shrink:0;font-weight:900;font-variant-numeric:tabular-nums;color:{{ e.amountColor }};">{{ e.amount }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;">
+              <div style="background:#ffffff;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                  <h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;color:#18181b;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+                    Nhắc nợ cần xử lý
+                  </h2>
+                  <span style="font-size:12px;font-weight:500;background:#fef2f2;color:#b91c1c;padding:4px 8px;border-radius:9999px;">9 đơn nợ</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <sc-for list="{{ reminders }}" as="rm" hint-placeholder-count="5">
+                    <div onClick="{{ rm.select }}" style="display:flex;align-items:center;justify-content:space-between;border-radius:8px;border:1px solid #f4f4f5;background:#fafafa;padding:12px;cursor:pointer;" style-hover="border-color:#d4d4d8;">
+                      <div style="display:flex;min-width:0;align-items:flex-start;gap:12px;">
+                        <div style="width:40px;height:40px;border-radius:9999px;background:#e4e4e7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#a1a1aa;">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="10" r="3"></circle><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"></path></svg>
+                        </div>
+                        <div style="min-width:0;">
+                          <div style="font-weight:700;text-transform:uppercase;color:#18181b;font-size:14px;line-height:1.4;">{{ rm.name }}</div>
+                          <div style="margin-top:2px;font-size:12px;color:#71717a;">{{ rm.countLabel }}</div>
+                        </div>
+                      </div>
+                      <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">
+                        <div style="font-weight:700;color:#dc2626;font-size:16px;">{{ rm.debtLabel }}</div>
+                        <div style="{{ rm.prioStyle }}">{{ rm.prioText }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:#ffffff;border-radius:12px;border:1px solid #e4e4e7;box-shadow:0 1px 2px rgba(0,0,0,0.05);padding:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:200px;">
+                <h2 style="margin:0 0 16px;font-size:14px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;">Tỷ lệ thu trong kỳ</h2>
+                <div style="position:relative;">
+                  <svg width="128" height="128" style="transform:rotate(-90deg);">
+                    <circle cx="64" cy="64" r="56" stroke="#f4f4f5" stroke-width="12" fill="none"></circle>
+                    <circle cx="64" cy="64" r="56" stroke="#10b981" stroke-width="12" fill="none" stroke-dasharray="351.858" stroke-dashoffset="{{ donutOffset }}" stroke-linecap="round"></circle>
+                  </svg>
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span style="font-size:30px;font-weight:700;color:#18181b;">79%</span>
+                  </div>
+                </div>
+                <p style="margin:16px 0 0;font-size:12px;color:#a1a1aa;padding:0 16px;">Đã thu trong kỳ / doanh thu đơn hàng trong kỳ.</p>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;">
+              <div style="background:#ffffff;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid #e4e4e7;display:flex;flex-direction:column;min-height:480px;">
+                <div style="padding:16px;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                  <div>
+                    <h2 style="margin:0;font-size:18px;font-weight:700;color:#18181b;">Quản lý công nợ khách hàng</h2>
+                    <div style="margin-top:4px;font-size:14px;color:#71717a;">{{ debtRowCount }}</div>
+                  </div>
+                  <div style="position:relative;width:320px;">
+                    <div style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#a1a1aa;display:flex;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+                    </div>
+                    <input type="text" placeholder="Tìm khách hàng..." style="display:block;width:100%;box-sizing:border-box;border-radius:8px;border:1px solid #e4e4e7;padding:9px 12px 9px 40px;font-size:14px;color:#18181b;background:#ffffff;">
+                  </div>
+                </div>
+                <div style="flex:1;overflow:auto;">
+                  <table style="width:100%;border-collapse:collapse;min-width:860px;">
+                    <thead style="background:#fafafa;">
+                      <tr>
+                        <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e4e4e7;">Khách hàng</th>
+                        <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e4e4e7;">SĐT</th>
+                        <th style="padding:12px 20px;text-align:right;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e4e4e7;">Nợ hiện tại</th>
+                        <th style="padding:12px 20px;text-align:right;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e4e4e7;">Tuổi nợ</th>
+                        <th style="padding:12px 20px;text-align:center;font-size:12px;font-weight:600;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e4e4e7;">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <sc-for list="{{ debtRows }}" as="dr" hint-placeholder-count="5">
+                        <tr onClick="{{ dr.select }}" style="{{ dr.rowStyle }}">
+                          <td style="padding:16px 20px;font-size:14px;font-weight:700;color:#18181b;text-transform:uppercase;">
+                            <div>{{ dr.name }}</div>
+                            <div style="margin-top:4px;font-size:12px;font-weight:500;text-transform:none;color:#a1a1aa;">{{ dr.id }}</div>
+                          </td>
+                          <td style="padding:16px 20px;white-space:nowrap;font-size:14px;color:#71717a;">{{ dr.phone }}</td>
+                          <td style="padding:16px 20px;white-space:nowrap;font-size:14px;font-weight:700;color:#dc2626;text-align:right;">{{ dr.debtLabel }}</td>
+                          <td style="padding:16px 20px;white-space:nowrap;text-align:right;font-size:14px;font-weight:600;color:#3f3f46;">{{ dr.ageLabel }}</td>
+                          <td style="padding:16px 20px;white-space:nowrap;text-align:center;"><span style="{{ dr.badgeStyle }}">{{ dr.badgeText }}</span></td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e4e4e7;padding:16px;font-size:14px;">
+                  <span style="color:#71717a;">Trang 1/1</span>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="height:36px;border-radius:6px;border:1px solid #e4e4e7;background:#ffffff;padding:0 8px;display:flex;align-items:center;font-size:14px;color:#18181b;gap:6px;">10 / trang <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></div>
+                    <button style="height:36px;border-radius:8px;border:1px solid #e4e4e7;background:#ffffff;color:#a1a1aa;padding:0 12px;font-size:14px;font-weight:600;font-family:inherit;">Trước</button>
+                    <button style="height:36px;border-radius:8px;border:1px solid #e4e4e7;background:#ffffff;color:#a1a1aa;padding:0 12px;font-size:14px;font-weight:600;font-family:inherit;">Sau</button>
+                  </div>
+                </div>
+              </div>
+              <div style="border-radius:12px;border:1px solid #e4e4e7;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.05);align-self:flex-start;">
+                <div style="border-bottom:1px solid #f4f4f5;padding:16px;">
+                  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#059669;">{{ selPhone }}</div>
+                  <div style="margin-top:4px;font-size:20px;font-weight:900;text-transform:uppercase;color:#18181b;line-height:1.3;">{{ selName }}</div>
+                  <div style="margin-top:8px;font-size:14px;color:#71717a;">{{ selAddress }}</div>
+                </div>
+                <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="border-radius:12px;border:1px solid #fee2e2;background:#fef2f2;padding:12px;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#b91c1c;">Nợ hiện tại</div>
+                      <div style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:22px;font-weight:900;color:#dc2626;">{{ selDebt }}</div>
+                    </div>
+                    <div style="border-radius:12px;border:1px solid #e4e4e7;background:#fafafa;padding:12px;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;">Hạn mức</div>
+                      <div style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:19px;font-weight:900;color:#18181b;">{{ selLimit }}</div>
+                    </div>
+                    <div style="border-radius:12px;border:1px solid #e4e4e7;background:#ffffff;padding:12px;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;">Tuổi nợ</div>
+                      <div style="margin-top:4px;font-size:19px;font-weight:900;color:#18181b;">{{ selAge }}</div>
+                    </div>
+                    <div style="border-radius:12px;border:1px solid #e4e4e7;background:#ffffff;padding:12px;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;">Đơn còn nợ</div>
+                      <div style="margin-top:4px;font-size:19px;font-weight:900;color:#18181b;">{{ selOpenOrders }}</div>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-radius:12px;border:1px solid #e4e4e7;background:#fafafa;padding:12px;font-size:14px;">
+                    <div>
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;">Doanh số</div>
+                      <div style="margin-top:4px;font-weight:900;color:#18181b;">{{ selSales }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#71717a;">Đã thu</div>
+                      <div style="margin-top:4px;font-weight:900;color:#059669;">{{ selPaid }}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+                      <h3 style="margin:0;font-size:15px;font-weight:700;color:#18181b;">Đơn hàng còn nợ</h3>
+                      <span style="font-size:12px;font-weight:700;color:#dc2626;">{{ selOrderCount }}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <sc-for list="{{ selOrders }}" as="o" hint-placeholder-count="3">
+                        <div style="border-radius:8px;border:1px solid #e4e4e7;background:#ffffff;padding:12px;font-size:14px;">
+                          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                            <div style="min-width:0;">
+                              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:#047857;">{{ o.code }}</div>
+                              <div style="font-size:12px;color:#71717a;">{{ o.date }}</div>
+                            </div>
+                            <div style="flex-shrink:0;text-align:right;font-weight:700;color:#dc2626;">{{ o.remainLabel }}</div>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #f4f4f5;padding:16px;">
+                  <button style="height:40px;border-radius:8px;border:1px solid #e4e4e7;background:#ffffff;color:#3f3f46;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#fafafa;">Bỏ chọn</button>
+                  <button style="height:40px;border-radius:8px;border:none;background:#059669;color:#ffffff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" style-hover="background:#047857;">Thu nợ</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = {
+    page: "dashboard",
+    cart: [
+      { id: "p1", code: "XM001", name: "Xi măng PCB40 Hà Tiên", size: "Bao 50kg", unit: "BAO", price: 95000, qty: 20 },
+      { id: "p2", code: "TH002", name: "Thép cuộn Ø6 Hòa Phát", size: "", unit: "KG", price: 15500, qty: 150 },
+      { id: "p3", code: "GA003", name: "Gạch ống 4 lỗ Tuynel 8x8x18", size: "8x8x18", unit: "VIÊN", price: 1450, qty: 1200 }
+    ],
+    paymentMethod: "CASH",
+    aging: "all",
+    selCust: 0
+  };
+
+  fmt(n) { return n.toLocaleString("vi-VN"); }
+
+  customers = [
+    { name: "CÔNG TY TNHH XD AN PHÁT", id: "KH-000214", phone: "0903 442 118", address: "125 Nguyễn Văn Linh, Q.7, TP.HCM", debt: 42500000, limit: 50000000, age: 12, openOrders: 3, sales: 186400000, paid: 143900000, orders: [
+      { code: "HD002418", date: "29/06/2026", remain: 18500000 },
+      { code: "HD002391", date: "24/06/2026", remain: 15200000 },
+      { code: "HD002344", date: "18/06/2026", remain: 8800000 }
+    ]},
+    { name: "ANH TUẤN — THẦU KHOÁN Q.7", id: "KH-000198", phone: "0987 224 561", address: "34 Lâm Văn Bền, Q.7, TP.HCM", debt: 18200000, limit: 15000000, age: 34, openOrders: 2, sales: 96500000, paid: 78300000, orders: [
+      { code: "HD002102", date: "07/06/2026", remain: 12400000 },
+      { code: "HD002078", date: "02/06/2026", remain: 5800000 }
+    ]},
+    { name: "CÔNG TRÌNH TRƯỜNG TH BÌNH AN", id: "KH-000231", phone: "0913 887 240", address: "Bình An, TP. Thủ Đức", debt: 27300000, limit: 40000000, age: 21, openOrders: 2, sales: 152700000, paid: 125400000, orders: [
+      { code: "HD002203", date: "17/06/2026", remain: 19300000 },
+      { code: "HD002199", date: "16/06/2026", remain: 8000000 }
+    ]},
+    { name: "CHỊ HỒNG — VLXD MINH HỒNG", id: "KH-000187", phone: "0938 664 902", address: "Chợ Phú Xuân, Nhà Bè", debt: 8750000, limit: 20000000, age: 6, openOrders: 1, sales: 64300000, paid: 55550000, orders: [
+      { code: "HD002402", date: "03/07/2026", remain: 8750000 }
+    ]},
+    { name: "ANH DŨNG — NHÀ PHỐ THỦ ĐỨC", id: "KH-000245", phone: "0909 118 335", address: "Linh Đông, TP. Thủ Đức", debt: 5400000, limit: 10000000, age: 3, openOrders: 1, sales: 28900000, paid: 23500000, orders: [
+      { code: "HD002431", date: "08/07/2026", remain: 5400000 }
+    ]}
+  ];
+
+  updQty(i, d) {
+    this.setState((s) => {
+      const cart = s.cart.map((it, j) => j === i ? { ...it, qty: Math.max(1, it.qty + d) } : it);
+      return { cart };
+    });
+  }
+  removeItem(i) {
+    this.setState((s) => ({ cart: s.cart.filter((_, j) => j !== i) }));
+  }
+
+  navStyle(active) {
+    return {
+      display: "flex", alignItems: "center", gap: "12px", borderRadius: "8px",
+      padding: "10px 12px", minHeight: "24px", fontSize: "14px", cursor: "pointer",
+      fontWeight: active ? 600 : 500,
+      color: active ? "#18181b" : "#71717a",
+      background: active ? "#f4f4f5" : "transparent",
+      boxShadow: active ? "0 1px 2px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(228,228,231,0.5)" : "none"
+    };
+  }
+  navIconStyle(active) {
+    return { display: "flex", color: active ? "#18181b" : "#a1a1aa" };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const fmt = (n) => this.fmt(n);
+    const page = s.page;
+    const titles = { dashboard: "Tổng quan", pos: "Bán hàng mới", finance: "Báo cáo tài chính" };
+
+    // Dashboard data
+    const revs = [12100000, 9800000, 15400000, 8200000, 21700000, 17300000, 18450000];
+    const counts = [9, 7, 12, 6, 16, 13, 14];
+    const labels = ["05/07", "06/07", "07/07", "08/07", "09/07", "10/07", "11/07"];
+    const maxRev = Math.max(...revs);
+    const bars = revs.map((r, i) => ({
+      countLabel: counts[i] + " đơn",
+      dayLabel: labels[i],
+      tip: labels[i] + ": " + fmt(r) + " đ",
+      barStyle: { width: "100%", borderRadius: "4px 4px 0 0", background: "#006B68", height: Math.max(4, Math.round((r / maxRev) * 100)) + "%" }
+    }));
+    const debtCards = this.customers.slice(0, 4).map((c) => ({ name: c.name, debt: fmt(c.debt) + " đ" }));
+    const topProducts = [
+      { name: "Xi măng PCB40 Hà Tiên", soldLabel: "Đã bán 1.240", revLabel: "117.800.000 đ" },
+      { name: "Thép cuộn Ø6 Hòa Phát", soldLabel: "Đã bán 5.600", revLabel: "86.800.000 đ" },
+      { name: "Gạch ống 4 lỗ Tuynel 8x8x18", soldLabel: "Đã bán 42.000", revLabel: "60.900.000 đ" },
+      { name: "Cát xây tô (khối)", soldLabel: "Đã bán 132", revLabel: "42.240.000 đ" },
+      { name: "Sơn nước ngoại thất Dulux 18L", soldLabel: "Đã bán 14", revLabel: "39.900.000 đ" },
+      { name: "Tôn lạnh màu 0.45mm", soldLabel: "Đã bán 380", revLabel: "37.240.000 đ" }
+    ];
+
+    // POS data
+    const cartRows = s.cart.map((it, i) => ({
+      code: it.code, name: it.name, size: it.size, unit: it.unit,
+      qty: it.qty,
+      priceLabel: fmt(it.price),
+      totalLabel: fmt(it.price * it.qty) + "đ",
+      inc: () => this.updQty(i, 1),
+      dec: () => this.updQty(i, -1),
+      remove: () => this.removeItem(i)
+    }));
+    const subTotal = s.cart.reduce((sum, it) => sum + it.price * it.qty, 0);
+    const payBtn = (active) => ({
+      flex: 1, borderRadius: "12px", padding: "12px 0", textAlign: "center", fontWeight: 600,
+      minHeight: "48px", fontSize: "14px", cursor: "pointer", border: "none", fontFamily: "inherit",
+      background: active ? "#ecfdf5" : "#ffffff",
+      color: active ? "#047857" : "#52525b",
+      boxShadow: active ? "inset 0 0 0 2px #059669, 0 1px 2px rgba(0,0,0,0.05)" : "inset 0 0 0 1px #e4e4e7"
+    });
+
+    // Finance data
+    const chipStyle = (active) => ({
+      whiteSpace: "nowrap", borderRadius: "9999px", padding: "6px 12px", fontSize: "14px",
+      fontWeight: 700, cursor: "pointer", border: "none", fontFamily: "inherit",
+      background: active ? "#18181b" : "#f4f4f5",
+      color: active ? "#ffffff" : "#52525b"
+    });
+    const badge = (c) => {
+      if (c.debt > c.limit && c.limit > 0) return { text: "Vượt hạn mức", bg: "#fef2f2", color: "#b91c1c", ring: "rgba(220,38,38,0.2)" };
+      if (c.debt > 0) return { text: "Đang nợ", bg: "#fff7ed", color: "#c2410c", ring: "rgba(234,88,12,0.2)" };
+      return { text: "An toàn", bg: "#ecfdf5", color: "#047857", ring: "rgba(5,150,105,0.2)" };
+    };
+    const inAging = (c) => {
+      if (s.aging === "all") return true;
+      if (s.aging === "0-7") return c.age <= 7;
+      if (s.aging === "8-15") return c.age >= 8 && c.age <= 15;
+      if (s.aging === "16-30") return c.age >= 16 && c.age <= 30;
+      return c.age > 30;
+    };
+    const debtRows = this.customers.map((c, i) => ({ c, i })).filter(({ c }) => inAging(c)).map(({ c, i }) => {
+      const b = badge(c);
+      const selected = s.selCust === i;
+      return {
+        name: c.name, id: c.id, phone: c.phone,
+        debtLabel: fmt(c.debt) + " ₫",
+        ageLabel: c.age + " ngày",
+        badgeText: b.text,
+        badgeStyle: { display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: "9999px", fontSize: "12px", fontWeight: 600, background: b.bg, color: b.color, boxShadow: "inset 0 0 0 1px " + b.ring },
+        rowStyle: { cursor: "pointer", background: selected ? "rgba(236,253,245,0.7)" : "transparent", borderBottom: "1px solid #e4e4e7" },
+        select: () => this.setState({ selCust: i })
+      };
+    });
+    const sel = this.customers[s.selCust] ?? this.customers[0];
+    const selBadge = badge(sel);
+    const reminders = this.customers.slice().sort((a, b) => b.debt - a.debt).map((c, i) => ({
+      name: c.name,
+      countLabel: c.openOrders + " đơn hàng còn nợ",
+      debtLabel: fmt(c.debt) + " ₫",
+      prioText: c.debt > c.limit && c.limit > 0 ? "Vượt hạn mức" : "Cần nhắc",
+      prioStyle: { fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", padding: "2px 8px", borderRadius: "4px", marginTop: "4px", background: c.debt > c.limit && c.limit > 0 ? "#fee2e2" : "#ffedd5", color: c.debt > c.limit && c.limit > 0 ? "#b91c1c" : "#c2410c" },
+      select: () => this.setState({ selCust: this.customers.indexOf(c) })
+    }));
+    const receipts = [
+      { code: "PT00214", cust: "CÔNG TY TNHH XD AN PHÁT", amount: "10.000.000 ₫", method: "CASH" },
+      { code: "PT00213", cust: "CHỊ HỒNG — VLXD MINH HỒNG", amount: "5.000.000 ₫", method: "TRANSFER" },
+      { code: "PT00212", cust: "ANH DŨNG — NHÀ PHỐ THỦ ĐỨC", amount: "2.400.000 ₫", method: "CASH" },
+      { code: "PT00211", cust: "CÔNG TRÌNH TRƯỜNG TH BÌNH AN", amount: "8.000.000 ₫", method: "TRANSFER" },
+      { code: "PT00210", cust: "ANH TUẤN — THẦU KHOÁN Q.7", amount: "3.500.000 ₫", method: "CASH" }
+    ];
+    const cashbook = [
+      { title: "Bán hàng", acc: "Tiền mặt", accStyle: { marginLeft: "8px", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", fontWeight: 700, background: "#ecfdf5", color: "#047857" }, meta: "HD002431 · 11/07/2026 09:42", amount: "+18.450.000 ₫", amountColor: "#047857" },
+      { title: "Thu nợ khách", acc: "Tiền mặt", accStyle: { marginLeft: "8px", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", fontWeight: 700, background: "#ecfdf5", color: "#047857" }, meta: "PT00214 · Thu nợ An Phát · 10/07/2026 16:20", amount: "+10.000.000 ₫", amountColor: "#047857" },
+      { title: "Trả nhà cung cấp", acc: "Ngân hàng", accStyle: { marginLeft: "8px", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", fontWeight: 700, background: "#f0f9ff", color: "#0369a1" }, meta: "Người: Kế toán · Thanh toán thép Hòa Phát · 10/07/2026 10:05", amount: "-22.000.000 ₫", amountColor: "#dc2626" },
+      { title: "Chuyển quỹ", acc: "Ngân hàng", accStyle: { marginLeft: "8px", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", fontWeight: 700, background: "#f0f9ff", color: "#0369a1" }, meta: "Nộp tiền mặt vào tài khoản · 09/07/2026 17:40", amount: "+15.000.000 ₫", amountColor: "#047857" },
+      { title: "Chi phí", acc: "Tiền mặt", accStyle: { marginLeft: "8px", borderRadius: "4px", padding: "2px 6px", fontSize: "11px", fontWeight: 700, background: "#ecfdf5", color: "#047857" }, meta: "Người: Anh Bảy · Xăng xe giao hàng · 09/07/2026 08:15", amount: "-1.250.000 ₫", amountColor: "#dc2626" }
+    ];
+    const donutC = 351.858;
+    const ratio = 0.79;
+
+    return {
+      pageTitle: titles[page],
+      showDashboard: page === "dashboard",
+      showPos: page === "pos",
+      showFinance: page === "finance",
+      goDashboard: () => this.setState({ page: "dashboard" }),
+      goPos: () => this.setState({ page: "pos" }),
+      goFinance: () => this.setState({ page: "finance" }),
+      navDashboardStyle: this.navStyle(page === "dashboard"),
+      navDashboardIconStyle: this.navIconStyle(page === "dashboard"),
+      navPosStyle: this.navStyle(page === "pos"),
+      navPosIconStyle: this.navIconStyle(page === "pos"),
+      navFinanceStyle: this.navStyle(page === "finance"),
+      navFinanceIconStyle: this.navIconStyle(page === "finance"),
+      bars, debtCards, topProducts,
+      cartRows,
+      cartEmpty: s.cart.length === 0,
+      subTotalLabel: fmt(subTotal) + " đ",
+      finalTotalLabel: fmt(subTotal) + " đ",
+      cashBtnStyle: payBtn(s.paymentMethod === "CASH"),
+      transferBtnStyle: payBtn(s.paymentMethod === "TRANSFER"),
+      setCash: () => this.setState({ paymentMethod: "CASH" }),
+      setTransfer: () => this.setState({ paymentMethod: "TRANSFER" }),
+      chipAllStyle: chipStyle(s.aging === "all"),
+      chip07Style: chipStyle(s.aging === "0-7"),
+      chip815Style: chipStyle(s.aging === "8-15"),
+      chip1630Style: chipStyle(s.aging === "16-30"),
+      chip30Style: chipStyle(s.aging === "30+"),
+      setAgingAll: () => this.setState({ aging: "all" }),
+      setAging07: () => this.setState({ aging: "0-7" }),
+      setAging815: () => this.setState({ aging: "8-15" }),
+      setAging1630: () => this.setState({ aging: "16-30" }),
+      setAging30: () => this.setState({ aging: "30+" }),
+      debtRows,
+      debtRowCount: debtRows.length + " khách còn công nợ",
+      reminders,
+      receipts,
+      cashbook,
+      donutOffset: donutC - donutC * ratio,
+      selName: sel.name,
+      selPhone: sel.phone,
+      selAddress: sel.address,
+      selDebt: fmt(sel.debt) + " ₫",
+      selLimit: fmt(sel.limit) + " ₫",
+      selAge: sel.age + " ngày",
+      selOpenOrders: String(sel.openOrders),
+      selSales: fmt(sel.sales) + " ₫",
+      selPaid: fmt(sel.paid) + " ₫",
+      selOrders: sel.orders.map((o) => ({ code: o.code, date: o.date, remainLabel: fmt(o.remain) + " ₫" })),
+      selOrderCount: String(sel.orders.length)
+    };
+  }
+}
+</script>
+</body>
+</html>

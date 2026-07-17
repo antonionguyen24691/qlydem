@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Geist", ui-sans-serif, system-ui, sans-serif; background: #F4F4F0; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;padding:28px;background:rgba(18,46,41,0.55);">
+
+  <!-- 1. Lập Phiếu Thu -->
+  <div style="width:512px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Tài chính → Lập Phiếu Thu</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Lập Phiếu Thu</div>
+        <span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Chọn Khách hàng</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;">
+            <span style="font-weight:600;">ANH DŨNG — NHÀ PHỐ THỦ ĐỨC</span><span style="color:#8A8A80;">▾</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;background:#FBEFEA;border:1px solid #F2DCD2;padding:12px 16px;">
+          <span style="font-size:13px;font-weight:700;color:#8C3C1B;">Số nợ hiện tại:</span>
+          <span style="font-size:19px;font-weight:800;color:#C2452D;">42.500.000 ₫</span>
+        </div>
+        <div style="border:1px solid #E8E8E0;border-radius:12px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <div><div style="font-weight:700;font-size:14px;">Phân bổ vào đơn nợ</div><div style="font-size:12px;color:#8A8A80;">Để trống để hệ thống thu theo đơn đến hạn trước.</div></div>
+            <div style="font-size:13px;font-weight:800;color:#1B5E56;">15.000.000 ₫</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr 132px;gap:12px;align-items:center;border-radius:8px;background:#F7F7F2;padding:8px 12px;">
+              <div><div style="font-weight:700;font-size:13px;">HD002418</div><div style="font-size:12px;color:#8A8A80;">Còn 18.500.000 ₫ · Hạn 15/07/2026</div></div>
+              <div style="border:1px solid #E2E2DA;border-radius:8px;padding:7px 10px;text-align:right;font-weight:700;font-size:13px;background:#FFFFFF;">15.000.000</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 132px;gap:12px;align-items:center;border-radius:8px;background:#F7F7F2;padding:8px 12px;">
+              <div><div style="font-weight:700;font-size:13px;">HD002391</div><div style="font-size:12px;color:#8A8A80;">Còn 15.200.000 ₫ · Hạn 22/07/2026</div></div>
+              <div style="border:1px solid #E2E2DA;border-radius:8px;padding:7px 10px;text-align:right;font-weight:600;font-size:13px;color:#A3A39B;background:#FFFFFF;">0</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Số tiền thu</div>
+          <div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:17px;font-weight:800;color:#1B5E56;">15.000.000</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Phương thức thu</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Tiền mặt</span><span style="color:#8A8A80;">▾</span></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ngày thu</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#8A8A80;background:#F7F7F2;">12/07/2026</div></div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Nội dung / ghi chú</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#A3A39B;height:52px;">VD: Thu công nợ đơn DH...</div></div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Xác nhận thu tiền</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Thêm chi phí -->
+  <div style="width:512px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Chi phí → Thêm chi phí</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Thêm chi phí</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Loại chi phí (*)</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Vận chuyển / xăng dầu</span><span style="color:#8A8A80;">▾</span></div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Số tiền (*)</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:17px;font-weight:800;color:#C2452D;">850.000</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Nguồn chi</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Quỹ tiền mặt</span><span style="color:#8A8A80;">▾</span></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ngày chi</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;">12/07/2026</div></div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Người chi / người nhận</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#A3A39B;">VD: Anh Nam - tài xế</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ghi chú</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#A3A39B;height:40px;">VD: Đổ dầu xe tải chở hàng đi Buôn Hồ...</div></div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Lưu chi phí</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Sổ quỹ thao tác -->
+  <div style="width:512px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Tài chính → Sổ quỹ (Chuyển / Rút / Điều chỉnh)</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Chuyển quỹ</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="border-radius:12px;background:#F7F7F2;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:#8A8A80;text-transform:uppercase;">Tiền mặt</div><div style="margin-top:4px;font-weight:800;font-size:16px;">12.350.000 ₫</div></div>
+          <div style="border-radius:12px;background:#F7F7F2;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:#8A8A80;text-transform:uppercase;">Ngân hàng</div><div style="margin-top:4px;font-weight:800;font-size:16px;">86.200.000 ₫</div></div>
+        </div>
+        <div style="display:flex;border-radius:10px;background:#EAEAE2;padding:3px;font-size:13px;font-weight:600;">
+          <span style="flex:1;border-radius:8px;background:#FFFFFF;padding:8px 0;text-align:center;color:#1B5E56;box-shadow:0 1px 2px rgba(0,0,0,0.06);">Chuyển quỹ</span>
+          <span style="flex:1;border-radius:8px;padding:8px 0;text-align:center;color:#6B6B62;">Rút quỹ</span>
+          <span style="flex:1;border-radius:8px;padding:8px 0;text-align:center;color:#6B6B62;">Điều chỉnh</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Từ</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Tiền mặt</span><span style="color:#8A8A80;">▾</span></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Đến</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Ngân hàng</span><span style="color:#8A8A80;">▾</span></div></div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Số tiền</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:17px;font-weight:800;">5.000.000</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ghi chú</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#A3A39B;">VD: Nộp tiền mặt vào TK Vietcombank...</div></div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Xác nhận chuyển</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Thêm/Sửa hàng hóa -->
+  <div style="width:768px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Sản phẩm → Thêm / Sửa hàng hóa</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Sửa hàng hóa</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Mã hàng (*)</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;font-weight:700;font-family:'Geist Mono',monospace;">GACH-600</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Danh mục</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">Gạch ốp lát</div></div>
+          <div style="grid-column:span 2;"><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Tên hàng hóa (*)</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">Gạch granite 600×600 bóng kiếng</div></div>
+          <div style="grid-column:span 2;"><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Tên trên hóa đơn</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">Gạch granite 60×60</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Loại hàng</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">Vật liệu hoàn thiện</div></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Đơn vị tính</div>
+            <div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;"><span>Thùng (THUNG)</span><span style="color:#8A8A80;">▾</span></div>
+            <div style="margin-top:6px;font-size:13px;font-weight:700;color:#1B5E56;">Cấu hình danh sách đơn vị</div>
+          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Quy cách</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">4 viên / thùng</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Tồn mở đầu</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;text-align:right;font-weight:700;">120</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Giá vốn</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;text-align:right;font-weight:700;">185.000</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Giá bán</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;text-align:right;font-weight:800;color:#1B5E56;">245.000</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Quy đổi diện tích/Thùng</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;text-align:right;">1,44</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Quy đổi số lượng lẻ/Thùng</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;text-align:right;">4</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Trạng thái</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">Đang bán</div></div>
+          <div><div style="font-size:13px;font-weight:600;color:#55554E;margin-bottom:4px;">Vòng đời</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">ACTIVE</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #EFEFE8;margin-top:18px;padding-top:16px;">
+          <span style="border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Lưu hàng hóa</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Phiếu nhập kho -->
+  <div style="width:1024px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Tồn kho → Phiếu nhập kho</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Phiếu nhập kho</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Nhà cung cấp</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Cty TNHH Gạch Đồng Tâm</span><span style="color:#8A8A80;">▾</span></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ngày nhập</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;">12/07/2026</div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Số chứng từ</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;font-family:'Geist Mono',monospace;font-weight:700;">PN-000127</div></div>
+        </div>
+        <div style="border:1px solid #E8E8E0;border-radius:12px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#F7F7F2;color:#8A8A80;text-align:left;"><th style="padding:9px 12px;font-weight:700;">Mã</th><th style="padding:9px 12px;font-weight:700;">Hàng hóa</th><th style="padding:9px 12px;font-weight:700;text-align:right;">SL nhập</th><th style="padding:9px 12px;font-weight:700;text-align:right;">Đơn giá nhập</th><th style="padding:9px 12px;font-weight:700;text-align:right;">Thành tiền</th><th style="padding:9px 12px;"></th></tr></thead>
+            <tbody>
+              <tr style="border-top:1px solid #F0F0EA;"><td style="padding:9px 12px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">GACH-600</td><td style="padding:9px 12px;font-weight:600;">Gạch granite 600×600 bóng kiếng</td><td style="padding:9px 12px;text-align:right;font-weight:700;">80</td><td style="padding:9px 12px;text-align:right;">185.000</td><td style="padding:9px 12px;text-align:right;font-weight:800;">14.800.000</td><td style="padding:9px 12px;color:#C2452D;text-align:center;">✕</td></tr>
+              <tr style="border-top:1px solid #F0F0EA;"><td style="padding:9px 12px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">XM-PC40</td><td style="padding:9px 12px;font-weight:600;">Xi măng Hà Tiên PC40</td><td style="padding:9px 12px;text-align:right;font-weight:700;">200</td><td style="padding:9px 12px;text-align:right;">82.000</td><td style="padding:9px 12px;text-align:right;font-weight:800;">16.400.000</td><td style="padding:9px 12px;color:#C2452D;text-align:center;">✕</td></tr>
+              <tr style="border-top:1px dashed #E2E2DA;"><td colspan="6" style="padding:9px 12px;font-weight:700;color:#1B5E56;">+ Thêm dòng hàng</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:32px;font-size:14px;">
+          <div style="color:#6B6B62;">Tổng số lượng: <b style="color:#1C1C1A;">280</b></div>
+          <div style="color:#6B6B62;">Tổng tiền nhập: <b style="color:#1C1C1A;font-size:16px;">31.200.000 ₫</b></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Đã thanh toán NCC</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:15px;font-weight:800;">20.000.000</div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Còn nợ NCC</div><div style="border:1px solid #F2DCD2;background:#FBEFEA;border-radius:10px;padding:10px 12px;font-size:15px;font-weight:800;color:#C2452D;">11.200.000</div></div>
+        </div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Lưu phiếu nhập</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Kiểm kê -->
+  <div style="width:1024px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Tồn kho → Kiểm kê kho &amp; Duyệt lệnh kiểm kê</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Kiểm kê kho</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <div style="border-radius:10px;border:1px solid #F0E4C8;background:#FBF5E4;padding:10px 14px;font-size:13px;color:#8A6A1F;font-weight:600;">Kế toán chỉnh kiểm kê sẽ gửi lệnh chờ admin duyệt.</div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ghi chú chung</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#A3A39B;">VD: Kiểm kê cuối ngày...</div></div>
+        <div style="border:1px solid #E8E8E0;border-radius:12px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#F7F7F2;color:#8A8A80;text-align:left;"><th style="padding:9px 12px;font-weight:700;">Mã</th><th style="padding:9px 12px;font-weight:700;">Hàng hóa</th><th style="padding:9px 12px;font-weight:700;text-align:right;">Tồn hiện tại</th><th style="padding:9px 12px;font-weight:700;text-align:right;">Tồn kiểm kê</th><th style="padding:9px 12px;font-weight:700;">Ghi chú</th></tr></thead>
+            <tbody>
+              <tr style="border-top:1px solid #F0F0EA;background:#FBF5E4;"><td style="padding:9px 12px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">GACH-600</td><td style="padding:9px 12px;"><div style="font-weight:600;">Gạch granite 600×600 bóng kiếng</div><div style="font-size:12px;color:#8A8A80;">Thùng</div></td><td style="padding:9px 12px;text-align:right;color:#6B6B62;font-weight:600;">120</td><td style="padding:9px 12px;text-align:right;"><span style="display:inline-block;border:1px solid #E2C572;background:#FFFFFF;border-radius:8px;padding:6px 10px;font-weight:800;">117</span></td><td style="padding:9px 12px;color:#8A8A80;">Vỡ 3 thùng khi bốc xếp</td></tr>
+              <tr style="border-top:1px solid #F0F0EA;"><td style="padding:9px 12px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">XM-PC40</td><td style="padding:9px 12px;"><div style="font-weight:600;">Xi măng Hà Tiên PC40</div><div style="font-size:12px;color:#8A8A80;">Bao</div></td><td style="padding:9px 12px;text-align:right;color:#6B6B62;font-weight:600;">200</td><td style="padding:9px 12px;text-align:right;"><span style="display:inline-block;border:1px solid #E2E2DA;border-radius:8px;padding:6px 10px;font-weight:700;">200</span></td><td style="padding:9px 12px;color:#C4C4BC;">Lý do...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Gửi lệnh kiểm kê</span>
+        </div>
+        <div style="border-radius:12px;border:1px dashed #CBD5CE;background:#F7FAF8;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="font-size:13px;color:#55554E;"><b>Duyệt lệnh kiểm kê</b> (admin) — cùng bảng trên, thêm cột chênh lệch ±, kèm 2 nút:</div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <span style="border-radius:10px;border:1px solid #F2DCD2;color:#C2452D;padding:8px 14px;font-size:13px;font-weight:700;">Từ chối</span>
+            <span style="border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:8px 14px;font-size:13px;font-weight:700;">Duyệt &amp; cập nhật tồn</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. POS chọn sản phẩm -->
+  <div style="width:896px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">POS → Chọn sản phẩm bán (bottom-sheet trên mobile)</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div><div style="font-size:16px;font-weight:800;">Chọn sản phẩm bán</div><div style="font-size:13px;color:#8A8A80;margin-top:2px;">Bấm Thêm nhiều lần để tăng số lượng trong giỏ.</div></div>
+        <span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:14px 20px;border-bottom:1px solid #F5F5EF;">
+        <div style="display:flex;align-items:center;gap:10px;border:1px solid #E2E2DA;border-radius:10px;padding:10px 14px;font-size:14px;color:#A3A39B;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+          Tìm tên, mã hàng...
+        </div>
+      </div>
+      <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #E8E8E0;border-radius:12px;padding:12px 14px;">
+          <div style="min-width:0;"><div style="font-weight:700;font-size:14px;">Gạch granite 600×600</div><div style="font-size:12px;color:#8A8A80;">GACH-600 · Tồn 117 · <b style="color:#1B5E56;">245.000 ₫</b></div></div>
+          <span style="border-radius:9999px;background:#1B5E56;color:#FFFFFF;padding:7px 16px;font-size:13px;font-weight:700;flex-shrink:0;">Thêm</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #E8E8E0;border-radius:12px;padding:12px 14px;">
+          <div style="min-width:0;"><div style="font-weight:700;font-size:14px;">Xi măng Hà Tiên PC40</div><div style="font-size:12px;color:#8A8A80;">XM-PC40 · Tồn 200 · <b style="color:#1B5E56;">95.000 ₫</b></div></div>
+          <span style="border-radius:9999px;background:#1B5E56;color:#FFFFFF;padding:7px 16px;font-size:13px;font-weight:700;flex-shrink:0;">Thêm</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #E8E8E0;border-radius:12px;padding:12px 14px;">
+          <div style="min-width:0;"><div style="font-weight:700;font-size:14px;">Cát xây tô (khối)</div><div style="font-size:12px;color:#8A8A80;">CAT-XT · Tồn 45 · <b style="color:#1B5E56;">380.000 ₫</b></div></div>
+          <span style="border-radius:9999px;background:#1B5E56;color:#FFFFFF;padding:7px 16px;font-size:13px;font-weight:700;flex-shrink:0;">Thêm</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #E8E8E0;border-radius:12px;padding:12px 14px;background:#F7FAF8;">
+          <div style="min-width:0;"><div style="font-weight:700;font-size:14px;">Thép Việt Nhật D10 <span style="font-size:11px;font-weight:800;color:#122E29;background:#E9B44C;border-radius:6px;padding:1px 6px;">×2 trong giỏ</span></div><div style="font-size:12px;color:#8A8A80;">THEP-D10 · Tồn 320 · <b style="color:#1B5E56;">142.000 ₫</b></div></div>
+          <span style="border-radius:9999px;background:#1B5E56;color:#FFFFFF;padding:7px 16px;font-size:13px;font-weight:700;flex-shrink:0;">Thêm</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Thêm khách hàng -->
+  <div style="width:672px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Khách hàng → Thêm / Sửa khách hàng</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Thêm khách hàng</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Tên khách hàng *</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">CHỊ HOA — Q.9</div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Số điện thoại</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;font-family:'Geist Mono',monospace;font-weight:700;">0908 555 123</div></div>
+          <div style="grid-column:span 2;"><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Địa chỉ</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;">12 Lê Văn Việt, TP. Thủ Đức</div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Nhóm khách</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;"><span>Thầu / công trình</span><span style="color:#8A8A80;">▾</span></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Hạn mức công nợ</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;text-align:right;font-weight:700;">50.000.000</div></div>
+          <div style="grid-column:span 2;"><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ghi chú</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:9px 12px;font-size:14px;color:#A3A39B;height:40px;">VD: Khách quen, lấy giá thầu...</div></div>
+        </div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;margin-top:18px;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Lưu khách hàng</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Thanh toán công nợ NCC -->
+  <div style="width:512px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">NCC → Thanh toán công nợ nhà cung cấp</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Thanh toán công nợ nhà cung cấp</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;background:#FBEFEA;border:1px solid #F2DCD2;padding:12px 16px;">
+          <div><div style="font-weight:700;font-size:14px;">Cty TNHH Gạch Đồng Tâm</div><div style="font-size:12px;color:#8C3C1B;">Nợ từ 2 đơn nhập</div></div>
+          <span style="font-size:19px;font-weight:800;color:#C2452D;">11.200.000 ₫</span>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Số tiền thanh toán</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:17px;font-weight:800;">11.200.000</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Nguồn chi</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;"><span>Ngân hàng</span><span style="color:#8A8A80;">▾</span></div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Ngày chi</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;">12/07/2026</div></div>
+        </div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Hủy</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Xác nhận chi trả</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Bộ lọc đơn hàng -->
+  <div style="width:672px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Đơn hàng / Sản phẩm → Bộ lọc</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Bộ lọc đơn hàng</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Từ ngày</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;">01/07/2026</div></div>
+          <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Đến ngày</div><div style="border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;">12/07/2026</div></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Trạng thái thanh toán</div>
+          <div style="display:flex;gap:8px;">
+            <span style="border-radius:9999px;background:#1B5E56;color:#FFFFFF;padding:7px 16px;font-size:13px;font-weight:700;">Tất cả</span>
+            <span style="border-radius:9999px;border:1px solid #E2E2DA;color:#55554E;padding:7px 16px;font-size:13px;font-weight:600;">Đã thu đủ</span>
+            <span style="border-radius:9999px;border:1px solid #E2E2DA;color:#55554E;padding:7px 16px;font-size:13px;font-weight:600;">Còn nợ</span>
+          </div>
+        </div>
+        <div><div style="font-size:13px;font-weight:700;color:#55554E;margin-bottom:6px;">Khách hàng</div><div style="display:flex;justify-content:space-between;border:1px solid #E2E2DA;border-radius:10px;padding:10px 12px;font-size:14px;color:#A3A39B;"><span>-- Tất cả khách hàng --</span><span style="color:#8A8A80;">▾</span></div></div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Xóa lọc</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Áp dụng</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Chi tiết hàng hóa -->
+  <div style="width:512px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Sản phẩm → Chi tiết hàng hóa</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Chi tiết hàng hóa</div><span style="color:#8A8A80;font-size:18px;line-height:1;">✕</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">GACH-600</div>
+          <div style="font-size:17px;font-weight:800;margin-top:2px;">Gạch granite 600×600 bóng kiếng</div>
+          <div style="font-size:13px;color:#8A8A80;margin-top:2px;">Gạch ốp lát · Thùng (4 viên, 1,44 m²)</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;border-top:1px solid #F5F5EF;padding-top:14px;">
+          <div><div style="font-size:12px;color:#8A8A80;margin-bottom:2px;">Giá bán</div><div style="font-size:19px;font-weight:800;color:#1B5E56;">245.000 đ</div></div>
+          <div><div style="font-size:12px;color:#8A8A80;margin-bottom:2px;">Giá vốn</div><div style="font-size:19px;font-weight:800;">185.000 đ</div></div>
+          <div><div style="font-size:12px;color:#8A8A80;margin-bottom:2px;">Tồn kho</div><div style="font-weight:700;">117 thùng</div></div>
+          <div><div style="font-size:12px;color:#8A8A80;margin-bottom:2px;">Trạng thái</div><div style="font-weight:700;color:#1B5E56;">Đang bán</div></div>
+        </div>
+        <div style="display:flex;gap:12px;border-top:1px solid #EFEFE8;padding-top:16px;">
+          <span style="flex:1;border-radius:10px;border:1px solid #E2E2DA;padding:11px 0;text-align:center;font-size:14px;font-weight:700;color:#55554E;">Sửa hàng hóa</span>
+          <span style="flex:1;border-radius:10px;background:#1B5E56;color:#FFFFFF;padding:11px 0;text-align:center;font-size:14px;font-weight:700;">Đưa vào bán hàng</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Bảng giá bán -->
+  <div style="width:1024px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Sản phẩm → Bảng giá bán (xuất/nhập XLSX)</div>
+    <div style="border-radius:18px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #EFEFE8;">
+        <div style="font-size:16px;font-weight:800;">Bảng giá bán</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="border-radius:10px;border:1px solid #E2E2DA;color:#55554E;padding:8px 14px;font-size:13px;font-weight:700;">↓ Xuất XLSX</span>
+          <span style="border-radius:10px;border:1px solid #E2E2DA;color:#55554E;padding:8px 14px;font-size:13px;font-weight:700;">↑ Nhập XLSX</span>
+          <span style="color:#8A8A80;font-size:18px;line-height:1;margin-left:8px;">✕</span>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:#F7F7F2;color:#8A8A80;text-align:left;"><th style="padding:10px 20px;font-weight:700;">Mã</th><th style="padding:10px 12px;font-weight:700;">Hàng hóa</th><th style="padding:10px 12px;font-weight:700;text-align:right;">Giá vốn</th><th style="padding:10px 12px;font-weight:700;text-align:right;">Giá bán</th><th style="padding:10px 20px;font-weight:700;text-align:right;">Biên lãi</th></tr></thead>
+        <tbody>
+          <tr style="border-top:1px solid #F0F0EA;"><td style="padding:10px 20px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">GACH-600</td><td style="padding:10px 12px;font-weight:600;">Gạch granite 600×600 bóng kiếng</td><td style="padding:10px 12px;text-align:right;">185.000</td><td style="padding:10px 12px;text-align:right;"><span style="display:inline-block;border:1px solid #E2E2DA;border-radius:8px;padding:5px 10px;font-weight:800;color:#1B5E56;">245.000</span></td><td style="padding:10px 20px;text-align:right;font-weight:700;color:#1B5E56;">24,5%</td></tr>
+          <tr style="border-top:1px solid #F0F0EA;"><td style="padding:10px 20px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">XM-PC40</td><td style="padding:10px 12px;font-weight:600;">Xi măng Hà Tiên PC40</td><td style="padding:10px 12px;text-align:right;">82.000</td><td style="padding:10px 12px;text-align:right;"><span style="display:inline-block;border:1px solid #E2E2DA;border-radius:8px;padding:5px 10px;font-weight:800;color:#1B5E56;">95.000</span></td><td style="padding:10px 20px;text-align:right;font-weight:700;color:#1B5E56;">13,7%</td></tr>
+          <tr style="border-top:1px solid #F0F0EA;"><td style="padding:10px 20px;font-weight:700;color:#1B5E56;font-family:'Geist Mono',monospace;">THEP-D10</td><td style="padding:10px 12px;font-weight:600;">Thép Việt Nhật D10</td><td style="padding:10px 12px;text-align:right;">128.000</td><td style="padding:10px 12px;text-align:right;"><span style="display:inline-block;border:1px solid #E2E2DA;border-radius:8px;padding:5px 10px;font-weight:800;color:#1B5E56;">142.000</span></td><td style="padding:10px 20px;text-align:right;font-weight:700;color:#1B5E56;">9,9%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 13. Settings tabs -->
+  <div style="width:1024px;">
+    <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:#D7E2DC;">Cấu hình → thanh tab đầy đủ 7 mục (thêm "Giao diện")</div>
+    <div style="border-radius:14px;background:#FFFFFF;box-shadow:0 24px 60px rgba(0,0,0,0.3);padding:8px;display:flex;gap:6px;overflow:hidden;">
+      <span style="border-radius:10px;background:#122E29;color:#FFFFFF;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;">Cấu hình chung</span>
+      <span style="border-radius:10px;color:#6B6B62;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;">Thanh toán QR</span>
+      <span style="border-radius:10px;color:#6B6B62;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;">Đơn vị tính</span>
+      <span style="border-radius:10px;color:#6B6B62;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;">Người dùng</span>
+      <span style="border-radius:10px;color:#6B6B62;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;">Dữ liệu &amp; backup</span>
+      <span style="border-radius:10px;color:#6B6B62;padding:9px 16px;font-size:13px;font-weight:700;white-space:nowrap;">Vận hành</span>
+      <span style="border-radius:10px;border:1px dashed #1B5E56;color:#1B5E56;padding:9px 16px;font-size:13px;font-weight:800;white-space:nowrap;">Giao diện ← mới</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1900,&quot;height&quot;:2900}}"></script>
+</body>
+</html>
