@@ -6,6 +6,7 @@ import { createCode, getJsonBody, optionalString, toNumber, toStringValue } from
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { bestEffortSyncTables } from "../_lib/googleSheets.js";
 import { enforceRateLimit } from "../_lib/rateLimit.js";
+import sheetsInboxHandler from "../_lib/sheetsInbox.js";
 
 const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   customers: ["ADMIN", "ACCOUNTANT", "SALE"],
@@ -308,6 +309,14 @@ async function discontinueProduct(req: ApiRequest, res: ApiResponse) {
     new_status: "DISCONTINUED",
     reason: optionalString(body.reason) ?? "Ngưng bán từ màn hàng hóa",
     changed_by: actor.id
+  });
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actor.id,
+    action: "DISCONTINUE",
+    entity_type: "product",
+    entity_id: productId,
+    after_json: { code: data?.code, name: data?.product_name, reason: optionalString(body.reason) ?? null }
   });
 
   await bestEffortSyncTables(["products", "product_status_history"]);
@@ -1497,6 +1506,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "payment-promises") {
       await handlePaymentPromises(req, res);
+      return;
+    }
+
+    // Hàng chờ thay đổi từ Google Sheet (trước là /api/sync/google-sheets-inbox —
+    // gộp vào đây để giữ giới hạn 12 serverless function của Vercel Hobby).
+    if (table === "sheet-inbox") {
+      await sheetsInboxHandler(req, res);
       return;
     }
 

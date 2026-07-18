@@ -353,6 +353,60 @@ async function resyncSupplierPayables() {
   return stale.length;
 }
 
+// Xóa vĩnh viễn các đơn trạng thái CANCELLED khỏi hệ thống (admin dọn danh sách).
+// Sổ tiền (receipts/cashbook) được giữ nguyên — chỉ gỡ liên kết đơn.
+async function purgeCancelledOrders(actorId: string) {
+  const supabase = getSupabaseAdmin();
+  const orders = await selectAllRows("sales_orders", "*", (query) => query.eq("status", "CANCELLED"));
+  if (orders.length === 0) return { deleted: 0, archiveId: null as string | null };
+
+  const orderIds: string[] = orders.map((order) => order.id);
+  const chunks: string[][] = [];
+  for (let index = 0; index < orderIds.length; index += 200) {
+    chunks.push(orderIds.slice(index, index + 200));
+  }
+
+  // Snapshot mọi dòng liên quan trước khi xóa để có thể tra cứu lại.
+  const snapshot: Record<string, unknown[]> = {
+    sales_orders: orders, sales_order_items: [], order_debts: [], customer_debt_ledger: [], receipt_allocations: []
+  };
+  for (const chunk of chunks) {
+    for (const table of ["sales_order_items", "order_debts", "customer_debt_ledger", "receipt_allocations"]) {
+      const rows = await selectAllRows(table, "*", (query) => query.in("order_id", chunk));
+      (snapshot[table] as unknown[]).push(...rows);
+    }
+  }
+  const rowCounts = Object.fromEntries(Object.entries(snapshot).map(([table, rows]) => [table, rows.length]));
+  const { data: archive, error: archiveError } = await supabase
+    .from("history_clear_backups")
+    .insert({ actor_id: actorId, groups: ["cancelled-orders"], row_counts: rowCounts, snapshot_json: snapshot })
+    .select("id")
+    .single();
+  if (archiveError) throw new Error(`Không tạo được archive trước khi xóa đơn hủy: ${archiveError.message}`);
+
+  for (const chunk of chunks) {
+    // Các bảng tham chiếu order_id không cascade từ sales_orders phải gỡ trước.
+    const { error: allocError } = await supabase.from("receipt_allocations").delete().in("order_id", chunk);
+    if (allocError) throw new Error(`receipt_allocations: ${allocError.message}`);
+    const { error: ledgerError } = await supabase.from("customer_debt_ledger").delete().in("order_id", chunk);
+    if (ledgerError) throw new Error(`customer_debt_ledger: ${ledgerError.message}`);
+    const { error: receiptError } = await supabase.from("receipts").update({ order_id: null }).in("order_id", chunk);
+    if (receiptError) throw new Error(`receipts: ${receiptError.message}`);
+    // order_debts + sales_order_items cascade theo sales_orders.
+    const { error: orderError } = await supabase.from("sales_orders").delete().in("id", chunk);
+    if (orderError) throw new Error(`sales_orders: ${orderError.message}`);
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_id: actorId,
+    action: "CLEAR_CANCELLED_ORDERS",
+    entity_type: "operations",
+    entity_id: "cancelled-orders",
+    after_json: { deletedOrders: orders.length, rowCounts, archiveId: archive.id }
+  });
+  return { deleted: orders.length, archiveId: archive.id as string };
+}
+
 async function resyncBalancesAfterClear(clearedTables: string[]) {
   const cleared = new Set(clearedTables);
   const resynced: Record<string, number> = {};
@@ -424,8 +478,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const selectedHistoryGroups = CLEAR_GROUPS.filter((group) => requested.includes(group.key));
     const selectedMasterGroups = MASTER_GROUPS.filter((group) => requested.includes(group.key));
+    const purgeCancelled = requested.includes("cancelled-orders");
     const selectedGroups = [...selectedHistoryGroups, ...selectedMasterGroups];
-    if (selectedGroups.length === 0) {
+    if (selectedGroups.length === 0 && !purgeCancelled) {
       res.status(400).json({ ok: false, error: "Chưa chọn nhóm lịch sử cần xóa." });
       return;
     }
@@ -470,35 +525,47 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const supabase = getSupabaseAdmin();
     const tables = uniqueTables(selectedGroups);
-    const archive = await createArchive(actor.id, selectedGroups, tables, beforeDate);
     const deleted: Record<string, number> = {};
-    for (const table of tables) {
-      deleted[table] = await clearTable(table, beforeDate);
-    }
-    const resynced = await resyncBalancesAfterClear(tables);
+    let archiveId: string | null = null;
 
-    await supabase.from("audit_logs").insert({
-      actor_id: actor.id,
-      action: "CLEAR_HISTORY",
-      entity_type: "operations",
-      entity_id: selectedGroups.map((group) => group.key).join(","),
-      after_json: {
-        groups: selectedGroups.map((group) => group.label),
-        beforeDate: beforeDate ?? null,
-        deleted,
-        resynced,
-        archiveId: archive.id,
-        archiveRows: archive.rowCounts
+    if (selectedGroups.length > 0) {
+      const archive = await createArchive(actor.id, selectedGroups, tables, beforeDate);
+      archiveId = archive.id;
+      for (const table of tables) {
+        deleted[table] = await clearTable(table, beforeDate);
       }
-    });
+
+      await supabase.from("audit_logs").insert({
+        actor_id: actor.id,
+        action: "CLEAR_HISTORY",
+        entity_type: "operations",
+        entity_id: selectedGroups.map((group) => group.key).join(","),
+        after_json: {
+          groups: selectedGroups.map((group) => group.label),
+          beforeDate: beforeDate ?? null,
+          deleted,
+          archiveId: archive.id,
+          archiveRows: archive.rowCounts
+        }
+      });
+    }
+
+    // Dọn đơn đã hủy sau các nhóm lịch sử (nếu vừa xóa nhóm sales thì không còn gì để dọn).
+    if (purgeCancelled) {
+      const purge = await purgeCancelledOrders(actor.id);
+      deleted["cancelled_orders"] = purge.deleted;
+      archiveId = archiveId ?? purge.archiveId;
+    }
+
+    const resynced = await resyncBalancesAfterClear(purgeCancelled ? [...tables, "order_debts"] : tables);
 
     res.status(200).json({
       ok: true,
-      groups: selectedGroups.map((group) => group.key),
+      groups: [...selectedGroups.map((group) => group.key), ...(purgeCancelled ? ["cancelled-orders"] : [])],
       beforeDate: beforeDate ?? null,
       deleted,
       resynced,
-      archiveId: archive.id,
+      archiveId,
       totalDeleted: Object.values(deleted).reduce((sum, value) => sum + value, 0)
     });
   } catch (error) {

@@ -86,6 +86,19 @@ Bảng `payment_promises` có sẵn trong DB nhưng chưa từng có UI/API — 
 - **Precheck khóa ngoại**: nếu còn lịch sử tham chiếu (đơn bán, phiếu thu, giao dịch kho...) sẽ báo rõ bảng nào còn bao nhiêu dòng và gợi ý tick kèm nhóm lịch sử để xóa cùng lúc — không bao giờ chết giữa chừng vì vỡ FK.
 - Không hỗ trợ mốc ngày cho danh mục (chỉ xóa toàn bộ), vẫn tự tạo **bản lưu JSON** trước khi xóa như lịch sử.
 
+## 8. BỔ SUNG (18/07 chiều): Dọn đơn hủy + Nhật ký hoạt động + fix deploy 13 function
+
+**Xóa vĩnh viễn đơn đã hủy** (Cài đặt → Xóa lịch sử, nhóm mới "Đơn đã hủy (xóa vĩnh viễn)"):
+- Xóa các đơn trạng thái Đã hủy + dòng hàng + phiếu công nợ + sổ cái gắn với đơn; phiếu thu/sổ quỹ (tiền thật) giữ nguyên, chỉ gỡ liên kết đơn.
+- Tự tạo bản lưu JSON riêng trước khi xóa; ghi audit `CLEAR_CANCELLED_ORDERS`; đồng bộ lại số dư sau khi dọn.
+
+**Nhật ký hoạt động người dùng** (Cài đặt → Vận hành):
+- Bảng đầy đủ thay cho danh sách audit 12 dòng cũ: thời gian, người dùng (tên thật), hành động (nhãn tiếng Việt), đối tượng, chi tiết tóm tắt.
+- Lọc theo người dùng / hành động, tìm kiếm nội dung, phân trang 15 dòng, hiển thị 500 bản ghi gần nhất. Giao diện riêng cho mobile.
+- Bổ sung audit log cho thao tác ngưng bán sản phẩm (DISCONTINUE); các thao tác tạo/sửa KH-NCC-SP, thu chi, duyệt kho, xóa lịch sử... đã ghi audit từ trước.
+
+**Fix deploy hỏng do 13 serverless function:** commit `7afc179` (phiên Codex khác) thêm file `api/sync/google-sheets-inbox.ts` làm vượt giới hạn 12 function Vercel Hobby → mọi deploy sau đó fail. Đã chuyển handler vào `api/_lib/sheetsInbox.ts`, route qua **`/api/data/sheet-inbox`** (đúng quy ước dự án), cập nhật UI Settings + Google Apps Script (`PMQL_MasterScript.gs` — ai đang dùng bản .gs cũ cần dán lại script mới). Bảng `sheet_change_requests` đã có sẵn trên DB, không cần migration thêm.
+
 ## Gợi ý bước tiếp theo (chưa làm)
 
 - Nhắc nợ tự động (bảng `debt_reminders` đã có sẵn, có thể nối vào cron notifications).

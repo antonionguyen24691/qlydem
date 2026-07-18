@@ -346,7 +346,7 @@ function PMQL_submitChangeInbox() {
     SpreadsheetApp.getUi().alert("Không có dòng action = SEND.");
     return;
   }
-  const response = UrlFetchApp.fetch(baseUrl + "/api/sync/google-sheets-inbox", {
+  const response = UrlFetchApp.fetch(baseUrl + "/api/data/sheet-inbox", {
     method: "post",
     contentType: "application/json",
     headers: { "X-PMQL-Sync-Secret": secret },

@@ -172,7 +172,8 @@ const historyClearOptions = [
   { key: "purchase", label: "Lịch sử mua/nhập hàng", description: "Đơn nhập mua và công nợ nhà cung cấp." },
   { key: "inventory", label: "Lịch sử xuất/nhập/kiểm kho", description: "Giao dịch kho, lệnh duyệt kiểm kê, log sửa tồn." },
   { key: "notifications", label: "Thông báo và nhắc việc", description: "Thông báo nội bộ và các nhắc việc công nợ." },
-  { key: "imports", label: "Lịch sử import dữ liệu", description: "Batch import và lỗi import Excel." }
+  { key: "imports", label: "Lịch sử import dữ liệu", description: "Batch import và lỗi import Excel." },
+  { key: "cancelled-orders", label: "Đơn đã hủy (xóa vĩnh viễn)", description: "Dọn các đơn trạng thái Đã hủy khỏi danh sách + sổ sách gắn với đơn. Phiếu thu/sổ quỹ giữ nguyên." }
 ];
 
 const masterClearOptions = [
@@ -381,7 +382,7 @@ export function Settings() {
     setIsLoadingSheetChanges(true);
     setSheetChangeError("");
     try {
-      const response = await fetch("/api/sync/google-sheets-inbox", { headers: await getAuthHeaders() });
+      const response = await fetch("/api/data/sheet-inbox", { headers: await getAuthHeaders() });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được yêu cầu từ Google Sheet.");
       setSheetChangeRequests(body.requests ?? []);
@@ -396,7 +397,7 @@ export function Settings() {
     setReviewingSheetChangeId(id);
     setSheetChangeError("");
     try {
-      const response = await fetch("/api/sync/google-sheets-inbox", {
+      const response = await fetch("/api/data/sheet-inbox", {
         method: "PATCH",
         headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
         body: JSON.stringify({ id, decision })
@@ -670,7 +671,7 @@ export function Settings() {
       if (!readinessResponse.ok || !readinessBody.ok) throw new Error(readinessBody.error ?? "Không kiểm tra được trạng thái vận hành.");
       if (!auditResponse.ok || !auditBody.ok) throw new Error(auditBody.error ?? "Không đọc được audit logs.");
       setReadiness(readinessBody);
-      setAuditLogs((auditBody.rows ?? []).slice(0, 12));
+      setAuditLogs((auditBody.rows ?? []).slice(0, 500));
       setSupplierRows((supplierBody.rows ?? []).slice(0, 8));
       setPurchaseRows((purchaseBody.rows ?? []).slice(0, 8));
       if (archivesResponse.ok && archivesBody.ok) setHistoryArchives(archivesBody.archives ?? []);
@@ -1564,8 +1565,9 @@ export function Settings() {
               </div>
             )}
 
-            <div className="grid gap-4 xl:grid-cols-3">
-              <MiniOpsList title="Audit log" rows={auditLogs} primaryKey="action" secondaryKey="entity_type" dateKey="created_at" />
+            <AuditLogSection logs={auditLogs} users={users} />
+
+            <div className="grid gap-4 xl:grid-cols-2">
               <MiniOpsList title="Nhà cung cấp" rows={supplierRows} primaryKey="name" secondaryKey="phone" dateKey="created_at" />
               <MiniOpsList title="Đơn nhập" rows={purchaseRows} primaryKey="code" secondaryKey="status" dateKey="purchase_date" />
             </div>
@@ -1722,6 +1724,154 @@ function MiniOpsList({
         ))}
         {rows.length === 0 && <div className="p-6 text-center text-sm text-zinc-500">Chưa có dữ liệu.</div>}
       </div>
+    </div>
+  );
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  CREATE: "Tạo mới",
+  UPSERT: "Tạo/Cập nhật",
+  UPDATE: "Cập nhật",
+  DELETE: "Xóa",
+  DISCONTINUE: "Ngưng bán",
+  CANCEL: "Hủy",
+  CLEAR_HISTORY: "Xóa lịch sử",
+  CLEAR_CANCELLED_ORDERS: "Dọn đơn hủy",
+  APPROVE: "Duyệt",
+  REJECT: "Từ chối",
+  ADJUST: "Điều chỉnh"
+};
+
+const AUDIT_ENTITY_LABELS: Record<string, string> = {
+  customer: "Khách hàng",
+  supplier: "Nhà cung cấp",
+  product: "Sản phẩm",
+  sales_order: "Đơn bán",
+  receipt: "Phiếu thu",
+  supplier_payment: "Chi trả NCC",
+  payment_promise: "Hẹn trả nợ",
+  operations: "Vận hành",
+  cashbook_entry: "Sổ quỹ",
+  inventory: "Kho",
+  inventory_receipt: "Phiếu nhập kho",
+  inventory_adjustment: "Điều chỉnh kho",
+  user: "Người dùng",
+  role: "Phân quyền",
+  roles: "Phân quyền",
+  customer_debt: "Công nợ KH",
+  price_update: "Cập nhật giá",
+  import: "Import dữ liệu"
+};
+
+function summarizeAudit(log: any): string {
+  const after = log.after_json;
+  if (!after || typeof after !== "object") return String(log.entity_id ?? "");
+  if (after.code || after.name || after.product_name) {
+    return [after.code, after.name ?? after.product_name].filter(Boolean).join(" — ");
+  }
+  if (after.deleted && typeof after.deleted === "object") {
+    const total = Object.values(after.deleted).reduce<number>((sum, value) => sum + Number(value ?? 0), 0);
+    return `Xóa ${total.toLocaleString("vi-VN")} dòng (${(after.groups ?? []).join(", ")})`;
+  }
+  if (after.deletedOrders !== undefined) return `Xóa vĩnh viễn ${after.deletedOrders} đơn đã hủy`;
+  if (after.promise) return `${Number(after.promise.promised_amount ?? 0).toLocaleString("vi-VN")} đ — hẹn ${after.promise.promised_date ?? ""}`;
+  if (after.payment?.amount !== undefined) return `${Number(after.payment.amount).toLocaleString("vi-VN")} đ`;
+  if (after.status) return `Trạng thái: ${after.status}`;
+  const text = JSON.stringify(after);
+  return text.length > 90 ? `${text.slice(0, 90)}…` : text;
+}
+
+function AuditLogSection({ logs, users }: { logs: any[]; users: AdminUser[] }) {
+  const [actorFilter, setActorFilter] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+
+  const nameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+  const actorName = (id: string) => nameById.get(id) ?? (id ? `${id.slice(0, 8)}…` : "Hệ thống");
+  const actionOptions = Array.from(new Set(logs.map((log) => String(log.action ?? "")))).filter(Boolean).sort();
+  const actorOptions = Array.from(new Set(logs.map((log) => String(log.actor_id ?? "")))).filter(Boolean);
+
+  const filtered = logs.filter((log) =>
+    (!actorFilter || log.actor_id === actorFilter) &&
+    (!actionFilter || log.action === actionFilter) &&
+    (!search || `${log.entity_type} ${log.entity_id} ${JSON.stringify(log.after_json ?? "")}`.toLowerCase().includes(search.toLowerCase()))
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  return (
+    <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white overflow-hidden">
+      <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-3">
+        <div className="font-bold text-zinc-900">Nhật ký hoạt động người dùng</div>
+        <div className="mt-0.5 text-xs text-zinc-500">Ai đã làm gì trên hệ thống: tạo/sửa/xóa, thu chi, duyệt kho, xóa lịch sử... ({logs.length} bản ghi gần nhất)</div>
+      </div>
+      <div className="flex flex-col gap-2 border-b border-zinc-100 p-3 sm:flex-row">
+        <select value={actorFilter} onChange={(event) => { setActorFilter(event.target.value); setPage(1); }} className="h-10 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-sm sm:w-48">
+          <option value="">Tất cả người dùng</option>
+          {actorOptions.map((id) => <option key={id} value={id}>{actorName(id)}</option>)}
+        </select>
+        <select value={actionFilter} onChange={(event) => { setActionFilter(event.target.value); setPage(1); }} className="h-10 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-sm sm:w-44">
+          <option value="">Tất cả hành động</option>
+          {actionOptions.map((action) => <option key={action} value={action}>{AUDIT_ACTION_LABELS[action] ?? action}</option>)}
+        </select>
+        <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Tìm theo đối tượng, nội dung..." className="flex-1" />
+      </div>
+
+      <div className="hidden md:block max-h-[420px] overflow-auto custom-scrollbar">
+        <table className="w-full min-w-[760px] divide-y divide-zinc-100 text-sm">
+          <thead className="sticky top-0 bg-zinc-50">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              <th className="px-4 py-2.5">Thời gian</th>
+              <th className="px-4 py-2.5">Người dùng</th>
+              <th className="px-4 py-2.5">Hành động</th>
+              <th className="px-4 py-2.5">Đối tượng</th>
+              <th className="px-4 py-2.5">Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {paged.map((log, index) => (
+              <tr key={log.id ?? index} className="hover:bg-zinc-50">
+                <td className="whitespace-nowrap px-4 py-2.5 text-zinc-500">{log.created_at ? new Date(log.created_at).toLocaleString("vi-VN") : "-"}</td>
+                <td className="whitespace-nowrap px-4 py-2.5 font-bold text-zinc-900">{actorName(String(log.actor_id ?? ""))}</td>
+                <td className="whitespace-nowrap px-4 py-2.5">
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">{AUDIT_ACTION_LABELS[String(log.action)] ?? log.action}</span>
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-zinc-700">{AUDIT_ENTITY_LABELS[String(log.entity_type)] ?? log.entity_type}</td>
+                <td className="max-w-[280px] truncate px-4 py-2.5 text-zinc-500" title={summarizeAudit(log)}>{summarizeAudit(log)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && <div className="p-6 text-center text-sm text-zinc-500">Không có bản ghi phù hợp.</div>}
+      </div>
+
+      <div className="md:hidden divide-y divide-zinc-100">
+        {paged.map((log, index) => (
+          <div key={log.id ?? index} className="p-3">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-bold text-zinc-900">{actorName(String(log.actor_id ?? ""))}</span>
+              <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">{AUDIT_ACTION_LABELS[String(log.action)] ?? log.action}</span>
+            </div>
+            <div className="mt-1 text-sm text-zinc-700">{AUDIT_ENTITY_LABELS[String(log.entity_type)] ?? log.entity_type}</div>
+            <div className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{summarizeAudit(log)}</div>
+            <div className="mt-1 text-xs font-medium text-zinc-400">{log.created_at ? new Date(log.created_at).toLocaleString("vi-VN") : ""}</div>
+          </div>
+        ))}
+        {filtered.length === 0 && <div className="p-6 text-center text-sm text-zinc-500">Không có bản ghi phù hợp.</div>}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-zinc-100 p-3 text-sm">
+          <span className="text-zinc-500">Trang {currentPage}/{totalPages} · {filtered.length} bản ghi</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Trước</Button>
+            <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>Sau</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
-import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { methodNotAllowed, sendError } from "../_lib/http.js";
-import { getJsonBody, optionalString, toStringValue } from "../_lib/body.js";
-import { requirePermission } from "../_lib/auth.js";
-import { getSupabaseAdmin } from "../_lib/supabase.js";
+import type { ApiRequest, ApiResponse } from "./http.js";
+import { methodNotAllowed, sendError } from "./http.js";
+import { getJsonBody, optionalString, toStringValue } from "./body.js";
+import { requirePermission } from "./auth.js";
+import { getSupabaseAdmin } from "./supabase.js";
 
 const ALLOWED_FIELDS = {
   customers: new Set(["name", "short_name", "phone", "address", "tax_code", "customer_group", "credit_limit", "credit_days", "status", "note"]),
