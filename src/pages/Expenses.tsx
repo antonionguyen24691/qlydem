@@ -27,7 +27,7 @@ type CashbookRow = {
 
 type ExpenseCategory = { code: string; name: string };
 
-type PeriodFilter = "MONTH" | "LAST_MONTH" | "30_DAYS" | "ALL";
+type PeriodFilter = "TODAY" | "MONTH" | "LAST_MONTH" | "30_DAYS" | "CUSTOM" | "ALL";
 
 const defaultCategories: ExpenseCategory[] = [
   { code: "FUEL", name: "Xăng xe" },
@@ -42,6 +42,15 @@ function entryDateOf(entry: CashbookRow) {
   return entry.entry_date ?? entry.created_at;
 }
 
+function localDateKey(date = new Date()) {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function valueDateKey(value: string) {
+  return String(value ?? "").slice(0, 10);
+}
+
 export function Expenses() {
   const themeId = useThemeStore((state) => state.themeId);
   const location = useLocation();
@@ -51,6 +60,8 @@ export function Expenses() {
 
   const [tab, setTab] = useState<"EXPENSES" | "REPORT">("EXPENSES");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("MONTH");
+  const [dateFrom, setDateFrom] = useState(() => `${localDateKey().slice(0, 8)}01`);
+  const [dateTo, setDateTo] = useState(() => localDateKey());
   const [cashbookEntries, setCashbookEntries] = useState<CashbookRow[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>(defaultCategories);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -100,7 +111,12 @@ export function Expenses() {
 
   const isInPeriod = (value: string) => {
     if (periodFilter === "ALL") return true;
-    const date = new Date(value);
+    const dateKey = valueDateKey(value);
+    if (!dateKey) return false;
+    const today = localDateKey();
+    if (periodFilter === "TODAY") return dateKey === today;
+    if (periodFilter === "CUSTOM") return (!dateFrom || dateKey >= dateFrom) && (!dateTo || dateKey <= dateTo);
+    const date = new Date(`${dateKey}T00:00:00`);
     const now = new Date();
     if (periodFilter === "MONTH") return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
     if (periodFilter === "LAST_MONTH") {
@@ -266,7 +282,7 @@ export function Expenses() {
     await saveCategories(categories.filter((category) => category.code !== code));
   };
 
-  const periodLabel = periodFilter === "MONTH" ? "tháng này" : periodFilter === "LAST_MONTH" ? "tháng trước" : periodFilter === "30_DAYS" ? "30 ngày" : "toàn bộ";
+  const periodLabel = periodFilter === "TODAY" ? "hôm nay" : periodFilter === "MONTH" ? "tháng này" : periodFilter === "LAST_MONTH" ? "tháng trước" : periodFilter === "30_DAYS" ? "30 ngày" : periodFilter === "CUSTOM" ? `${dateFrom || "…"} đến ${dateTo || "…"}` : "toàn bộ";
 
   return (
     <div data-mobile-page="expenses" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
@@ -277,11 +293,14 @@ export function Expenses() {
             <span className="rounded-md bg-white px-3 py-1.5 text-emerald-700 shadow-sm">Chi phí & kết quả</span>
           </div>
           <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-9 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm">
+            <option value="TODAY">Hôm nay</option>
             <option value="MONTH">Tháng này</option>
             <option value="LAST_MONTH">Tháng trước</option>
             <option value="30_DAYS">30 ngày gần đây</option>
+            <option value="CUSTOM">Từ ngày đến ngày</option>
             <option value="ALL">Tất cả thời gian</option>
           </select>
+          {periodFilter === "CUSTOM" && <div className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-zinc-600"><Input aria-label="Từ ngày" type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} className="h-9 w-[138px] px-2" /><span>–</span><Input aria-label="Đến ngày" type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} className="h-9 w-[138px] px-2" /></div>}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button variant="outline" onClick={() => { void loadRows(); void loadLiveData(); }}>
