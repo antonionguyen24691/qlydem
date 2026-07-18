@@ -15,6 +15,27 @@ import { Input } from "../components/ui/Input";
 const POS_DRAFT_KEY = "pmql-pos-draft";
 const POS_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
+type PaymentConfig = {
+  enabled?: boolean;
+  bankBin?: string;
+  accountNumber?: string;
+  accountName?: string;
+  transferTemplate?: string;
+};
+
+function createTransferReference() {
+  return `CK${new Date().toISOString().replace(/\D/g, "").slice(2, 14)}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function vietQrUrl(payment: PaymentConfig, amount: number, reference: string, customerName: string) {
+  if (!payment.enabled || !payment.bankBin || !payment.accountNumber || amount <= 0) return "";
+  const content = (payment.transferTemplate || "Thanh toan {orderCode}")
+    .replaceAll("{orderCode}", reference)
+    .replaceAll("{customerName}", customerName || "Khach le");
+  const params = new URLSearchParams({ amount: String(Math.round(amount)), addInfo: content, accountName: payment.accountName ?? "" });
+  return `https://img.vietqr.io/image/${encodeURIComponent(payment.bankBin)}-${encodeURIComponent(payment.accountNumber)}-compact2.png?${params.toString()}`;
+}
+
 function normalizeSearch(value: string) {
   return value
     .normalize("NFD")
@@ -37,6 +58,7 @@ export function POS() {
   const navigate = useNavigate();
   const draftPromptedRef = useRef(false);
   const checkoutKeyRef = useRef<string | undefined>(undefined);
+  const transferReferenceRef = useRef<string>("");
   
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState(products);
@@ -64,10 +86,17 @@ export function POS() {
     note: ""
   });
   const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({});
 
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
   const finalTotal = subTotal - discountAmount;
+  const enteredPaidAmount = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal;
+  const transferAmount = Math.min(finalTotal, Math.max(0, enteredPaidAmount || finalTotal));
+  const transferReference = transferReferenceRef.current || "CK-POS";
+  const transferQrUrl = paymentMethod === "TRANSFER"
+    ? vietQrUrl(paymentConfig, transferAmount, transferReference, selectedCustomer?.name ?? "Khach le")
+    : "";
   const canDiscount = canEditSalePrices(user);
   const normalizedPickerSearch = normalizeSearch(productPickerSearch.trim());
   const productPickerResults = products.filter((product) => {
@@ -97,6 +126,18 @@ export function POS() {
 
   useEffect(() => {
     void loadUnitOptions().then(setUnitOptions).catch(() => setUnitOptions(defaultUnitOptions));
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/settings?key=payment", { headers: await getAuthHeaders() });
+        const body = await response.json();
+        if (response.ok && body.ok) setPaymentConfig(body.payment ?? {});
+      } catch {
+        setPaymentConfig({});
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -208,6 +249,7 @@ export function POS() {
           paymentMethod,
           paidAmount: amountPaid,
           discountAmount: canDiscount ? discountAmount : 0,
+          note: paymentMethod === "TRANSFER" ? `Xác nhận chuyển khoản: ${transferReferenceRef.current || "CK-POS"}` : undefined,
           idempotencyKey,
           items: cart.map((item) => ({
             productId: item.id,
@@ -260,6 +302,7 @@ export function POS() {
     setCustomerSearch("");
     setDiscountPercent(0);
     setCustomerPaid("");
+    transferReferenceRef.current = "";
     setIsMobileCheckoutOpen(false);
     navigate(`/orders/${encodeURIComponent(newOrder.id)}/bill`, { state: { order: newOrder } });
   };
@@ -272,7 +315,14 @@ export function POS() {
       setDiscountPercent(0);
       setCustomerPaid("");
       checkoutKeyRef.current = undefined;
+      transferReferenceRef.current = "";
     }
+  };
+
+  const selectTransfer = () => {
+    setPaymentMethod("TRANSFER");
+    if (!transferReferenceRef.current) transferReferenceRef.current = createTransferReference();
+    if (!customerPaid && finalTotal > 0) setCustomerPaid(finalTotal.toLocaleString("vi-VN"));
   };
 
   const handleSaveDraft = () => {
@@ -630,7 +680,7 @@ export function POS() {
           </div>
           <div className="pos-mobile-payment-methods">
             <button type="button" className={paymentMethod === "CASH" && customerPaid !== "0" ? "is-active" : ""} onClick={() => { setPaymentMethod("CASH"); setCustomerPaid(""); }}>Tiền mặt</button>
-            <button type="button" className={paymentMethod === "TRANSFER" ? "is-active" : ""} onClick={() => { setPaymentMethod("TRANSFER"); setCustomerPaid(""); }}>Chuyển khoản</button>
+            <button type="button" className={paymentMethod === "TRANSFER" ? "is-active" : ""} onClick={selectTransfer}>Chuyển khoản</button>
             <button type="button" className={customerPaid === "0" ? "is-active" : ""} onClick={() => { setPaymentMethod("CASH"); setCustomerPaid("0"); setIsMobileCheckoutOpen(true); }}>Ghi nợ</button>
           </div>
           <button type="button" className="pos-mobile-complete" disabled={cart.length === 0} onClick={() => setIsMobileCheckoutOpen(true)}>{isTerracotta ? "Thanh toán & in bill" : "Hoàn tất — In hóa đơn"}</button>
@@ -778,7 +828,7 @@ export function POS() {
                     Tiền mặt
                   </button>
                   <button 
-                    onClick={() => setPaymentMethod("TRANSFER")}
+                    onClick={selectTransfer}
                     className={`flex-1 rounded-xl py-3 text-center font-semibold transition-all min-h-[48px] ${
                       paymentMethod === "TRANSFER" 
                         ? "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-600 shadow-sm" 
@@ -788,6 +838,19 @@ export function POS() {
                     Chuyển khoản
                   </button>
                 </div>
+                {paymentMethod === "TRANSFER" && (
+                  <div className="mt-4 rounded-[var(--radius-card)] border border-emerald-200 bg-emerald-50/60 p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-emerald-900">Phiếu thanh toán chuyển khoản</div>
+                        <div className="mt-1 text-xs leading-5 text-emerald-800">Quét QR để thanh toán {transferAmount.toLocaleString("vi-VN")} đ. Mã đối chiếu: <span className="font-black">{transferReference}</span>.</div>
+                        <div className="mt-2 text-xs font-medium text-zinc-600">Chưa xuất kho ở bước này. Sau khi đối soát tiền vào, bấm xác nhận bên dưới để lập phiếu xuất kho. Có thể sửa “Khách đưa” xuống số tiền đã nhận để thu một phần và ghi công nợ phần còn lại.</div>
+                        {!transferQrUrl && <div className="mt-2 rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">Chưa cấu hình QR ngân hàng. Vào Cấu hình → Thanh toán QR để nhập ngân hàng và số tài khoản.</div>}
+                      </div>
+                      {transferQrUrl && <img src={transferQrUrl} alt="QR thanh toán chuyển khoản" className="h-40 w-40 shrink-0 rounded-[var(--radius-control)] border border-emerald-100 bg-white object-contain p-1" />}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -798,7 +861,7 @@ export function POS() {
                 size="lg"
                 className="w-full h-14 text-lg"
               >
-                {isCheckingOut ? "Đang xử lý..." : "Hoàn tất thanh toán"}
+                {isCheckingOut ? "Đang xử lý..." : paymentMethod === "TRANSFER" ? "Xác nhận CK & xuất kho" : "Hoàn tất thanh toán"}
               </Button>
             </div>
           </div>

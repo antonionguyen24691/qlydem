@@ -89,8 +89,10 @@ function transferContent(payment: PaymentSettings, order: Order) {
 
 function vietQrUrl(payment: PaymentSettings, order: Order) {
   if (!payment.enabled || !payment.bankBin || !payment.accountNumber) return "";
+  const remaining = Math.max(0, Math.round(order.total - order.paid));
+  if (remaining <= 0) return "";
   const params = new URLSearchParams({
-    amount: String(Math.max(0, Math.round(order.total - order.paid || order.total))),
+    amount: String(remaining),
     addInfo: transferContent(payment, order),
     accountName: payment.accountName ?? ""
   });
