@@ -60,8 +60,10 @@ Dashboard is a role-aware retail control surface for store owners, accountants, 
 ## Layout
 
 - Container: maximum 1400px.
-- Dashboard navigation is a horizontally scrollable tab row: Overview, Sales, Inventory, Receivables & Cash Flow.
+- Dashboard navigation is a horizontally scrollable tab row on desktop. On phone widths it becomes a visible 2×2 tab grid so no destination is hidden off-screen.
 - Desktop: a 12-column grid; mobile: one column and no nested vertical scrollers.
+- Date inputs stack beneath the period selector on phones and span the available width without overflowing.
+- Charts use the available screen width on phones, are 160px high, and label only first/middle/last days for dense ranges. Empty periods show an explicit empty state instead of a blank chart.
 - Shared period selector sits above the tab content and changes every chart and KPI in the active tab.
 
 ## Elevation & Depth
