@@ -454,7 +454,7 @@ export function Inventory() {
   };
 
   return (
-    <div data-mobile-page="inventory" data-mobile-theme={themeId} className="mobile-mockup-page flex h-full flex-col bg-zinc-50">
+    <div data-mobile-page="inventory" data-mobile-theme={themeId} className="mobile-mockup-page min-h-full bg-zinc-50">
       <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="hidden sm:block">
           <h1 className="text-xl font-bold text-zinc-900">Quản lý tồn kho</h1>
@@ -529,7 +529,9 @@ export function Inventory() {
         )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 custom-scrollbar sm:p-6">
+      {/* MainLayout là nơi cuộn duy nhất: không tạo scroll lồng để 20 dòng tồn kho
+          cuộn liên tục cùng trang thay vì bị kẹt trong một khung thấp. */}
+      <div className="p-3 sm:p-6">
         {isCountMode ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="mb-3 rounded-[var(--radius-card)] border border-amber-100 bg-amber-50 p-3 text-sm font-medium text-amber-800 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
@@ -696,7 +698,7 @@ export function Inventory() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm md:block">
+        <div className="hidden overflow-x-auto overflow-y-visible rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm md:block">
           <div className="min-w-[860px]">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="sticky top-0 bg-zinc-50 z-10">
@@ -790,7 +792,7 @@ export function Inventory() {
             </div>
           )}
         </div>
-        {filteredProducts.length > 0 && <div className="mt-3 flex flex-col gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="text-zinc-500">{filteredProducts.length} mã hàng · Trang {stockPage}/{stockTotalPages}</span><div className="flex items-center gap-2"><select value={stockPageSize} onChange={(event) => { setStockPageSize(Number(event.target.value)); setStockPage(1); }} className="h-9 rounded-md border border-zinc-200 bg-white px-2"><option value={10}>10 / trang</option><option value={20}>20 / trang</option><option value={50}>50 / trang</option></select><Button size="sm" variant="outline" disabled={stockPage <= 1} onClick={() => setStockPage((page) => page - 1)}>Trước</Button><Button size="sm" variant="outline" disabled={stockPage >= stockTotalPages} onClick={() => setStockPage((page) => page + 1)}>Sau</Button></div></div>}
+        {filteredProducts.length > 0 && <div className="mt-3 flex flex-col gap-3 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="text-zinc-500">{filteredProducts.length} mã hàng · Trang {stockPage}/{stockTotalPages}</span><div className="flex items-center gap-2"><select value={stockPageSize} onChange={(event) => { setStockPageSize(Number(event.target.value)); setStockPage(1); }} className="h-9 rounded-md border border-zinc-200 bg-white px-2"><option value={20}>20 / trang</option><option value={50}>50 / trang</option><option value={100}>100 / trang</option></select><Button size="sm" variant="outline" disabled={stockPage <= 1} onClick={() => setStockPage((page) => page - 1)}>Trước</Button><Button size="sm" variant="outline" disabled={stockPage >= stockTotalPages} onClick={() => setStockPage((page) => page + 1)}>Sau</Button></div></div>}
         <div className="mt-3 rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-zinc-900">Biến động kho gần đây</h2><span className="text-xs font-semibold text-zinc-500">Kho chính</span></div>
           <div className="space-y-2">
