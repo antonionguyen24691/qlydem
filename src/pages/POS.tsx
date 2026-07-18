@@ -33,7 +33,7 @@ function vietQrUrl(payment: PaymentConfig, amount: number, reference: string, cu
     .replaceAll("{orderCode}", reference)
     .replaceAll("{customerName}", customerName || "Khach le");
   const params = new URLSearchParams({ amount: String(Math.round(amount)), addInfo: content, accountName: payment.accountName ?? "" });
-  return `https://img.vietqr.io/image/${encodeURIComponent(payment.bankBin)}-${encodeURIComponent(payment.accountNumber)}-compact2.png?${params.toString()}`;
+  return `https://img.vietqr.io/image/${encodeURIComponent(payment.bankBin)}-${encodeURIComponent(payment.accountNumber)}-qr_only.png?${params.toString()}`;
 }
 
 function normalizeSearch(value: string) {
@@ -94,6 +94,7 @@ export function POS() {
   const enteredPaidAmount = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal;
   const transferAmount = Math.min(finalTotal, Math.max(0, enteredPaidAmount || finalTotal));
   const transferReference = transferReferenceRef.current || "CK-POS";
+  const hasPaymentQrConfig = Boolean(paymentConfig.enabled && paymentConfig.bankBin && paymentConfig.accountNumber);
   const transferQrUrl = paymentMethod === "TRANSFER"
     ? vietQrUrl(paymentConfig, transferAmount, transferReference, selectedCustomer?.name ?? "Khach le")
     : "";
@@ -128,17 +129,17 @@ export function POS() {
     void loadUnitOptions().then(setUnitOptions).catch(() => setUnitOptions(defaultUnitOptions));
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const response = await fetch("/api/settings?key=payment", { headers: await getAuthHeaders() });
-        const body = await response.json();
-        if (response.ok && body.ok) setPaymentConfig(body.payment ?? {});
-      } catch {
-        setPaymentConfig({});
-      }
-    })();
-  }, []);
+  const loadPaymentConfig = async () => {
+    try {
+      const response = await fetch("/api/settings?key=payment", { headers: await getAuthHeaders() });
+      const body = await response.json();
+      if (response.ok && body.ok) setPaymentConfig(body.payment ?? {});
+    } catch {
+      setPaymentConfig({});
+    }
+  };
+
+  useEffect(() => { void loadPaymentConfig(); }, []);
 
   useEffect(() => {
     if (!canDiscount && discountPercent !== 0) setDiscountPercent(0);
@@ -323,6 +324,8 @@ export function POS() {
     setPaymentMethod("TRANSFER");
     if (!transferReferenceRef.current) transferReferenceRef.current = createTransferReference();
     if (!customerPaid && finalTotal > 0) setCustomerPaid(finalTotal.toLocaleString("vi-VN"));
+    // Có thể admin vừa lưu QR ở tab Cấu hình khi POS vẫn đang mở.
+    void loadPaymentConfig();
   };
 
   const handleSaveDraft = () => {
@@ -840,14 +843,15 @@ export function POS() {
                 </div>
                 {paymentMethod === "TRANSFER" && (
                   <div className="mt-4 rounded-[var(--radius-card)] border border-emerald-200 bg-emerald-50/60 p-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                       <div className="min-w-0 flex-1">
                         <div className="font-bold text-emerald-900">Phiếu thanh toán chuyển khoản</div>
                         <div className="mt-1 text-xs leading-5 text-emerald-800">Quét QR để thanh toán {transferAmount.toLocaleString("vi-VN")} đ. Mã đối chiếu: <span className="font-black">{transferReference}</span>.</div>
                         <div className="mt-2 text-xs font-medium text-zinc-600">Chưa xuất kho ở bước này. Sau khi đối soát tiền vào, bấm xác nhận bên dưới để lập phiếu xuất kho. Có thể sửa “Khách đưa” xuống số tiền đã nhận để thu một phần và ghi công nợ phần còn lại.</div>
-                        {!transferQrUrl && <div className="mt-2 rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">Chưa cấu hình QR ngân hàng. Vào Cấu hình → Thanh toán QR để nhập ngân hàng và số tài khoản.</div>}
+                        {!hasPaymentQrConfig && <div className="mt-2 rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">Chưa cấu hình QR ngân hàng. Vào Cấu hình → Thanh toán QR, điền thông tin rồi bấm Lưu cấu hình thanh toán.</div>}
+                        {hasPaymentQrConfig && transferAmount <= 0 && <div className="mt-2 rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">Chưa tạo QR vì đơn đang 0 đ. Hãy thêm ít nhất một hàng hóa vào giỏ hoặc nhập số tiền chuyển khoản lớn hơn 0.</div>}
                       </div>
-                      {transferQrUrl && <img src={transferQrUrl} alt="QR thanh toán chuyển khoản" className="h-40 w-40 shrink-0 rounded-[var(--radius-control)] border border-emerald-100 bg-white object-contain p-1" />}
+                        {transferQrUrl && <img src={transferQrUrl} alt="QR thanh toán chuyển khoản" className="mx-auto h-56 w-56 shrink-0 bg-white object-contain lg:mx-0" />}
                     </div>
                   </div>
                 )}
