@@ -1,198 +1,305 @@
-import { TrendingUp, Users, Package, DollarSign, ArrowUpRight, ArrowDownRight, Plus } from "lucide-react";
+import { CalendarDays, ChartNoAxesCombined, CircleAlert, DollarSign, Package, Plus, ReceiptText, Users, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDataStore } from "../store/data";
 import { useThemeStore } from "../store/theme";
 import { getAuthHeaders } from "../lib/supabase";
 
 type PromiseSummary = { customer_id: string; promised_amount: number; promised_date: string; status: string };
+type CashbookRow = { id: string; account_type: string; direction: string; source_type?: string; amount: number; entry_date?: string; created_at: string };
+type DashboardTab = "OVERVIEW" | "SALES" | "INVENTORY" | "CASHFLOW";
+type PeriodFilter = "TODAY" | "7_DAYS" | "30_DAYS" | "MONTH" | "CUSTOM";
+type DailyPoint = { key: string; label: string; revenue: number; collected: number; expense: number; orders: number };
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const DASHBOARD_TABS: Array<{ id: DashboardTab; label: string }> = [
+  { id: "OVERVIEW", label: "Tổng quan" },
+  { id: "SALES", label: "Bán hàng" },
+  { id: "INVENTORY", label: "Tồn kho" },
+  { id: "CASHFLOW", label: "Công nợ & dòng tiền" }
+];
+
+function localDateKey(date = new Date()) {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function keyOf(value?: string) {
+  return String(value ?? "").slice(0, 10);
+}
+
+function dateFromKey(key: string) {
+  return new Date(`${key}T00:00:00`);
+}
+
+function addDays(key: string, days: number) {
+  const result = dateFromKey(key);
+  result.setDate(result.getDate() + days);
+  return localDateKey(result);
+}
+
+function dateLabel(key: string) {
+  return dateFromKey(key).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
 
 function money(value: number) {
   return `${value.toLocaleString("vi-VN")} đ`;
 }
 
+function periodTitle(period: PeriodFilter, from: string, to: string) {
+  if (period === "TODAY") return "Hôm nay";
+  if (period === "7_DAYS") return "7 ngày gần đây";
+  if (period === "30_DAYS") return "30 ngày gần đây";
+  if (period === "MONTH") return "Tháng này";
+  return `${from || "…"} đến ${to || "…"}`;
+}
+
 export function Dashboard() {
   const themeId = useThemeStore((state) => state.themeId);
   const { orders, products, customers, isLoadingLiveData, liveDataError } = useDataStore();
+  const [activeTab, setActiveTab] = useState<DashboardTab>("OVERVIEW");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("TODAY");
+  const [dateFrom, setDateFrom] = useState(() => `${localDateKey().slice(0, 8)}01`);
+  const [dateTo, setDateTo] = useState(() => localDateKey());
   const [promises, setPromises] = useState<PromiseSummary[]>([]);
+  const [cashbookEntries, setCashbookEntries] = useState<CashbookRow[]>([]);
+  const [hasCashbookAccess, setHasCashbookAccess] = useState(false);
+
   useEffect(() => {
-    // Không phải role nào cũng có quyền finance.view — lỗi thì bỏ qua, không chặn dashboard.
-    (async () => {
+    // Finance permissions are optional on the operational dashboard.
+    void (async () => {
       try {
-        const response = await fetch("/api/data/payment-promises", { headers: await getAuthHeaders() });
-        const body = await response.json();
-        if (response.ok && body.ok) setPromises(body.rows ?? []);
+        const headers = await getAuthHeaders();
+        const [promiseResponse, cashbookResponse] = await Promise.all([
+          fetch("/api/data/payment-promises", { headers }),
+          fetch("/api/data/cashbook_entries", { headers })
+        ]);
+        const [promiseBody, cashbookBody] = await Promise.all([promiseResponse.json(), cashbookResponse.json()]);
+        if (promiseResponse.ok && promiseBody.ok) setPromises(promiseBody.rows ?? []);
+        if (cashbookResponse.ok && cashbookBody.ok) {
+          setCashbookEntries(cashbookBody.rows ?? []);
+          setHasCashbookAccess(true);
+        }
       } catch {
         setPromises([]);
+        setCashbookEntries([]);
       }
     })();
   }, []);
-  const today = startOfDay(new Date());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
 
-  const todayOrders = orders.filter((order) => startOfDay(new Date(order.date)).getTime() === today.getTime());
-  const yesterdayOrders = orders.filter((order) => startOfDay(new Date(order.date)).getTime() === yesterday.getTime());
-  const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
-  const yesterdayRevenue = yesterdayOrders.reduce((sum, order) => sum + order.total, 0);
-  const revenueDelta = yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100 : 0;
-  const lowStock = products.filter((product) => product.stock <= 0);
-  const debtCustomers = customers.filter((customer) => customer.oldDebt > 0);
-  const totalDebt = debtCustomers.reduce((sum, customer) => sum + customer.oldDebt, 0);
-  const topDebtCustomers = [...debtCustomers].sort((a, b) => b.oldDebt - a.oldDebt).slice(0, 4);
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const overduePromises = promises.filter((promise) => promise.status === "OPEN" && promise.promised_date < todayIso);
-  const customerNameById = new Map(customers.map((customer) => [customer.id, customer.name]));
-  const overduePromiseNames = Array.from(new Set(overduePromises.map((promise) => customerNameById.get(promise.customer_id) ?? ""))).filter(Boolean);
-  const overduePromiseTotal = overduePromises.reduce((sum, promise) => sum + Number(promise.promised_amount ?? 0), 0);
+  const today = localDateKey();
+  const range = useMemo(() => {
+    const currentMonthStart = `${today.slice(0, 8)}01`;
+    if (periodFilter === "TODAY") return { from: today, to: today };
+    if (periodFilter === "7_DAYS") return { from: addDays(today, -6), to: today };
+    if (periodFilter === "30_DAYS") return { from: addDays(today, -29), to: today };
+    if (periodFilter === "MONTH") return { from: currentMonthStart, to: today };
+    return { from: dateFrom || currentMonthStart, to: dateTo || today };
+  }, [dateFrom, dateTo, periodFilter, today]);
+  const validRange = range.from <= range.to;
+  const inRange = (value?: string) => validRange && keyOf(value) >= range.from && keyOf(value) <= range.to;
+  const rangeDays = useMemo(() => {
+    if (!validRange) return [];
+    const days: string[] = [];
+    for (let key = range.from; key <= range.to && days.length < 93; key = addDays(key, 1)) days.push(key);
+    return days;
+  }, [range.from, range.to, validRange]);
 
-  const last7Days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() - (6 - index));
-    const key = date.toISOString().slice(0, 10);
-    const dayOrders = orders.filter((order) => order.date === key);
+  const periodOrders = useMemo(
+    () => orders.filter((order) => order.status !== "Đã hủy" && inRange(order.date)),
+    [orders, range.from, range.to, validRange]
+  );
+  const periodCashbook = useMemo(
+    () => cashbookEntries.filter((entry) => inRange(entry.entry_date ?? entry.created_at)),
+    [cashbookEntries, range.from, range.to, validRange]
+  );
+  const dailySeries = useMemo<DailyPoint[]>(() => rangeDays.map((key) => {
+    const dayOrders = periodOrders.filter((order) => keyOf(order.date) === key);
+    const dayCashbook = periodCashbook.filter((entry) => keyOf(entry.entry_date ?? entry.created_at) === key);
     return {
       key,
-      label: date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
-      revenue: dayOrders.reduce((sum, order) => sum + order.total, 0),
-      count: dayOrders.length
+      label: dateLabel(key),
+      revenue: dayOrders.reduce((sum, order) => sum + Number(order.total ?? 0), 0),
+      collected: dayCashbook.filter((entry) => entry.direction === "IN" && ["RECEIPT", "SALES_ORDER"].includes(entry.source_type ?? "")).reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0),
+      expense: dayCashbook.filter((entry) => entry.direction === "OUT" && ["EXPENSE", "SUPPLIER_PAYMENT", "SALES_REFUND"].includes(entry.source_type ?? "")).reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0),
+      orders: dayOrders.length
     };
-  });
-  const maxRevenue = Math.max(1, ...last7Days.map((day) => day.revenue));
+  }), [periodCashbook, periodOrders, rangeDays]);
 
-  const soldMap = new Map<string, { name: string; quantity: number; revenue: number }>();
-  for (const order of orders) {
-    for (const item of order.items) {
-      const current = soldMap.get(item.id) ?? { name: item.name, quantity: 0, revenue: 0 };
-      current.quantity += item.quantity;
-      current.revenue += item.total;
-      soldMap.set(item.id, current);
+  const revenue = periodOrders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+  const collected = dailySeries.reduce((sum, day) => sum + day.collected, 0);
+  const expense = dailySeries.reduce((sum, day) => sum + day.expense, 0);
+  const cogs = periodOrders.reduce((sum, order) => sum + order.items.reduce((itemTotal, item) => itemTotal + Number(item.quantity ?? 0) * Number(item.unitCostSnapshot ?? 0), 0), 0);
+  const netProfit = revenue - cogs - expense;
+  const debtCustomers = customers.filter((customer) => Number(customer.oldDebt ?? 0) > 0);
+  const totalDebt = debtCustomers.reduce((sum, customer) => sum + Number(customer.oldDebt ?? 0), 0);
+  const outOfStock = products.filter((product) => Number(product.stock ?? 0) <= 0);
+  const nearLowStock = products.filter((product) => Number(product.stock ?? 0) > 0 && Number(product.stock ?? 0) <= Math.max(1, Number(product.minStockLevel ?? 0)));
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const topProducts = useMemo(() => {
+    const sold = new Map<string, { id: string; name: string; quantity: number; revenue: number }>();
+    for (const order of periodOrders) for (const item of order.items) {
+      const current = sold.get(item.id) ?? { id: item.id, name: item.name, quantity: 0, revenue: 0 };
+      current.quantity += Number(item.quantity ?? 0);
+      current.revenue += Number(item.total ?? 0);
+      sold.set(item.id, current);
     }
-  }
-  const topProducts = Array.from(soldMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 6);
+    return Array.from(sold.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+  }, [periodOrders]);
+  const categorySales = useMemo(() => {
+    const byCategory = new Map<string, number>();
+    for (const order of periodOrders) for (const item of order.items) {
+      const category = productById.get(item.id)?.category || "Chưa phân loại";
+      byCategory.set(category, (byCategory.get(category) ?? 0) + Number(item.total ?? 0));
+    }
+    return Array.from(byCategory.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5);
+  }, [periodOrders, productById]);
+  const stockByCategory = useMemo(() => {
+    const categories = new Map<string, number>();
+    for (const product of products) {
+      const category = product.category || "Chưa phân loại";
+      categories.set(category, (categories.get(category) ?? 0) + 1);
+    }
+    return Array.from(categories.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 6);
+  }, [products]);
+  const overduePromises = promises.filter((promise) => promise.status === "OPEN" && promise.promised_date < today);
+  const overduePromiseTotal = overduePromises.reduce((sum, promise) => sum + Number(promise.promised_amount ?? 0), 0);
+  const actionItems = [
+    ...outOfStock.slice(0, 4).map((product) => ({ id: `out-${product.id}`, level: "danger" as const, title: `${product.name} đã hết kho`, detail: "Cần nhập hàng hoặc kiểm kho", to: "/inventory?filter=LOW" })),
+    ...nearLowStock.slice(0, 4).map((product) => ({ id: `low-${product.id}`, level: "warning" as const, title: `${product.name} sắp hết`, detail: `Còn ${Number(product.stock ?? 0).toLocaleString("vi-VN")} ${product.unit || ""}`.trim(), to: "/inventory?filter=LOW" })),
+    ...(overduePromises.length ? [{ id: "overdue-promises", level: "danger" as const, title: `${overduePromises.length} hẹn thu đã quá hạn`, detail: money(overduePromiseTotal), to: "/finance#cong-no" }] : []),
+    ...(debtCustomers.length ? [{ id: "debts", level: "warning" as const, title: `${debtCustomers.length} khách còn công nợ`, detail: money(totalDebt), to: "/finance#cong-no" }] : [])
+  ].slice(0, 6);
+  const rangeText = periodTitle(periodFilter, range.from, range.to);
 
   return (
-    <div data-mobile-page="dashboard" data-mobile-theme={themeId} className="mobile-mockup-page relative mx-auto w-full max-w-7xl p-3 pb-24 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Tổng quan</h1>
-        <p className="mt-1 text-sm text-zinc-500">Số liệu được đồng bộ theo đơn hàng, tồn kho và công nợ.</p>
-        {isLoadingLiveData && <p className="mt-2 text-sm text-emerald-600">Đang đồng bộ dữ liệu...</p>}
-        {liveDataError && <p className="mt-2 text-sm text-red-600">Lỗi dữ liệu: {liveDataError}</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-        <Link to="/expenses?tab=REPORT" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Doanh thu hôm nay" value={money(todayRevenue)} icon={<DollarSign className="h-5 w-5" />} delta={revenueDelta} /></Link>
-        <Link to="/orders" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Đơn hàng hôm nay" value={String(todayOrders.length)} icon={<TrendingUp className="h-5 w-5" />} sub={`${yesterdayOrders.length} đơn hôm qua`} /></Link>
-        <Link to="/inventory?filter=LOW" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Sản phẩm hết kho" value={String(lowStock.length)} icon={<Package className="h-5 w-5" />} warning="Cần nhập/kiểm kho" /></Link>
-        <Link to="/finance#cong-no" className="block rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><StatCard title="Khách hàng nợ" value={String(debtCustomers.length)} icon={<Users className="h-5 w-5" />} sub={`Tổng nợ: ${money(totalDebt)}`} /></Link>
-      </div>
-
-      <div className="mt-4 rounded-[var(--radius-card)] bg-white p-3 shadow-sm ring-1 ring-red-100 sm:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-base font-bold text-zinc-900">Cảnh báo công nợ</h2>
-            <p className="text-sm text-zinc-500">{debtCustomers.length} khách đang nợ, tổng {money(totalDebt)}</p>
-          </div>
-          <Link to="/finance" className="inline-flex w-full items-center justify-center rounded-[var(--radius-control)] border border-red-200 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 lg:w-auto">
-            Xem sổ công nợ
-          </Link>
+    <div data-mobile-page="dashboard" data-mobile-theme={themeId} className="mobile-mockup-page mx-auto w-full max-w-[1400px] p-3 pb-24 sm:p-6 lg:p-8">
+      <header className="mb-5 flex flex-col gap-4 border-b border-zinc-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Trung tâm điều hành</h1>
+          <p className="mt-1 text-sm text-zinc-500">Doanh thu, tồn kho, công nợ và dòng tiền trong một nơi.</p>
+          {isLoadingLiveData && <p className="mt-2 text-sm font-medium text-emerald-700">Đang đồng bộ dữ liệu...</p>}
+          {liveDataError && <p className="mt-2 text-sm font-medium text-red-700">Lỗi dữ liệu: {liveDataError}</p>}
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {topDebtCustomers.map((customer) => (
-            <div key={customer.id} className="min-w-0 rounded-[var(--radius-control)] bg-red-50 px-3 py-2 ring-1 ring-red-100">
-              <div className="truncate text-sm font-bold text-red-800">{customer.name}</div>
-              <div className="text-xs font-semibold text-red-600">{money(customer.oldDebt)}</div>
-            </div>
-          ))}
-          {topDebtCustomers.length === 0 && <div className="rounded-[var(--radius-control)] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">Chưa có công nợ cần cảnh báo.</div>}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-zinc-500" />
+          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} className="h-10 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700">
+            <option value="TODAY">Hôm nay</option><option value="7_DAYS">7 ngày gần đây</option><option value="30_DAYS">30 ngày gần đây</option><option value="MONTH">Tháng này</option><option value="CUSTOM">Từ ngày đến ngày</option>
+          </select>
+          {periodFilter === "CUSTOM" && <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-zinc-600"><input aria-label="Từ ngày" type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} className="h-10 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2" /><span>–</span><input aria-label="Đến ngày" type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} className="h-10 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2" /></div>}
         </div>
-        {overduePromises.length > 0 && (
-          <div className="mt-3 rounded-[var(--radius-control)] bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
-            <div className="text-sm font-bold text-amber-800">
-              ⏰ {overduePromiseNames.length} khách trễ hẹn trả nợ · tổng hẹn {money(overduePromiseTotal)}
-            </div>
-            <div className="mt-1 truncate text-xs font-semibold text-amber-700">{overduePromiseNames.slice(0, 4).join(" · ")}{overduePromiseNames.length > 4 ? ` +${overduePromiseNames.length - 4} khách khác` : ""}</div>
-          </div>
-        )}
-      </div>
+      </header>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-7">
-        <div className="rounded-[var(--radius-card)] bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:p-6 lg:col-span-4">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-zinc-900">Doanh thu 7 ngày</h2>
-            <span className="text-xs text-zinc-500">{orders.length} đơn hàng</span>
-          </div>
-          <div className="flex h-72 items-end gap-3 border-b border-l border-zinc-200 px-2 pb-2">
-            {last7Days.map((day) => (
-              <div key={day.key} className="flex h-full flex-1 flex-col justify-end gap-2">
-                <div className="text-center text-[11px] text-zinc-500">{day.count} đơn</div>
-                <div className="relative flex flex-1 items-end">
-                  <div
-                    className="w-full rounded-t bg-emerald-600"
-                    style={{ height: `${Math.max(4, (day.revenue / maxRevenue) * 100)}%` }}
-                    title={`${day.label}: ${money(day.revenue)}`}
-                  />
-                </div>
-                <div className="text-center text-xs text-zinc-600">{day.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <nav aria-label="Trang dashboard" className="mb-5 flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+        {DASHBOARD_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} aria-selected={activeTab === tab.id} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors ${activeTab === tab.id ? "bg-emerald-700 text-white shadow-sm" : "border border-zinc-200 bg-white text-zinc-600 hover:border-emerald-200 hover:text-emerald-800"}`}>{tab.label}</button>)}
+      </nav>
 
-        <div className="rounded-[var(--radius-card)] bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 sm:p-6 lg:col-span-3">
-          <h2 className="mb-5 text-base font-semibold text-zinc-900">Sản phẩm bán chạy</h2>
-          <div className="space-y-3">
-            {topProducts.map((product, index) => (
-              <div key={`${product.name}-${index}`} className="rounded-[var(--radius-control)] border p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="line-clamp-2 break-words font-medium text-zinc-900">{product.name}</div>
-                    <div className="text-xs text-zinc-500">Đã bán {product.quantity.toLocaleString("vi-VN")}</div>
-                  </div>
-                  <div className="max-w-[130px] shrink-0 truncate text-right text-sm font-semibold text-emerald-600">{money(product.revenue)}</div>
-                </div>
-              </div>
-            ))}
-            {topProducts.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed p-6 text-center text-sm text-zinc-500">Chưa có dữ liệu bán hàng.</div>}
-          </div>
-        </div>
-      </div>
+      {!validRange && <div className="mb-4 rounded-[var(--radius-card)] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.</div>}
 
-      <Link
-        to="/pos"
-        className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 ring-4 ring-white transition-transform active:scale-95 hover:bg-emerald-700 lg:bottom-5 lg:z-40"
-        title="Bán hàng nhanh"
-      >
-        <Plus className="h-7 w-7" />
-      </Link>
+      {activeTab === "OVERVIEW" && <OverviewTab rangeText={rangeText} revenue={revenue} collected={collected} netProfit={netProfit} orderCount={periodOrders.length} lowStockCount={outOfStock.length + nearLowStock.length} debtTotal={totalDebt} hasCashbookAccess={hasCashbookAccess} dailySeries={dailySeries} actionItems={actionItems} />}
+      {activeTab === "SALES" && <SalesTab rangeText={rangeText} dailySeries={dailySeries} topProducts={topProducts} categorySales={categorySales} />}
+      {activeTab === "INVENTORY" && <InventoryTab productsTotal={products.length} outOfStock={outOfStock.length} nearLowStock={nearLowStock.length} stockByCategory={stockByCategory} lowProducts={[...outOfStock, ...nearLowStock].slice(0, 8)} />}
+      {activeTab === "CASHFLOW" && <CashflowTab rangeText={rangeText} hasCashbookAccess={hasCashbookAccess} dailySeries={dailySeries} totalDebt={totalDebt} debtCustomers={debtCustomers} overduePromises={overduePromises.length} overduePromiseTotal={overduePromiseTotal} />}
+
+      <Link to="/pos" className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-lg shadow-emerald-900/20 ring-4 ring-white transition-transform active:scale-95 hover:bg-emerald-800 lg:bottom-5 lg:z-40" title="Bán hàng nhanh"><Plus className="h-7 w-7" /></Link>
     </div>
   );
 }
 
-function StatCard({ title, value, icon, delta, sub, warning }: { title: string; value: string; icon: ReactNode; delta?: number; sub?: string; warning?: string }) {
-  const isUp = (delta ?? 0) >= 0;
-  return (
-    <div className="flex min-h-[104px] flex-col justify-between rounded-[var(--radius-card)] bg-white p-3 shadow-sm ring-1 ring-zinc-200/70 sm:min-h-[140px] sm:p-5">
-      <div className="flex items-center justify-between">
-        <p className="line-clamp-2 text-xs font-semibold leading-tight text-zinc-500 sm:text-sm">{title}</p>
-        <div className="text-zinc-400">{icon}</div>
-      </div>
-      <div>
-        <p className="truncate text-lg font-semibold tracking-tight text-zinc-900 sm:text-2xl">{value}</p>
-        {delta !== undefined ? (
-          <p className={`mt-2 flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${isUp ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
-            {isUp ? <ArrowUpRight className="mr-1 h-3 w-3" /> : <ArrowDownRight className="mr-1 h-3 w-3" />}
-            <span className="truncate">{Math.abs(delta).toFixed(1)}% so với hôm qua</span>
-          </p>
-        ) : (
-          <p className={`mt-2 w-fit rounded-full px-2 py-0.5 text-xs font-medium ${warning ? "bg-red-50 text-red-600" : "bg-zinc-100 text-zinc-600"}`}>{warning ?? sub}</p>
-        )}
-      </div>
-    </div>
-  );
+function OverviewTab({ rangeText, revenue, collected, netProfit, orderCount, lowStockCount, debtTotal, hasCashbookAccess, dailySeries, actionItems }: { rangeText: string; revenue: number; collected: number; netProfit: number; orderCount: number; lowStockCount: number; debtTotal: number; hasCashbookAccess: boolean; dailySeries: DailyPoint[]; actionItems: ActionItem[] }) {
+  return <>
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <MetricCard title="Doanh thu" value={money(revenue)} icon={<DollarSign className="h-5 w-5" />} context={rangeText} to="/expenses?tab=REPORT" />
+      <MetricCard title="Thực thu" value={hasCashbookAccess ? money(collected) : "—"} icon={<Wallet className="h-5 w-5" />} context={hasCashbookAccess ? "Tiền đã về" : "Cần quyền tài chính"} to="/finance" />
+      <MetricCard title="Lợi nhuận ước tính" value={hasCashbookAccess ? money(netProfit) : "—"} icon={<ChartNoAxesCombined className="h-5 w-5" />} context="Doanh thu - giá vốn - chi" to="/expenses?tab=REPORT" />
+      <MetricCard title="Đơn hàng" value={String(orderCount)} icon={<ReceiptText className="h-5 w-5" />} context={rangeText} to="/orders" />
+      <MetricCard title="Hàng cần xử lý" value={String(lowStockCount)} icon={<Package className="h-5 w-5" />} context="Hết hoặc sắp hết" tone={lowStockCount ? "warning" : undefined} to="/inventory?filter=LOW" />
+      <MetricCard title="Công nợ phải thu" value={money(debtTotal)} icon={<Users className="h-5 w-5" />} context="Tổng dư nợ hiện tại" tone={debtTotal ? "danger" : undefined} to="/finance#cong-no" />
+    </section>
+    <section className="mt-4 grid gap-4 xl:grid-cols-5">
+      <RevenueChart className="xl:col-span-3" title="Doanh thu và thực thu" period={rangeText} points={dailySeries} />
+      <ActionQueue className="xl:col-span-2" items={actionItems} />
+    </section>
+  </>;
 }
+
+function SalesTab({ rangeText, dailySeries, topProducts, categorySales }: { rangeText: string; dailySeries: DailyPoint[]; topProducts: Array<{ id: string; name: string; quantity: number; revenue: number }>; categorySales: Array<{ name: string; value: number }> }) {
+  return <div className="grid gap-4 xl:grid-cols-5">
+    <RevenueChart className="xl:col-span-3" title="Doanh thu, thực thu và chi phí" period={rangeText} points={dailySeries} includeExpense />
+    <RankedBars className="xl:col-span-2" title="Nhóm hàng đóng góp" rows={categorySales} empty="Chưa có doanh thu trong kỳ." to="/products" />
+    <ProductRank className="xl:col-span-5" products={topProducts} />
+  </div>;
+}
+
+function InventoryTab({ productsTotal, outOfStock, nearLowStock, stockByCategory, lowProducts }: { productsTotal: number; outOfStock: number; nearLowStock: number; stockByCategory: Array<{ name: string; value: number }>; lowProducts: Array<any> }) {
+  const healthy = Math.max(0, productsTotal - outOfStock - nearLowStock);
+  return <div className="grid gap-4 xl:grid-cols-5">
+    <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 xl:col-span-2">
+      <PanelHeading title="Sức khỏe tồn kho" action="Xem tồn kho" to="/inventory" />
+      <div className="mt-5 flex h-4 overflow-hidden rounded-full bg-zinc-100" aria-label={`Tồn kho: ${healthy} ổn định, ${nearLowStock} sắp hết, ${outOfStock} hết hàng`}>
+        <Link to="/inventory" className="bg-emerald-600" style={{ width: `${productsTotal ? (healthy / productsTotal) * 100 : 0}%` }} title={`${healthy} mã ổn định`} />
+        <Link to="/inventory?filter=LOW" className="bg-amber-500" style={{ width: `${productsTotal ? (nearLowStock / productsTotal) * 100 : 0}%` }} title={`${nearLowStock} mã sắp hết`} />
+        <Link to="/inventory?filter=LOW" className="bg-red-600" style={{ width: `${productsTotal ? (outOfStock / productsTotal) * 100 : 0}%` }} title={`${outOfStock} mã hết hàng`} />
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center"><InventoryMetric label="Ổn định" value={healthy} tone="text-emerald-700" /><InventoryMetric label="Sắp hết" value={nearLowStock} tone="text-amber-700" /><InventoryMetric label="Hết hàng" value={outOfStock} tone="text-red-700" /></div>
+    </section>
+    <RankedBars className="xl:col-span-3" title="Số mã theo danh mục" rows={stockByCategory} empty="Chưa có danh mục hàng hóa." to="/inventory" />
+    <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 xl:col-span-5"><PanelHeading title="Hàng cần xử lý ngay" action="Mở danh sách tồn kho" to="/inventory?filter=LOW" />
+      <div className="mt-3 divide-y divide-zinc-100">{lowProducts.map((product) => <Link key={product.id} to="/inventory?filter=LOW" className="flex items-center justify-between gap-3 py-3 hover:bg-zinc-50"><div className="min-w-0"><p className="truncate font-semibold text-zinc-900">{product.name}</p><p className="text-xs text-zinc-500">Tối thiểu: {Number(product.minStockLevel ?? 0).toLocaleString("vi-VN")}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${Number(product.stock ?? 0) <= 0 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{Number(product.stock ?? 0).toLocaleString("vi-VN")} {product.unit || ""}</span></Link>)}{lowProducts.length === 0 && <EmptyState text="Không có mã hàng hết hoặc sắp hết." />}</div>
+    </section>
+  </div>;
+}
+
+function CashflowTab({ rangeText, hasCashbookAccess, dailySeries, totalDebt, debtCustomers, overduePromises, overduePromiseTotal }: { rangeText: string; hasCashbookAccess: boolean; dailySeries: DailyPoint[]; totalDebt: number; debtCustomers: Array<any>; overduePromises: number; overduePromiseTotal: number }) {
+  const topDebts = [...debtCustomers].sort((a, b) => Number(b.oldDebt ?? 0) - Number(a.oldDebt ?? 0)).slice(0, 6).map((customer) => ({ name: customer.name, value: Number(customer.oldDebt ?? 0) }));
+  return <div className="grid gap-4 xl:grid-cols-5">
+    <CashflowChart className="xl:col-span-3" period={rangeText} points={dailySeries} unavailable={!hasCashbookAccess} />
+    <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 xl:col-span-2"><PanelHeading title="Rủi ro công nợ" action="Mở công nợ" to="/finance#cong-no" />
+      <div className="mt-4 space-y-3"><InfoLine label="Tổng phải thu" value={money(totalDebt)} tone="text-red-700" /><InfoLine label="Khách đang nợ" value={String(debtCustomers.length)} /><InfoLine label="Hẹn thu quá hạn" value={String(overduePromises)} tone={overduePromises ? "text-red-700" : "text-emerald-700"} /><InfoLine label="Tiền hẹn quá hạn" value={money(overduePromiseTotal)} tone={overduePromiseTotal ? "text-red-700" : "text-emerald-700"} /></div>
+    </section>
+    <RankedBars className="xl:col-span-5" title="Khách có dư nợ cao" rows={topDebts} empty="Chưa có công nợ phải thu." to="/finance#cong-no" />
+  </div>;
+}
+
+type ActionItem = { id: string; level: "warning" | "danger"; title: string; detail: string; to: string };
+
+function MetricCard({ title, value, icon, context, to, tone }: { title: string; value: string; icon: ReactNode; context: string; to: string; tone?: "warning" | "danger" }) {
+  const color = tone === "danger" ? "text-red-700" : tone === "warning" ? "text-amber-700" : "text-zinc-900";
+  return <Link to={to} className="group min-h-[126px] rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md sm:p-4"><div className="flex items-start justify-between gap-2"><p className="text-xs font-bold text-zinc-500">{title}</p><span className="text-zinc-400 group-hover:text-emerald-700">{icon}</span></div><p className={`mt-4 truncate text-xl font-bold tracking-tight sm:text-2xl ${color}`}>{value}</p><p className="mt-2 truncate text-xs font-medium text-zinc-500">{context}</p></Link>;
+}
+
+function PanelHeading({ title, action, to }: { title: string; action?: string; to?: string }) {
+  return <div className="flex items-center justify-between gap-3"><h2 className="text-base font-bold text-zinc-900">{title}</h2>{action && to && <Link to={to} className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900">{action} →</Link>}</div>;
+}
+
+function RevenueChart({ title, period, points, className = "", includeExpense = false }: { title: string; period: string; points: DailyPoint[]; className?: string; includeExpense?: boolean }) {
+  const maximum = Math.max(1, ...points.flatMap((point) => includeExpense ? [point.revenue, point.collected, point.expense] : [point.revenue, point.collected]));
+  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title={title} action="Xem báo cáo" to="/expenses?tab=REPORT" /><p className="mt-1 text-xs text-zinc-500">{period} · Bấm vào cột để xem đơn hàng ngày đó.</p>
+    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold"><Legend color="bg-emerald-600" label="Doanh thu" /><Legend color="bg-blue-600" label="Thực thu" />{includeExpense && <Legend color="bg-red-500" label="Chi phí" />}</div>
+    <div className="mt-5 overflow-x-auto hide-scrollbar"><div className="flex h-56 min-w-[420px] items-end gap-1 border-b border-l border-zinc-200 px-2 pb-5 sm:gap-2">{points.map((point) => <Link key={point.key} to={`/orders?date=${point.key}`} className="group flex h-full min-w-7 flex-1 flex-col justify-end gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600" title={`${point.label}: doanh thu ${money(point.revenue)}, thực thu ${money(point.collected)}${includeExpense ? `, chi phí ${money(point.expense)}` : ""}`}><div className="flex flex-1 items-end justify-center gap-0.5"><span className="w-2 rounded-t bg-emerald-600 transition-opacity group-hover:opacity-75" style={{ height: `${Math.max(point.revenue ? 5 : 0, (point.revenue / maximum) * 100)}%` }} /><span className="w-2 rounded-t bg-blue-600 transition-opacity group-hover:opacity-75" style={{ height: `${Math.max(point.collected ? 5 : 0, (point.collected / maximum) * 100)}%` }} />{includeExpense && <span className="w-2 rounded-t bg-red-500 transition-opacity group-hover:opacity-75" style={{ height: `${Math.max(point.expense ? 5 : 0, (point.expense / maximum) * 100)}%` }} />}</div><span className="text-center text-[10px] font-medium text-zinc-500">{point.label}</span></Link>)}</div></div>
+    <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><InfoLine label="Doanh thu" value={money(points.reduce((sum, point) => sum + point.revenue, 0))} tone="text-emerald-700" /><InfoLine label="Thực thu" value={money(points.reduce((sum, point) => sum + point.collected, 0))} tone="text-blue-700" /><InfoLine label="Số đơn" value={String(points.reduce((sum, point) => sum + point.orders, 0))} /></div>
+  </section>;
+}
+
+function CashflowChart({ period, points, className = "", unavailable }: { period: string; points: DailyPoint[]; className?: string; unavailable: boolean }) {
+  const maximum = Math.max(1, ...points.flatMap((point) => [point.collected, point.expense]));
+  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title="Dòng tiền vào và chi ra" action="Mở sổ quỹ" to="/finance" /><p className="mt-1 text-xs text-zinc-500">{period} · Tiền vào là thực thu; tiền ra gồm chi phí vận hành và thanh toán nhà cung cấp.</p>{unavailable ? <div className="mt-8 rounded-[var(--radius-control)] border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500">Bạn chưa có quyền xem sổ quỹ.</div> : <><div className="mt-4 flex gap-4 text-xs font-semibold"><Legend color="bg-blue-600" label="Tiền vào" /><Legend color="bg-red-500" label="Tiền ra" /></div><div className="mt-5 overflow-x-auto hide-scrollbar"><div className="flex h-56 min-w-[420px] items-end gap-1 border-b border-l border-zinc-200 px-2 pb-5 sm:gap-2">{points.map((point) => <Link key={point.key} to="/finance" className="group flex h-full min-w-7 flex-1 flex-col justify-end gap-1" title={`${point.label}: vào ${money(point.collected)}, ra ${money(point.expense)}`}><div className="flex flex-1 items-end justify-center gap-1"><span className="w-2 rounded-t bg-blue-600 group-hover:opacity-75" style={{ height: `${Math.max(point.collected ? 5 : 0, (point.collected / maximum) * 100)}%` }} /><span className="w-2 rounded-t bg-red-500 group-hover:opacity-75" style={{ height: `${Math.max(point.expense ? 5 : 0, (point.expense / maximum) * 100)}%` }} /></div><span className="text-center text-[10px] text-zinc-500">{point.label}</span></Link>)}</div></div></>}</section>;
+}
+
+function RankedBars({ title, rows, empty, to, className = "" }: { title: string; rows: Array<{ name: string; value: number }>; empty: string; to: string; className?: string }) {
+  const max = Math.max(1, ...rows.map((row) => row.value));
+  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title={title} action="Xem chi tiết" to={to} /><div className="mt-4 space-y-3">{rows.map((row) => <Link key={row.name} to={to} className="block rounded-[var(--radius-control)] p-2 hover:bg-zinc-50"><div className="flex items-center justify-between gap-3 text-sm"><span className="truncate font-semibold text-zinc-700">{row.name}</span><span className="shrink-0 font-black text-zinc-900">{row.value.toLocaleString("vi-VN")}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${(row.value / max) * 100}%` }} /></div></Link>)}{rows.length === 0 && <EmptyState text={empty} />}</div></section>;
+}
+
+function ProductRank({ products, className = "" }: { products: Array<{ id: string; name: string; quantity: number; revenue: number }>; className?: string }) {
+  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title="Hàng hóa bán chạy" action="Mở danh mục hàng hóa" to="/products" /><div className="mt-3 divide-y divide-zinc-100">{products.map((product, index) => <Link key={product.id} to={`/products?product=${encodeURIComponent(product.id)}`} className="flex items-center gap-3 py-3 hover:bg-zinc-50"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-700">{index + 1}</span><div className="min-w-0 flex-1"><p className="truncate font-semibold text-zinc-900">{product.name}</p><p className="text-xs text-zinc-500">Đã bán {product.quantity.toLocaleString("vi-VN")}</p></div><span className="shrink-0 text-sm font-black text-emerald-700">{money(product.revenue)}</span></Link>)}{products.length === 0 && <EmptyState text="Chưa có hàng hóa bán ra trong kỳ." />}</div></section>;
+}
+
+function ActionQueue({ items, className = "" }: { items: ActionItem[]; className?: string }) {
+  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title="Việc cần xử lý" action="Mở vận hành" to="/settings/operations" /><p className="mt-1 text-xs text-zinc-500">Ưu tiên các việc làm giảm rủi ro tiền và hàng.</p><div className="mt-4 divide-y divide-zinc-100">{items.map((item) => <Link key={item.id} to={item.to} className="flex items-start gap-3 py-3 hover:bg-zinc-50"><CircleAlert className={`mt-0.5 h-4 w-4 shrink-0 ${item.level === "danger" ? "text-red-600" : "text-amber-600"}`} /><div className="min-w-0"><p className="font-semibold text-zinc-900">{item.title}</p><p className="mt-0.5 text-xs text-zinc-500">{item.detail}</p></div></Link>)}{items.length === 0 && <EmptyState text="Không có việc khẩn cần xử lý." />}</div></section>;
+}
+
+function Legend({ color, label }: { color: string; label: string }) { return <span className="inline-flex items-center gap-1.5 text-zinc-600"><i className={`h-2.5 w-2.5 rounded-sm ${color}`} />{label}</span>; }
+function InfoLine({ label, value, tone = "text-zinc-900" }: { label: string; value: string; tone?: string }) { return <div className="flex items-center justify-between gap-2"><span className="truncate text-zinc-500">{label}</span><span className={`shrink-0 font-black tabular-nums ${tone}`}>{value}</span></div>; }
+function InventoryMetric({ label, value, tone }: { label: string; value: number; tone: string }) { return <div><p className={`text-2xl font-black ${tone}`}>{value.toLocaleString("vi-VN")}</p><p className="mt-1 text-xs font-semibold text-zinc-500">{label}</p></div>; }
+function EmptyState({ text }: { text: string }) { return <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 px-4 py-7 text-center text-sm font-medium text-zinc-500">{text}</div>; }

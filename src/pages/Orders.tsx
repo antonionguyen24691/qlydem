@@ -1,5 +1,5 @@
-import { useState, useMemo, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDataStore, Order } from "../store/data";
 import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText, Trash2 } from "lucide-react";
 import { Dialog } from "../components/ui/Dialog";
@@ -35,6 +35,7 @@ export function Orders() {
   const themeId = useThemeStore((state) => state.themeId);
   const isTerracotta = themeId === "terracotta";
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [dateMode, setDateMode] = useState<DateFilterMode>("single");
@@ -46,6 +47,21 @@ export function Orders() {
   const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const date = query.get("date");
+    const from = query.get("dateFrom");
+    const to = query.get("dateTo");
+    if (date) {
+      setDateMode("single");
+      setSelectedDate(date);
+    } else if (from || to) {
+      setDateMode("range");
+      setDateFrom(from ?? "");
+      setDateTo(to ?? "");
+    }
+  }, [location.search]);
 
   const downloadOrderXlsx = (order: Order) => {
     void exportSalesOrderXlsx(order).catch((error) => {
