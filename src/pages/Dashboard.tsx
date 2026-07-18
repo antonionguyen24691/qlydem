@@ -173,7 +173,7 @@ export function Dashboard() {
   const rangeText = periodTitle(periodFilter, range.from, range.to);
 
   return (
-    <div data-mobile-page="dashboard" data-mobile-theme={themeId} className="mobile-mockup-page mx-auto w-full max-w-[1400px] p-3 pb-24 sm:p-6 lg:p-8">
+    <div data-mobile-page="dashboard" data-mobile-theme={themeId} className="mobile-mockup-page mx-auto w-full max-w-[1400px] overflow-x-hidden p-3 pb-24 sm:p-6 lg:p-8">
       <header className="mb-5 flex flex-col gap-4 border-b border-zinc-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">Trung tâm điều hành</h1>
@@ -224,7 +224,7 @@ function OverviewTab({ rangeText, revenue, collected, netProfit, orderCount, low
 }
 
 function SalesTab({ rangeText, dailySeries, topProducts, categorySales }: { rangeText: string; dailySeries: DailyPoint[]; topProducts: Array<{ id: string; name: string; quantity: number; revenue: number }>; categorySales: Array<{ name: string; value: number }> }) {
-  return <div className="grid gap-4 xl:grid-cols-5">
+  return <div className="grid min-w-0 gap-4 xl:grid-cols-5">
     <RevenueChart className="xl:col-span-3" title="Doanh thu, thực thu và chi phí" period={rangeText} points={dailySeries} includeExpense />
     <RankedBars className="xl:col-span-2" title="Nhóm hàng đóng góp" rows={categorySales} empty="Chưa có doanh thu trong kỳ." to="/products" />
     <ProductRank className="xl:col-span-5" products={topProducts} />
@@ -252,7 +252,7 @@ function InventoryTab({ productsTotal, outOfStock, nearLowStock, stockByCategory
 
 function CashflowTab({ rangeText, hasCashbookAccess, dailySeries, totalDebt, debtCustomers, overduePromises, overduePromiseTotal }: { rangeText: string; hasCashbookAccess: boolean; dailySeries: DailyPoint[]; totalDebt: number; debtCustomers: Array<any>; overduePromises: number; overduePromiseTotal: number }) {
   const topDebts = [...debtCustomers].sort((a, b) => Number(b.oldDebt ?? 0) - Number(a.oldDebt ?? 0)).slice(0, 6).map((customer) => ({ name: customer.name, value: Number(customer.oldDebt ?? 0) }));
-  return <div className="grid gap-4 xl:grid-cols-5">
+  return <div className="grid min-w-0 gap-4 xl:grid-cols-5">
     <CashflowChart className="xl:col-span-3" period={rangeText} points={dailySeries} unavailable={!hasCashbookAccess} />
     <section className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 xl:col-span-2"><PanelHeading title="Rủi ro công nợ" action="Mở công nợ" to="/finance#cong-no" />
       <div className="mt-4 space-y-3"><InfoLine label="Tổng phải thu" value={money(totalDebt)} tone="text-red-700" /><InfoLine label="Khách đang nợ" value={String(debtCustomers.length)} /><InfoLine label="Hẹn thu quá hạn" value={String(overduePromises)} tone={overduePromises ? "text-red-700" : "text-emerald-700"} /><InfoLine label="Tiền hẹn quá hạn" value={money(overduePromiseTotal)} tone={overduePromiseTotal ? "text-red-700" : "text-emerald-700"} /></div>
@@ -269,7 +269,7 @@ function MetricCard({ title, value, icon, context, to, tone }: { title: string; 
 }
 
 function PanelHeading({ title, action, to }: { title: string; action?: string; to?: string }) {
-  return <div className="flex items-center justify-between gap-3"><h2 className="text-base font-bold text-zinc-900">{title}</h2>{action && to && <Link to={to} className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900">{action} →</Link>}</div>;
+  return <div className="flex min-w-0 items-center justify-between gap-2"><h2 className="min-w-0 truncate text-base font-bold text-zinc-900">{title}</h2>{action && to && <Link to={to} className="shrink-0 text-xs font-bold text-emerald-700 hover:text-emerald-900"><span className="sm:hidden">Mở →</span><span className="hidden sm:inline">{action} →</span></Link>}</div>;
 }
 
 function RevenueChart({ title, period, points, className = "", includeExpense = false }: { title: string; period: string; points: DailyPoint[]; className?: string; includeExpense?: boolean }) {
@@ -281,7 +281,7 @@ function RevenueChart({ title, period, points, className = "", includeExpense = 
       const showLabel = points.length <= 7 || index === 0 || index === points.length - 1 || index === Math.floor(points.length / 2);
       return <Link key={point.key} to={`/orders?date=${point.key}`} className="group flex h-full min-w-0 flex-1 flex-col justify-end gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600" title={`${point.label}: doanh thu ${money(point.revenue)}, thực thu ${money(point.collected)}${includeExpense ? `, chi phí ${money(point.expense)}` : ""}`}><div className="flex flex-1 items-end justify-center gap-px sm:gap-0.5"><span className="min-w-px flex-1 rounded-t bg-emerald-600 transition-opacity group-hover:opacity-75" style={{ height: `${Math.max(point.revenue ? 5 : 0, (point.revenue / maximum) * 100)}%` }} /><span className="min-w-px flex-1 rounded-t bg-blue-600 transition-opacity group-hover:opacity-75" style={{ height: `${Math.max(point.collected ? 5 : 0, (point.collected / maximum) * 100)}%` }} />{includeExpense && <span className="min-w-px flex-1 rounded-t bg-red-500 transition-opacity group-hover:opacity-75" style={{ height: `${Math.max(point.expense ? 5 : 0, (point.expense / maximum) * 100)}%` }} />}</div><span className="h-3 text-center text-[9px] font-medium text-zinc-500 sm:text-[10px]">{showLabel ? point.label : ""}</span></Link>;
     })}</div>}
-    <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><InfoLine label="Doanh thu" value={money(points.reduce((sum, point) => sum + point.revenue, 0))} tone="text-emerald-700" /><InfoLine label="Thực thu" value={money(points.reduce((sum, point) => sum + point.collected, 0))} tone="text-blue-700" /><InfoLine label="Số đơn" value={String(points.reduce((sum, point) => sum + point.orders, 0))} /></div>
+    <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] sm:text-xs"><InfoLine compact label="Doanh thu" value={moneyShort(points.reduce((sum, point) => sum + point.revenue, 0))} tone="text-emerald-700" /><InfoLine compact label="Thực thu" value={moneyShort(points.reduce((sum, point) => sum + point.collected, 0))} tone="text-blue-700" /><InfoLine compact label="Số đơn" value={String(points.reduce((sum, point) => sum + point.orders, 0))} /></div>
   </section>;
 }
 
@@ -296,11 +296,11 @@ function CashflowChart({ period, points, className = "", unavailable }: { period
 
 function RankedBars({ title, rows, empty, to, className = "" }: { title: string; rows: Array<{ name: string; value: number }>; empty: string; to: string; className?: string }) {
   const max = Math.max(1, ...rows.map((row) => row.value));
-  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title={title} action="Xem chi tiết" to={to} /><div className="mt-4 space-y-3">{rows.map((row) => <Link key={row.name} to={to} className="block rounded-[var(--radius-control)] p-2 hover:bg-zinc-50"><div className="flex items-center justify-between gap-3 text-sm"><span className="truncate font-semibold text-zinc-700">{row.name}</span><span className="shrink-0 font-black text-zinc-900">{row.value.toLocaleString("vi-VN")}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${(row.value / max) * 100}%` }} /></div></Link>)}{rows.length === 0 && <EmptyState text={empty} />}</div></section>;
+  return <section className={`min-w-0 overflow-hidden rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title={title} action="Xem chi tiết" to={to} /><div className="mt-4 space-y-3">{rows.map((row) => <Link key={row.name} to={to} className="block min-w-0 rounded-[var(--radius-control)] p-2 hover:bg-zinc-50"><div className="flex min-w-0 items-center justify-between gap-3 text-sm"><span className="min-w-0 truncate font-semibold text-zinc-700">{row.name}</span><span className="shrink-0 font-black text-zinc-900">{row.value.toLocaleString("vi-VN")}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${(row.value / max) * 100}%` }} /></div></Link>)}{rows.length === 0 && <EmptyState text={empty} />}</div></section>;
 }
 
 function ProductRank({ products, className = "" }: { products: Array<{ id: string; name: string; quantity: number; revenue: number }>; className?: string }) {
-  return <section className={`rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title="Hàng hóa bán chạy" action="Mở danh mục hàng hóa" to="/products" /><div className="mt-3 divide-y divide-zinc-100">{products.map((product, index) => <Link key={product.id} to={`/products?product=${encodeURIComponent(product.id)}`} className="flex items-center gap-3 py-3 hover:bg-zinc-50"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-700">{index + 1}</span><div className="min-w-0 flex-1"><p className="truncate font-semibold text-zinc-900">{product.name}</p><p className="text-xs text-zinc-500">Đã bán {product.quantity.toLocaleString("vi-VN")}</p></div><span className="shrink-0 text-sm font-black text-emerald-700">{money(product.revenue)}</span></Link>)}{products.length === 0 && <EmptyState text="Chưa có hàng hóa bán ra trong kỳ." />}</div></section>;
+  return <section className={`min-w-0 overflow-hidden rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 sm:p-5 ${className}`}><PanelHeading title="Hàng hóa bán chạy" action="Mở danh mục hàng hóa" to="/products" /><div className="mt-3 divide-y divide-zinc-100">{products.map((product, index) => <Link key={product.id} to={`/products?product=${encodeURIComponent(product.id)}`} className="flex min-w-0 items-center gap-3 py-3 hover:bg-zinc-50"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-700">{index + 1}</span><div className="min-w-0 flex-1"><p className="truncate font-semibold text-zinc-900">{product.name}</p><p className="text-xs text-zinc-500">Đã bán {product.quantity.toLocaleString("vi-VN")}</p></div><span className="shrink-0 text-xs font-black text-emerald-700 sm:text-sm">{moneyShort(product.revenue)}</span></Link>)}{products.length === 0 && <EmptyState text="Chưa có hàng hóa bán ra trong kỳ." />}</div></section>;
 }
 
 function ActionQueue({ items, className = "" }: { items: ActionItem[]; className?: string }) {
@@ -308,6 +308,7 @@ function ActionQueue({ items, className = "" }: { items: ActionItem[]; className
 }
 
 function Legend({ color, label }: { color: string; label: string }) { return <span className="inline-flex items-center gap-1.5 text-zinc-600"><i className={`h-2.5 w-2.5 rounded-sm ${color}`} />{label}</span>; }
-function InfoLine({ label, value, tone = "text-zinc-900" }: { label: string; value: string; tone?: string }) { return <div className="flex items-center justify-between gap-2"><span className="truncate text-zinc-500">{label}</span><span className={`shrink-0 font-black tabular-nums ${tone}`}>{value}</span></div>; }
+function moneyShort(value: number) { if (value >= 1_000_000) return `${(value / 1_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })}tr`; if (value >= 1_000) return `${Math.round(value / 1_000).toLocaleString("vi-VN")}k`; return money(value); }
+function InfoLine({ label, value, tone = "text-zinc-900", compact = false }: { label: string; value: string; tone?: string; compact?: boolean }) { return <div className={`flex min-w-0 gap-1 ${compact ? "flex-col items-start" : "items-center justify-between gap-2"}`}><span className="min-w-0 truncate text-zinc-500">{label}</span><span className={`max-w-full truncate font-black tabular-nums ${compact ? "w-full" : "shrink-0 text-right"} ${tone}`}>{value}</span></div>; }
 function InventoryMetric({ label, value, tone }: { label: string; value: number; tone: string }) { return <div><p className={`text-2xl font-black ${tone}`}>{value.toLocaleString("vi-VN")}</p><p className="mt-1 text-xs font-semibold text-zinc-500">{label}</p></div>; }
 function EmptyState({ text }: { text: string }) { return <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 px-4 py-7 text-center text-sm font-medium text-zinc-500">{text}</div>; }
