@@ -847,7 +847,6 @@ export function POS() {
                       <div className="min-w-0 flex-1">
                         <div className="font-bold text-emerald-900">Phiếu thanh toán chuyển khoản</div>
                         <div className="mt-1 text-xs leading-5 text-emerald-800">Quét QR để thanh toán {transferAmount.toLocaleString("vi-VN")} đ. Mã đối chiếu: <span className="font-black">{transferReference}</span>.</div>
-                        <div className="mt-2 text-xs font-medium text-zinc-600">Chưa xuất kho ở bước này. Sau khi đối soát tiền vào, bấm xác nhận bên dưới để lập phiếu xuất kho. Có thể sửa “Khách đưa” xuống số tiền đã nhận để thu một phần và ghi công nợ phần còn lại.</div>
                         {!hasPaymentQrConfig && <div className="mt-2 rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">Chưa cấu hình QR ngân hàng. Vào Cấu hình → Thanh toán QR, điền thông tin rồi bấm Lưu cấu hình thanh toán.</div>}
                         {hasPaymentQrConfig && transferAmount <= 0 && <div className="mt-2 rounded bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800">Chưa tạo QR vì đơn đang 0 đ. Hãy thêm ít nhất một hàng hóa vào giỏ hoặc nhập số tiền chuyển khoản lớn hơn 0.</div>}
                       </div>
