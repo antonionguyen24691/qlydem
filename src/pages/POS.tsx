@@ -92,7 +92,12 @@ export function POS() {
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
   const finalTotal = subTotal - discountAmount;
   const enteredPaidAmount = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal;
-  const transferAmount = Math.min(finalTotal, Math.max(0, enteredPaidAmount || finalTotal));
+  // Khách lẻ không thể mang công nợ: xác nhận CK luôn thu đủ đúng tổng đơn và xuất bill.
+  // Thu một phần vẫn dùng được sau khi đã chọn khách hàng để ghi công nợ còn lại.
+  const isAnonymousTransfer = paymentMethod === "TRANSFER" && !selectedCustomer;
+  const transferAmount = isAnonymousTransfer
+    ? finalTotal
+    : Math.min(finalTotal, Math.max(0, enteredPaidAmount || finalTotal));
   const transferReference = transferReferenceRef.current || "CK-POS";
   const hasPaymentQrConfig = Boolean(paymentConfig.enabled && paymentConfig.bankBin && paymentConfig.accountNumber);
   const transferQrUrl = paymentMethod === "TRANSFER"
@@ -203,7 +208,9 @@ export function POS() {
       alert("Chiết khấu phải nằm trong khoảng 0-100%.");
       return;
     }
-    const amountPaid = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal;
+    const amountPaid = paymentMethod === "TRANSFER" && !selectedCustomer
+      ? finalTotal
+      : (customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal);
     const debtAmount = Math.max(0, finalTotal - amountPaid);
     if (!selectedCustomer && debtAmount > 0) {
       alert(`Khách còn thiếu ${debtAmount.toLocaleString("vi-VN")} đ. Hãy chọn hoặc tạo khách hàng trước khi hoàn tất để ghi nhận công nợ đúng.`);
