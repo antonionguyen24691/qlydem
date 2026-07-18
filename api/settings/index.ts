@@ -104,6 +104,55 @@ type AppearanceSettings = {
 
 const defaultAppearance: AppearanceSettings = { themeId: "classic" };
 
+function setHealthHeaders(res: ApiResponse) {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "same-origin");
+}
+
+async function respondHealth(res: ApiResponse) {
+  setHealthHeaders(res);
+  const checkedAt = new Date().toISOString();
+  const startedAt = Date.now();
+  const hasGoogleSheetsConfig = Boolean(
+    process.env.GOOGLE_SHEETS_SPREADSHEET_ID
+    && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+    && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+  );
+  const hasScheduledBackupConfig = hasGoogleSheetsConfig && Boolean(process.env.CRON_SECRET);
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from("settings").select("key", { head: true }).limit(1);
+    if (error) throw error;
+    res.status(200).json({
+      ok: true,
+      status: "ready",
+      checkedAt,
+      latencyMs: Date.now() - startedAt,
+      checks: {
+        database: "ready",
+        googleSheetsBackup: hasGoogleSheetsConfig ? "configured" : "not_configured",
+        scheduledGoogleSheetsBackup: hasScheduledBackupConfig ? "configured" : "not_configured"
+      },
+      release: process.env.VERCEL_GIT_COMMIT_SHA ?? null
+    });
+  } catch {
+    res.status(503).json({
+      ok: false,
+      status: "degraded",
+      checkedAt,
+      latencyMs: Date.now() - startedAt,
+      checks: {
+        database: "unavailable",
+        googleSheetsBackup: hasGoogleSheetsConfig ? "configured" : "not_configured",
+        scheduledGoogleSheetsBackup: hasScheduledBackupConfig ? "configured" : "not_configured"
+      }
+    });
+  }
+}
+
 function normalizeAppearance(input: Record<string, unknown>): AppearanceSettings {
   const themeId = toStringValue(input.themeId, defaultAppearance.themeId).trim();
   return {
@@ -207,12 +256,16 @@ function normalizeSetting(key: string, input: Record<string, unknown>) {
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const key = getQueryValue(req.query?.key) ?? "branding";
-    if (!["branding", "payment", "units", "inventoryOperations", "expenseCategories", "appearance", "entitlements"].includes(key)) {
+    if (!["branding", "payment", "units", "inventoryOperations", "expenseCategories", "appearance", "entitlements", "health"].includes(key)) {
       res.status(400).json({ ok: false, error: "Unsupported settings key." });
       return;
     }
 
     if (req.method === "GET") {
+      if (key === "health") {
+        await respondHealth(res);
+        return;
+      }
       if (key === "entitlements") {
         const actor = await requireAuth(req);
         const snapshot = await getEntitlementSnapshot(actor.id);
@@ -258,6 +311,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       }
       return;
     }
+
+    if (key === "health") return methodNotAllowed(res, ["GET"]);
 
     if (req.method === "POST") {
       const actor = await requirePermission(req, "settings.manage");

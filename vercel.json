@@ -21,6 +21,15 @@
       }
     },
     {
+      "src": "/api/health",
+      "dest": "/api/settings?key=health",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "same-origin"
+      }
+    },
+    {
       "src": "/api/data/([^/]+)",
       "dest": "/api/data/[table]?table=$1",
       "headers": {
