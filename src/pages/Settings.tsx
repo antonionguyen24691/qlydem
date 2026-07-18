@@ -1,6 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Activity, Bell, Building2, Check, ChevronDown, ChevronRight, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2, RefreshCw } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
@@ -217,6 +217,7 @@ function readImageFile(file?: File) {
 export function Settings() {
   const themeId = useThemeStore((state) => state.themeId);
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<"general" | "payment" | "units" | "users" | "data" | "operations" | "appearance">("general");
   const [uploading, setUploading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ImportResult>>({});
@@ -268,6 +269,10 @@ export function Settings() {
 
   useEffect(() => {
     const section = new URLSearchParams(location.search).get("section");
+    if (section === "operations") {
+      navigate("/settings/operations", { replace: true });
+      return;
+    }
     if (section && ["general", "payment", "units", "users", "data", "operations", "appearance"].includes(section)) {
       setActiveSection(section as "general" | "payment" | "units" | "users" | "data" | "operations" | "appearance");
     }
@@ -814,7 +819,7 @@ export function Settings() {
             <button
               key={key}
               type="button"
-              onClick={() => setActiveSection(key as typeof activeSection)}
+              onClick={() => key === "operations" ? navigate("/settings/operations") : setActiveSection(key as typeof activeSection)}
               className={`whitespace-nowrap rounded-[var(--radius-control)] px-4 py-2 text-sm font-bold transition-colors ${
                 activeSection === key ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
               }`}

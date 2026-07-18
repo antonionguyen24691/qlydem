@@ -25,6 +25,11 @@ const Suppliers = lazy(() => import("./pages/Suppliers").then((module) => ({ def
 const Finance = lazy(() => import("./pages/Finance").then((module) => ({ default: module.Finance })));
 const Expenses = lazy(() => import("./pages/Expenses").then((module) => ({ default: module.Expenses })));
 const Settings = lazy(() => import("./pages/Settings").then((module) => ({ default: module.Settings })));
+const Operations = lazy(() => import("./pages/Operations").then((module) => ({ default: module.Operations })));
+const OperationsAuditLogs = lazy(() => import("./pages/OperationsAuditLogs").then((module) => ({ default: module.OperationsAuditLogs })));
+const OperationsHistory = lazy(() => import("./pages/OperationsHistory").then((module) => ({ default: module.OperationsHistory })));
+const OperationsInventory = lazy(() => import("./pages/OperationsInventory").then((module) => ({ default: module.OperationsInventory })));
+const OperationsReadiness = lazy(() => import("./pages/OperationsReadiness").then((module) => ({ default: module.OperationsReadiness })));
 const Login = lazy(() => import("./pages/Login").then((module) => ({ default: module.Login })));
 
 function RequirePermission({ allow, children }: { allow: (user: any) => boolean; children: ReactNode }) {
@@ -56,6 +61,11 @@ export default function App() {
             <Route path="suppliers" element={<RequirePermission allow={canViewSuppliers}><Suppliers /></RequirePermission>} />
             <Route path="finance" element={<RequirePermission allow={canViewFinance}><Finance /></RequirePermission>} />
             <Route path="expenses" element={<RequirePermission allow={canViewFinance}><Expenses /></RequirePermission>} />
+            <Route path="settings/operations" element={<RequirePermission allow={isAdmin}><Operations /></RequirePermission>} />
+            <Route path="settings/operations/logs" element={<RequirePermission allow={isAdmin}><OperationsAuditLogs /></RequirePermission>} />
+            <Route path="settings/operations/history" element={<RequirePermission allow={isAdmin}><OperationsHistory /></RequirePermission>} />
+            <Route path="settings/operations/inventory" element={<RequirePermission allow={isAdmin}><OperationsInventory /></RequirePermission>} />
+            <Route path="settings/operations/readiness" element={<RequirePermission allow={isAdmin}><OperationsReadiness /></RequirePermission>} />
             <Route path="settings" element={<RequirePermission allow={isAdmin}><Settings /></RequirePermission>} />
           </Route>
         </Routes>
