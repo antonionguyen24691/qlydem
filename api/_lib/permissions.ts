@@ -8,6 +8,8 @@ export const PERMISSION_CATALOG = [
   { key: "orders.view", label: "Xem đơn hàng" },
   { key: "orders.create", label: "Tạo đơn hàng" },
   { key: "orders.price_override", label: "Sửa giá bán" },
+  { key: "orders.cancel", label: "Hủy đơn đã ghi nhận" },
+  { key: "price.update.apply", label: "Duyệt áp dụng bảng giá" },
   { key: "customers.view", label: "Xem khách hàng" },
   { key: "customers.create", label: "Tạo khách hàng" },
   { key: "customers.update", label: "Sửa khách hàng" },
@@ -19,17 +21,20 @@ export const PERMISSION_CATALOG = [
   { key: "finance.receipt.create", label: "Lập phiếu thu" },
   { key: "finance.expense.create", label: "Ghi chi phí" },
   { key: "finance.fund.manage", label: "Chuyển/rút/điều chỉnh quỹ" },
+  { key: "finance.fund.adjust", label: "Điều chỉnh số dư quỹ" },
   { key: "finance.export", label: "Xuất báo cáo" },
   { key: "settings.manage", label: "Cấu hình hệ thống" },
   { key: "users.manage", label: "Quản lý người dùng/quyền" },
   { key: "data.import", label: "Import dữ liệu" },
-  { key: "history.clear", label: "Xóa lịch sử" }
+  { key: "history.clear", label: "Xóa lịch sử" },
+  { key: "inventory.count.apply", label: "Áp dụng kết quả kiểm kho" },
+  { key: "audit.clear", label: "Xóa nhật ký hoạt động" }
 ] as const;
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   ADMIN: { "*": "all" },
   ACCOUNTANT: {
-    "dashboard.view": "all", "pos.use": "all", "orders.view": "all", "orders.create": "all", "orders.price_override": "all",
+    "dashboard.view": "all", "pos.use": "all", "orders.view": "all", "orders.create": "all", "orders.price_override": "all", "orders.cancel": "all",
     "customers.view": "all", "customers.create": "all", "customers.update": "all", "products.view": "all",
     "inventory.view": "all", "finance.view": "all", "finance.receipt.create": "all", "finance.expense.create": "all",
     "finance.fund.manage": "all", "finance.export": "all"
@@ -39,7 +44,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     "customers.view": "own", "customers.create": "own", "customers.update": "own", "products.view": "all", "inventory.view": "all"
   },
   WAREHOUSE: {
-    "dashboard.view": "own", "products.view": "all", "products.manage": "all", "inventory.view": "all", "inventory.manage": "all"
+    "dashboard.view": "own", "products.view": "all", "products.manage": "all", "inventory.view": "all", "inventory.manage": "all", "inventory.count.apply": "all"
   },
   VIEWER: { "dashboard.view": "all" }
 };

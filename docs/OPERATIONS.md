@@ -131,6 +131,16 @@ npx --yes vercel env add CRON_SECRET production
 npm run deploy:vercel
 ```
 
+Sau khi deploy, kiem tra monitoring cong khai (khong can token):
+
+```http
+GET /api/health
+```
+
+Ket qua `status: "ready"` xac nhan API doc duoc Supabase. `googleSheetsBackup` va
+`scheduledGoogleSheetsBackup` phai la `configured` truoc khi xem backup Google Sheets
+la da san sang. Endpoint khong tra ve secret, ten bang hay du lieu kinh doanh.
+
 ## 4. API da co
 
 Kiem tra API cong khai:

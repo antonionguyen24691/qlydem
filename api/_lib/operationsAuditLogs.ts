@@ -3,6 +3,7 @@ import { getQueryValue, methodNotAllowed, sendError } from "./http.js";
 import { getJsonBody, optionalString, toStringValue } from "./body.js";
 import { requirePermission } from "./auth.js";
 import { getSupabaseAdmin } from "./supabase.js";
+import { hasPermission } from "./permissions.js";
 
 const MAX_PAGE_SIZE = 100;
 const MAX_EXPORT_ROWS = 10_000;
@@ -70,8 +71,8 @@ export default async function auditLogsHandler(req: ApiRequest, res: ApiResponse
     }
 
     if (req.method === "DELETE") {
-      if (actor.role !== "ADMIN") {
-        const error = new Error("Chỉ ADMIN được phép xóa nhật ký hoạt động.");
+      if (!hasPermission(actor.permissions, "audit.clear")) {
+        const error = new Error("Bạn không có quyền xóa nhật ký hoạt động.");
         error.name = "FORBIDDEN";
         throw error;
       }

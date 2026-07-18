@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "../_lib/supabase.js";
 import { bestEffortSyncTables } from "../_lib/googleSheets.js";
 import { enforceRateLimit } from "../_lib/rateLimit.js";
 import sheetsInboxHandler from "../_lib/sheetsInbox.js";
+import { hasPermission, permissionScope } from "../_lib/permissions.js";
 
 const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   customers: ["ADMIN", "ACCOUNTANT", "SALE"],
@@ -426,7 +427,7 @@ async function savePriceUpdateSheet(req: ApiRequest, res: ApiResponse) {
 
   const supabase = getSupabaseAdmin();
   const note = optionalString(body.note);
-  const canApplyDirectly = actor.role === "ADMIN";
+  const canApplyDirectly = hasPermission(actor.permissions, "price.update.apply");
 
   if (canApplyDirectly) {
     const changedRows = await applyPriceRows({
@@ -901,8 +902,8 @@ async function createCashbookTransaction(req: ApiRequest, res: ApiResponse) {
       amount, note, category, person, entryDate, actorId: actor.id, codePrefix: "PC"
     })]));
   } else if (action === "ADJUST") {
-    if (actor.role !== "ADMIN") {
-      res.status(403).json({ ok: false, error: "Chỉ admin được điều chỉnh số dư quỹ." });
+    if (!hasPermission(actor.permissions, "finance.fund.adjust")) {
+      res.status(403).json({ ok: false, error: "Bạn không có quyền điều chỉnh số dư quỹ." });
       return;
     }
     const accountType = toStringValue(body.accountType, "CASH").toUpperCase();
@@ -1138,11 +1139,7 @@ async function handlePaymentPromises(req: ApiRequest, res: ApiResponse) {
 }
 
 async function cancelSalesOrder(req: ApiRequest, res: ApiResponse) {
-  const actor = await requirePermission(req, "orders.create");
-  if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
-    res.status(403).json({ ok: false, error: "Chỉ admin hoặc kế toán được hủy đơn đã ghi nhận." });
-    return;
-  }
+  const actor = await requirePermission(req, "orders.cancel");
   const body = getJsonBody(req);
   const orderId = optionalString(body.orderId);
   const reason = optionalString(body.reason);
@@ -1172,7 +1169,7 @@ async function saveInventoryCountSheet(req: ApiRequest, res: ApiResponse) {
   const supabase = getSupabaseAdmin();
   const warehouseId = await ensureWarehouse(toStringValue(body.warehouseCode, "KHO-CHINH"));
   const note = optionalString(body.note);
-  const canApplyDirectly = ["ADMIN", "WAREHOUSE"].includes(actor.role);
+  const canApplyDirectly = hasPermission(actor.permissions, "inventory.count.apply");
 
   if (canApplyDirectly) {
     const changedRows = await applyInventoryCountRows({
@@ -1357,7 +1354,7 @@ async function getAppNotifications(req: ApiRequest, res: ApiResponse) {
     .in("status", ["PENDING", "SCHEDULED"])
     .lte("scheduled_at", now);
 
-  if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
+  if (permissionScope(actor.permissions, "finance.view") !== "all") {
     reminderQuery = reminderQuery.or(`assigned_to.is.null,assigned_to.eq.${actor.id}`);
   }
 
@@ -1431,7 +1428,7 @@ async function markNotificationRead(req: ApiRequest, res: ApiResponse) {
       .update({ status: "SENT", sent_at: now })
       .in("status", ["PENDING", "SCHEDULED"])
       .lte("scheduled_at", now);
-    if (!["ADMIN", "ACCOUNTANT"].includes(actor.role)) {
+    if (permissionScope(actor.permissions, "finance.view") !== "all") {
       reminderQuery = reminderQuery.or(`assigned_to.is.null,assigned_to.eq.${actor.id}`);
     }
     await reminderQuery;

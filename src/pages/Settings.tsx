@@ -30,12 +30,12 @@ const importTargets = [
 ] as const;
 
 const permissionGroups = [
-  { key: "sales", label: "Bán hàng & đơn hàng", permissions: ["dashboard.view", "pos.use", "orders.view", "orders.create", "orders.price_override"] },
+  { key: "sales", label: "Bán hàng & đơn hàng", permissions: ["dashboard.view", "pos.use", "orders.view", "orders.create", "orders.price_override", "orders.cancel", "price.update.apply"] },
   { key: "partners", label: "Khách hàng & hàng hóa", permissions: ["customers.view", "customers.create", "customers.update", "products.view", "products.manage"] },
-  { key: "inventory", label: "Kho & nhập hàng", permissions: ["inventory.view", "inventory.manage"] },
-  { key: "finance", label: "Tài chính & công nợ", permissions: ["finance.view", "finance.receipt.create", "finance.expense.create", "finance.fund.manage", "finance.export"] },
+  { key: "inventory", label: "Kho & nhập hàng", permissions: ["inventory.view", "inventory.manage", "inventory.count.apply"] },
+  { key: "finance", label: "Tài chính & công nợ", permissions: ["finance.view", "finance.receipt.create", "finance.expense.create", "finance.fund.manage", "finance.fund.adjust", "finance.export"] },
   { key: "administration", label: "Người dùng & cấu hình", permissions: ["settings.manage", "users.manage"] },
-  { key: "data", label: "Dữ liệu & lịch sử", permissions: ["data.import", "history.clear"] }
+  { key: "data", label: "Dữ liệu & lịch sử", permissions: ["data.import", "history.clear", "audit.clear"] }
 ] as const;
 
 type ImportResult = {
