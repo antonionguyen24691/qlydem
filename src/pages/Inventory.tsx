@@ -529,7 +529,7 @@ export function Inventory() {
         )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 custom-scrollbar sm:p-6 md:overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 custom-scrollbar sm:p-6">
         {isCountMode ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="mb-3 rounded-[var(--radius-card)] border border-amber-100 bg-amber-50 p-3 text-sm font-medium text-amber-800 sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
@@ -696,8 +696,8 @@ export function Inventory() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:flex flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-auto flex-1 custom-scrollbar">
+        <div className="hidden overflow-x-auto rounded-[var(--radius-card)] border border-zinc-200 bg-white shadow-sm md:block">
+          <div className="min-w-[860px]">
             <table className="min-w-full divide-y divide-zinc-200">
               <thead className="sticky top-0 bg-zinc-50 z-10">
                 <tr>

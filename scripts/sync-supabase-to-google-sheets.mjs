@@ -9,18 +9,33 @@ const DEFAULT_TABLES = [
   "customers",
   "suppliers",
   "products",
+  "product_status_history",
+  "price_update_requests",
+  "price_update_request_items",
+  "price_edit_logs",
   "warehouses",
   "inventory_balances",
   "sales_orders",
   "sales_order_items",
+  "purchase_orders",
+  "purchase_order_items",
   "receipts",
   "payments",
   "customer_debt_ledger",
   "order_debts",
   "receipt_allocations",
+  "debt_assignments",
   "debt_reminders",
+  "debt_reminder_logs",
+  "payment_promises",
+  "customer_contacts",
+  "supplier_debt_ledger",
   "cashbook_entries",
   "inventory_transactions",
+  "inventory_adjustment_requests",
+  "inventory_adjustment_request_items",
+  "inventory_edit_logs",
+  "audit_logs",
   "import_batches",
   "import_errors"
 ];
@@ -88,12 +103,22 @@ async function replaceSheetRows(sheetName, rows) {
   });
 }
 
+async function fetchAllRows(table) {
+  const pageSize = 1000;
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from(table).select("*").range(from, from + pageSize - 1);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
 const synced = [];
 for (const table of tables) {
-  const { data, error } = await supabase.from(table).select("*");
-  if (error) throw new Error(`${table}: ${error.message}`);
-  await replaceSheetRows(table, data ?? []);
-  synced.push({ table, rows: data?.length ?? 0 });
+  const rows = await fetchAllRows(table);
+  await replaceSheetRows(table, rows);
+  synced.push({ table, rows: rows.length });
 }
 
 await replaceSheetRows("backup_log", [{

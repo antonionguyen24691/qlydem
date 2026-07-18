@@ -56,6 +56,7 @@ Admin co the vao `Cau hinh` de them, sua, khoa user, gan role va dat mat khau da
    - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
    - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
    - `GOOGLE_SHARE_EMAIL` neu muon script tao sheet tu dong share cho admin.
+   - `GOOGLE_SHEETS_SYNC_SECRET` neu dung hang cho dong bo nguoc Apps Script.
 
 Private key can giu dang mot dong voi `\n`, giong `.env.example`.
 
@@ -75,7 +76,19 @@ Neu muon tao bang cach thu cong trong Google Sheets/Apps Script, dung MasterScri
 3. Chay `PMQL_createBackupSpreadsheet()` de tao file backup moi, hoac `PMQL_setupCurrentSpreadsheet()` de tao tab tren file dang mo.
 4. Copy Spreadsheet ID cua file vua tao dua vao `GOOGLE_SHEETS_SPREADSHEET_ID`.
 
-MasterScript se tao cac tab chuan: `products`, `inventory_balances`, `sales_orders`, `receipts`, `customer_debt_ledger`, `backup_log`, `dashboard`, va cac bang lien quan.
+MasterScript se tao cac tab mirror, `backup_log`, `dashboard`, va `PMQL_change_inbox`. Script hien da tao du cac tab export hien co cua app, ke ca bang duyet/audit.
+
+### Dong bo nguoc co duyet
+
+Google Sheet khong duoc ghi thang vao du lieu giao dich. De gui cap nhat danh muc nguoc ve app:
+
+1. Trong Apps Script, vao **Project Settings -> Script properties**, dat `PMQL_API_BASE_URL` va `PMQL_SYNC_SECRET`. Secret phai trung voi `GOOGLE_SHEETS_SYNC_SECRET` tren Vercel.
+2. Chay lai `PMQL_setupCurrentSpreadsheet()` mot lan de tao tab `PMQL_change_inbox`.
+3. Them dong voi `action = SEND`, `entity` la `customers`, `suppliers` hoac `products`, kem `code`, `field`, `value`, `expected_updated_at`, `note`.
+4. Chon menu **PMQL -> Submit change inbox to PMQL**.
+5. Admin vao **Cau hinh -> Du lieu & backup**, tai hang cho va chon **Ap dung** hoac **Tu choi**.
+
+Backend chi cho phep sua truong danh muc an toan va kiem tra `updated_at` lai truoc khi ap dung. Don ban/mua, phieu thu-chi, cong no, gia von/gia ban va ton kho bi cam dong bo nguoc de tranh lech so lieu.
 
 Dong bo Supabase -> Google Sheets bang script local:
 
@@ -108,6 +121,7 @@ npx --yes vercel env add SUPABASE_SERVICE_ROLE_KEY production
 npx --yes vercel env add GOOGLE_SHEETS_SPREADSHEET_ID production
 npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_EMAIL production
 npx --yes vercel env add GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY production
+npx --yes vercel env add GOOGLE_SHEETS_SYNC_SECRET production
 npx --yes vercel env add CRON_SECRET production
 ```
 

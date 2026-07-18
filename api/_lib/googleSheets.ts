@@ -35,8 +35,8 @@ function toSheetValue(value: unknown) {
   return value;
 }
 
-export async function replaceSheetRows(sheetName: string, rows: Record<string, unknown>[]) {
-  const sheets = await getSheetsClient();
+export async function replaceSheetRows(sheetName: string, rows: Record<string, unknown>[], existingSheets?: ReturnType<typeof google.sheets>) {
+  const sheets = existingSheets ?? await getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
   const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
   const values = [
@@ -59,13 +59,28 @@ export async function replaceSheetRows(sheetName: string, rows: Record<string, u
   });
 }
 
+async function appendBackupLog(sheets: ReturnType<typeof google.sheets>, synced: Array<{ table: string; rows: number }>) {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "'backup_log'!A:E",
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: {
+      values: [[new Date().toISOString(), synced.map((item) => item.table).join(","), JSON.stringify(synced), "COMPLETED", "Supabase -> Google Sheets"]]
+    }
+  });
+}
+
 export async function syncTablesToGoogleSheets(tables: ExportableTable[]) {
   const synced: Array<{ table: string; rows: number }> = [];
+  const sheets = await getSheetsClient();
   for (const table of tables) {
     const rows = await fetchTableRows(table);
-    await replaceSheetRows(table, rows);
+    await replaceSheetRows(table, rows, sheets);
     synced.push({ table, rows: rows.length });
   }
+  await appendBackupLog(sheets, synced);
   return synced;
 }
 

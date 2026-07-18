@@ -10,6 +10,11 @@
  */
 
 const PMQL_SPREADSHEET_NAME = "PMQL Supabase Backup";
+const PMQL_CHANGE_INBOX = "PMQL_change_inbox";
+const PMQL_CHANGE_INBOX_HEADERS = [
+  "action", "entity", "code", "field", "value", "expected_updated_at", "note",
+  "submission_status", "submitted_at", "result"
+];
 
 const PMQL_TABLES = [
   {
@@ -188,7 +193,18 @@ const PMQL_TABLES = [
       "id", "batch_id", "row_number", "entity_type", "row_json", "error_message", "created_at"
     ],
     frozenRows: 1
-  }
+  },
+  { name: "product_status_history", headers: ["id", "created_at", "updated_at"], frozenRows: 1 },
+  { name: "price_update_requests", headers: ["id", "created_at", "updated_at"], frozenRows: 1 },
+  { name: "price_update_request_items", headers: ["id", "created_at"], frozenRows: 1 },
+  { name: "price_edit_logs", headers: ["id", "created_at"], frozenRows: 1 },
+  { name: "purchase_orders", headers: ["id", "code", "created_at", "updated_at"], frozenRows: 1 },
+  { name: "purchase_order_items", headers: ["id", "created_at"], frozenRows: 1 },
+  { name: "debt_assignments", headers: ["id", "created_at", "updated_at"], frozenRows: 1 },
+  { name: "inventory_adjustment_requests", headers: ["id", "created_at", "updated_at"], frozenRows: 1 },
+  { name: "inventory_adjustment_request_items", headers: ["id", "created_at"], frozenRows: 1 },
+  { name: "inventory_edit_logs", headers: ["id", "created_at"], frozenRows: 1 },
+  { name: "audit_logs", headers: ["id", "created_at"], frozenRows: 1 }
 ];
 
 function onOpen() {
@@ -197,6 +213,7 @@ function onOpen() {
     .addItem("Setup current spreadsheet", "PMQL_setupCurrentSpreadsheet")
     .addItem("Create backup spreadsheet", "PMQL_createBackupSpreadsheet")
     .addItem("Refresh dashboard formulas", "PMQL_refreshDashboard")
+    .addItem("Submit change inbox to PMQL", "PMQL_submitChangeInbox")
     .addToUi();
 }
 
@@ -222,6 +239,7 @@ function PMQL_setupSpreadsheet_(spreadsheet) {
     const sheet = PMQL_getOrCreateSheet_(spreadsheet, table.name);
     PMQL_setupSheet_(sheet, table.headers, table.frozenRows || 1);
   });
+  PMQL_setupSheet_(PMQL_getOrCreateSheet_(spreadsheet, PMQL_CHANGE_INBOX), PMQL_CHANGE_INBOX_HEADERS, 1);
 
   PMQL_refreshDashboardFor_(spreadsheet);
   PMQL_deleteDefaultSheetIfEmpty_(spreadsheet);
@@ -286,4 +304,66 @@ function PMQL_deleteDefaultSheetIfEmpty_(spreadsheet) {
 
 function PMQL_today() {
   return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+}
+
+/**
+ * Cấu hình một lần tại Project Settings > Script properties:
+ * - PMQL_API_BASE_URL: https://your-app.vercel.app
+ * - PMQL_SYNC_SECRET: trùng với GOOGLE_SHEETS_SYNC_SECRET trên Vercel
+ *
+ * Chỉ gửi các dòng action = SEND. Không sửa trực tiếp các tab mirror;
+ * PMQL sẽ kiểm tra mã, phiên bản dữ liệu và bắt buộc admin duyệt trước khi áp dụng.
+ */
+function PMQL_submitChangeInbox() {
+  const properties = PropertiesService.getScriptProperties();
+  const baseUrl = String(properties.getProperty("PMQL_API_BASE_URL") || "").replace(/\/$/, "");
+  const secret = String(properties.getProperty("PMQL_SYNC_SECRET") || "");
+  if (!baseUrl || !secret) throw new Error("Thiếu PMQL_API_BASE_URL hoặc PMQL_SYNC_SECRET trong Script properties.");
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PMQL_CHANGE_INBOX);
+  if (!sheet) throw new Error("Không tìm thấy tab " + PMQL_CHANGE_INBOX + ". Hãy chạy PMQL_setupCurrentSpreadsheet().");
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    SpreadsheetApp.getUi().alert("Chưa có dòng thay đổi để gửi.");
+    return;
+  }
+  const changes = [];
+  const rowIndexes = [];
+  values.slice(1).forEach(function(row, index) {
+    if (String(row[0] || "").trim().toUpperCase() !== "SEND") return;
+    changes.push({
+      source_row: index + 2,
+      entity: String(row[1] || "").trim(),
+      code: String(row[2] || "").trim(),
+      field: String(row[3] || "").trim(),
+      value: row[4],
+      expected_updated_at: String(row[5] || "").trim(),
+      note: String(row[6] || "").trim()
+    });
+    rowIndexes.push(index + 2);
+  });
+  if (!changes.length) {
+    SpreadsheetApp.getUi().alert("Không có dòng action = SEND.");
+    return;
+  }
+  const response = UrlFetchApp.fetch(baseUrl + "/api/sync/google-sheets-inbox", {
+    method: "post",
+    contentType: "application/json",
+    headers: { "X-PMQL-Sync-Secret": secret },
+    payload: JSON.stringify({ changes: changes }),
+    muteHttpExceptions: true
+  });
+  const status = response.getResponseCode();
+  const payload = JSON.parse(response.getContentText() || "{}");
+  const now = new Date();
+  rowIndexes.forEach(function(rowIndex, index) {
+    const error = (payload.rejected || []).find(function(item) { return Number(item.row) === index + 2; });
+    sheet.getRange(rowIndex, 8, 1, 3).setValues([[
+      error ? "REJECTED" : (status >= 200 && status < 300 ? "PENDING_APPROVAL" : "FAILED"),
+      now,
+      error ? error.error : (payload.error || "Đã gửi vào hàng chờ duyệt của PMQL")
+    ]]);
+  });
+  if (status < 200 || status >= 300) throw new Error(payload.error || "Không gửi được inbox về PMQL.");
+  SpreadsheetApp.getUi().alert("Đã gửi " + (payload.accepted || 0) + " thay đổi vào hàng chờ duyệt. Hãy duyệt trong PMQL.");
 }

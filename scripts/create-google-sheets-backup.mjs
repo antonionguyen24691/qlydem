@@ -37,7 +37,8 @@ const response = await sheets.spreadsheets.create({
       { properties: { title: "customer_debt_ledger" } },
       { properties: { title: "customers" } },
       { properties: { title: "suppliers" } },
-      { properties: { title: "backup_log" } }
+      { properties: { title: "backup_log" } },
+      { properties: { title: "PMQL_change_inbox" } }
     ]
   }
 });

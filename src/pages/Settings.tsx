@@ -1,7 +1,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Activity, Bell, Building2, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Activity, Bell, Building2, Check, ChevronDown, ChevronRight, CreditCard, Database, Download, Image as ImageIcon, Plus, Save, Upload, UserPlus, Users, Edit, Trash2, RefreshCw } from "lucide-react";
 import { getAuthHeaders } from "../lib/supabase";
 import { type BrandingSettings, defaultBranding, useBrandingStore } from "../store/branding";
 import { Button } from "../components/ui/Button";
@@ -29,6 +29,15 @@ const importTargets = [
   }
 ] as const;
 
+const permissionGroups = [
+  { key: "sales", label: "Bán hàng & đơn hàng", permissions: ["dashboard.view", "pos.use", "orders.view", "orders.create", "orders.price_override"] },
+  { key: "partners", label: "Khách hàng & hàng hóa", permissions: ["customers.view", "customers.create", "customers.update", "products.view", "products.manage"] },
+  { key: "inventory", label: "Kho & nhập hàng", permissions: ["inventory.view", "inventory.manage"] },
+  { key: "finance", label: "Tài chính & công nợ", permissions: ["finance.view", "finance.receipt.create", "finance.expense.create", "finance.fund.manage", "finance.export"] },
+  { key: "administration", label: "Người dùng & cấu hình", permissions: ["settings.manage", "users.manage"] },
+  { key: "data", label: "Dữ liệu & lịch sử", permissions: ["data.import", "history.clear"] }
+] as const;
+
 type ImportResult = {
   ok: boolean;
   batchId?: string;
@@ -36,6 +45,19 @@ type ImportResult = {
   successRows?: number;
   failedRows?: number;
   error?: string;
+};
+
+type SheetChangeRequest = {
+  id: string;
+  entity_type: string;
+  target_code: string;
+  field_name: string;
+  proposed_value: unknown;
+  expected_updated_at?: string;
+  note?: string;
+  status: string;
+  submitted_at: string;
+  error_message?: string;
 };
 
 type AdminUser = {
@@ -207,6 +229,7 @@ export function Settings() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [savingRole, setSavingRole] = useState<string | null>(null);
+  const [openPermissionGroups, setOpenPermissionGroups] = useState<Record<string, boolean>>({ sales: true });
   const [form, setForm] = useState(emptyForm);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [userError, setUserError] = useState("");
@@ -237,6 +260,10 @@ export function Settings() {
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
+  const [sheetChangeRequests, setSheetChangeRequests] = useState<SheetChangeRequest[]>([]);
+  const [isLoadingSheetChanges, setIsLoadingSheetChanges] = useState(false);
+  const [reviewingSheetChangeId, setReviewingSheetChangeId] = useState("");
+  const [sheetChangeError, setSheetChangeError] = useState("");
 
   useEffect(() => {
     const section = new URLSearchParams(location.search).get("section");
@@ -350,6 +377,40 @@ export function Settings() {
     }
   };
 
+  const loadGoogleSheetChanges = async () => {
+    setIsLoadingSheetChanges(true);
+    setSheetChangeError("");
+    try {
+      const response = await fetch("/api/sync/google-sheets-inbox", { headers: await getAuthHeaders() });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không tải được yêu cầu từ Google Sheet.");
+      setSheetChangeRequests(body.requests ?? []);
+    } catch (error) {
+      setSheetChangeError(error instanceof Error ? error.message : "Không tải được yêu cầu từ Google Sheet.");
+    } finally {
+      setIsLoadingSheetChanges(false);
+    }
+  };
+
+  const reviewGoogleSheetChange = async (id: string, decision: "APPROVE" | "REJECT") => {
+    setReviewingSheetChangeId(id);
+    setSheetChangeError("");
+    try {
+      const response = await fetch("/api/sync/google-sheets-inbox", {
+        method: "PATCH",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
+        body: JSON.stringify({ id, decision })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không xử lý được yêu cầu đồng bộ ngược.");
+      await Promise.all([loadGoogleSheetChanges(), loadLiveData()]);
+    } catch (error) {
+      setSheetChangeError(error instanceof Error ? error.message : "Không xử lý được yêu cầu đồng bộ ngược.");
+    } finally {
+      setReviewingSheetChangeId("");
+    }
+  };
+
   const editUser = (user: AdminUser) => {
     setForm({
       id: user.id,
@@ -418,6 +479,15 @@ export function Settings() {
     setRoles((current) => current.map((role) => role.role === roleCode
       ? { ...role, permissions_json: withPermissionScope(role.permissions_json, permission, scope) }
       : role));
+  };
+
+  const togglePermissionGroup = (group: string) => {
+    setOpenPermissionGroups((current) => ({ ...current, [group]: !current[group] }));
+  };
+
+  const toggleRolePermission = (role: Role, permission: string) => {
+    const currentScope = permissionScopeFor(role.role, role.permissions_json, permission);
+    updateRolePermission(role.role, permission, currentScope === "none" ? "own" : "none");
   };
 
   const saveRolePermissions = async (role: Role) => {
@@ -1142,7 +1212,7 @@ export function Settings() {
                 <h3 className="text-base font-black text-zinc-900">Ma trận quyền thao tác</h3>
                 <p className="mt-1 text-sm text-zinc-500">Quyền được kiểm tra ở backend. “Của mình” áp dụng cho dữ liệu sale được gán/phát sinh bởi user đó.</p>
               </div>
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {roles.map((role) => (
                   <div key={role.role} className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-3 sm:p-4">
                     <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1158,31 +1228,63 @@ export function Settings() {
                     {role.role === "ADMIN" ? (
                       <div className="rounded-[var(--radius-control)] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">ADMIN luôn có toàn quyền; không thể hạ quyền từ màn này.</div>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="min-w-[650px] w-full text-sm">
-                          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
-                            <tr><th className="px-2 py-2">Chức năng</th><th className="px-2 py-2">Phạm vi</th></tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-100">
-                            {permissionCatalog.map((permission) => {
-                              const scope = permissionScopeFor(role.role, role.permissions_json, permission.key);
-                              return (
-                                <tr key={permission.key}>
-                                  <td className="px-2 py-2 font-medium text-zinc-800">{permission.label}</td>
-                                  <td className="px-2 py-2">
-                                    <select
-                                      value={scope}
-                                      onChange={(event) => updateRolePermission(role.role, permission.key, event.target.value as PermissionScope)}
-                                      className="h-9 min-w-36 rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600"
-                                    >
-                                      {permissionScopes.map((option) => <option key={option} value={option}>{permissionScopeLabels[option]}</option>)}
-                                    </select>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                      <div className="space-y-2">
+                        {permissionGroups.map((group) => {
+                          const groupPermissions = permissionCatalog.filter((permission) => group.permissions.includes(permission.key as never));
+                          const enabledCount = groupPermissions.filter((permission) => permissionScopeFor(role.role, role.permissions_json, permission.key) !== "none").length;
+                          const isOpen = Boolean(openPermissionGroups[group.key]);
+                          return (
+                            <div key={group.key} className="overflow-hidden rounded-[var(--radius-control)] border border-zinc-200">
+                              <button
+                                type="button"
+                                onClick={() => togglePermissionGroup(group.key)}
+                                aria-expanded={isOpen}
+                                className="flex w-full items-center justify-between gap-3 bg-zinc-50 px-3 py-2.5 text-left hover:bg-zinc-100"
+                              >
+                                <span className="flex items-center gap-2 font-bold text-zinc-800">
+                                  {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                  {group.label}
+                                </span>
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${enabledCount > 0 ? "bg-emerald-100 text-emerald-800" : "bg-zinc-200 text-zinc-600"}`}>
+                                  {enabledCount}/{groupPermissions.length} quyền bật
+                                </span>
+                              </button>
+                              {isOpen && (
+                                <div className="divide-y divide-zinc-100 bg-white">
+                                  {groupPermissions.map((permission) => {
+                                    const scope = permissionScopeFor(role.role, role.permissions_json, permission.key);
+                                    const enabled = scope !== "none";
+                                    return (
+                                      <div key={permission.key} className="grid gap-2 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_160px] sm:items-center">
+                                        <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-zinc-800">
+                                          <input
+                                            type="checkbox"
+                                            checked={enabled}
+                                            onChange={() => toggleRolePermission(role, permission.key)}
+                                            className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-600"
+                                          />
+                                          <span className="flex items-center gap-2">
+                                            {enabled && <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />}
+                                            {permission.label}
+                                          </span>
+                                        </label>
+                                        <select
+                                          aria-label={`Phạm vi ${permission.label}`}
+                                          value={scope}
+                                          disabled={!enabled}
+                                          onChange={(event) => updateRolePermission(role.role, permission.key, event.target.value as PermissionScope)}
+                                          className="h-9 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+                                        >
+                                          {permissionScopes.map((option) => <option key={option} value={option}>{permissionScopeLabels[option]}</option>)}
+                                        </select>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1217,6 +1319,33 @@ export function Settings() {
                 <RefreshCw className="mr-2 h-4 w-4" />
                 {isSyncingSheets ? "Đang đồng bộ..." : "Đồng bộ ngay"}
               </Button>
+            </div>
+            <div className="rounded-[var(--radius-card)] border border-amber-200 bg-amber-50/60 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="font-bold text-zinc-900">Hàng chờ đồng bộ ngược từ Google Sheet</div>
+                  <p className="mt-1 text-sm text-zinc-600">Chỉ nhận thay đổi danh mục từ tab <code>PMQL_change_inbox</code>. Đơn hàng, phiếu thu/chi, công nợ và tồn kho không được phép ghi ngược từ Sheet.</p>
+                </div>
+                <Button type="button" variant="outline" onClick={loadGoogleSheetChanges} disabled={isLoadingSheetChanges} className="w-full shrink-0 sm:w-auto">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {isLoadingSheetChanges ? "Đang tải..." : "Tải yêu cầu"}
+                </Button>
+              </div>
+              {sheetChangeError && <div className="mt-3 rounded-[var(--radius-control)] border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">{sheetChangeError}</div>}
+              {sheetChangeRequests.length > 0 && <div className="mt-3 overflow-x-auto rounded-[var(--radius-control)] border border-amber-100 bg-white">
+                <table className="min-w-[760px] w-full text-sm">
+                  <thead className="bg-amber-50 text-left text-xs uppercase tracking-wide text-zinc-600"><tr><th className="px-3 py-2">Danh mục</th><th className="px-3 py-2">Mã</th><th className="px-3 py-2">Thay đổi đề xuất</th><th className="px-3 py-2">Gửi lúc</th><th className="px-3 py-2 text-right">Duyệt</th></tr></thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {sheetChangeRequests.map((request) => <tr key={request.id}>
+                      <td className="px-3 py-2 font-semibold text-zinc-800">{request.entity_type}</td>
+                      <td className="px-3 py-2 font-mono text-emerald-700">{request.target_code}</td>
+                      <td className="px-3 py-2"><span className="font-semibold">{request.field_name}</span>: {typeof request.proposed_value === "string" ? request.proposed_value : JSON.stringify(request.proposed_value)}{request.note ? <div className="mt-1 text-xs text-zinc-500">{request.note}</div> : null}</td>
+                      <td className="px-3 py-2 text-zinc-500">{new Date(request.submitted_at).toLocaleString("vi-VN")}</td>
+                      <td className="px-3 py-2 text-right">{request.status === "PENDING" ? <div className="inline-flex gap-2"><Button type="button" size="sm" variant="outline" disabled={reviewingSheetChangeId === request.id} onClick={() => reviewGoogleSheetChange(request.id, "REJECT")}>Từ chối</Button><Button type="button" size="sm" disabled={reviewingSheetChangeId === request.id} onClick={() => reviewGoogleSheetChange(request.id, "APPROVE")}>{reviewingSheetChangeId === request.id ? "Đang xử lý..." : "Áp dụng"}</Button></div> : <span className="text-xs font-bold text-zinc-500">{request.status}</span>}</td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {importTargets.map((target) => {
