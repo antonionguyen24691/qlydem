@@ -31,6 +31,7 @@ const OperationsHistory = lazy(() => import("./pages/OperationsHistory").then((m
 const OperationsInventory = lazy(() => import("./pages/OperationsInventory").then((module) => ({ default: module.OperationsInventory })));
 const OperationsReadiness = lazy(() => import("./pages/OperationsReadiness").then((module) => ({ default: module.OperationsReadiness })));
 const Login = lazy(() => import("./pages/Login").then((module) => ({ default: module.Login })));
+const Guide = lazy(() => import("./pages/Guide").then((module) => ({ default: module.Guide })));
 
 function RequirePermission({ allow, children }: { allow: (user: any) => boolean; children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="settings/operations/inventory" element={<RequirePermission allow={isAdmin}><OperationsInventory /></RequirePermission>} />
             <Route path="settings/operations/readiness" element={<RequirePermission allow={isAdmin}><OperationsReadiness /></RequirePermission>} />
             <Route path="settings" element={<RequirePermission allow={isAdmin}><Settings /></RequirePermission>} />
+            <Route path="guide" element={<Guide />} />
           </Route>
         </Routes>
       </Suspense>

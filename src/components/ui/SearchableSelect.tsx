@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, Search } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -19,15 +20,43 @@ export function SearchableSelect({ value, onChange, options, placeholder, search
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
   const selected = options.find((option) => option.value === value);
   const filteredOptions = useMemo(() => {
     const normalized = term.trim().toLowerCase();
     return normalized ? options.filter((option) => `${option.label} ${option.description ?? ""}`.toLowerCase().includes(normalized)) : options;
   }, [options, term]);
 
+  const updateCoords = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      updateCoords();
+      window.addEventListener("scroll", updateCoords, true);
+      window.addEventListener("resize", updateCoords);
+    }
+    return () => {
+      window.removeEventListener("scroll", updateCoords, true);
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [open]);
+
   useEffect(() => {
     const close = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+      if (!ref.current?.contains(event.target as Node) && !dropdownRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -40,8 +69,8 @@ export function SearchableSelect({ value, onChange, options, placeholder, search
         <span className={cn("truncate", selected ? "text-zinc-900" : "text-zinc-500")}>{selected?.label ?? placeholder}</span>
         <Search className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
       </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl">
+      {open && createPortal(
+        <div ref={dropdownRef} className="fixed z-[9999] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl" style={{ top: coords.top, left: coords.left, width: coords.width }}>
           <div className="border-b border-zinc-100 p-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -57,7 +86,8 @@ export function SearchableSelect({ value, onChange, options, placeholder, search
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -9,7 +9,8 @@ import {
   FileText,
   BadgeDollarSign,
   Truck,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useUIStore } from "../../store/ui";
@@ -52,6 +53,12 @@ const navGroups = [
     items: [
       { name: "Báo cáo tài chính", href: "/finance", icon: BadgeDollarSign, visible: canViewFinance },
       { name: "Cấu hình", href: "/settings", icon: Settings, visible: isAdmin }
+    ]
+  },
+  {
+    label: "Hỗ trợ",
+    items: [
+      { name: "Hướng dẫn", href: "/guide", icon: BookOpen, visible: () => true }
     ]
   }
 ];
