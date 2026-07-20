@@ -1,0 +1,16 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.vercel/
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.zip
+firebase-applet-config.json
+.codex-remote-attachments/

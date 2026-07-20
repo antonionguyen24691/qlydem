@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PMQL">
+  <rect width="512" height="512" rx="112" fill="#006B68"/>
+  <path fill="#ffffff" d="M120 112h156c75 0 120 39 120 104 0 67-45 106-120 106h-62v78h-94V112Zm94 78v56h56c21 0 32-10 32-28s-11-28-32-28h-56Z"/>
+  <circle cx="371" cy="371" r="55" fill="#FFC62F"/>
+  <path d="m345 371 17 17 35-39" fill="none" stroke="#006B68" stroke-linecap="round" stroke-linejoin="round" stroke-width="18"/>
+</svg>
