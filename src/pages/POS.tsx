@@ -73,6 +73,8 @@ export function POS() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
   const [customerPaid, setCustomerPaid] = useState<string>("");
+  // Số dư khách dùng thanh toán: nhân viên chủ động nhập, không tự trừ.
+  const [creditUse, setCreditUse] = useState<string>("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
@@ -91,13 +93,20 @@ export function POS() {
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
   const finalTotal = subTotal - discountAmount;
-  const enteredPaidAmount = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal;
+  const availableCredit = Math.max(0, Number(selectedCustomer?.creditBalance ?? 0));
+  const creditAmount = Math.min(
+    Math.max(0, Number(creditUse.replace(/\D/g, "")) || 0),
+    availableCredit,
+    finalTotal
+  );
+  const remainingAfterCredit = Math.max(0, finalTotal - creditAmount);
+  const enteredPaidAmount = customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : remainingAfterCredit;
   // Khách lẻ không thể mang công nợ: xác nhận CK luôn thu đủ đúng tổng đơn và xuất bill.
   // Thu một phần vẫn dùng được sau khi đã chọn khách hàng để ghi công nợ còn lại.
   const isAnonymousTransfer = paymentMethod === "TRANSFER" && !selectedCustomer;
   const transferAmount = isAnonymousTransfer
     ? finalTotal
-    : Math.min(finalTotal, Math.max(0, enteredPaidAmount || finalTotal));
+    : Math.min(remainingAfterCredit, Math.max(0, enteredPaidAmount || remainingAfterCredit));
   const transferReference = transferReferenceRef.current || "CK-POS";
   const hasPaymentQrConfig = Boolean(paymentConfig.enabled && paymentConfig.bankBin && paymentConfig.accountNumber);
   const transferQrUrl = paymentMethod === "TRANSFER"
@@ -210,8 +219,8 @@ export function POS() {
     }
     const amountPaid = paymentMethod === "TRANSFER" && !selectedCustomer
       ? finalTotal
-      : (customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : finalTotal);
-    const debtAmount = Math.max(0, finalTotal - amountPaid);
+      : (customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : remainingAfterCredit);
+    const debtAmount = Math.max(0, finalTotal - creditAmount - amountPaid);
     if (!selectedCustomer && debtAmount > 0) {
       alert(`Khách còn thiếu ${debtAmount.toLocaleString("vi-VN")} đ. Hãy chọn hoặc tạo khách hàng trước khi hoàn tất để ghi nhận công nợ đúng.`);
       return;
@@ -223,7 +232,8 @@ export function POS() {
       customerName: selectedCustomer ? selectedCustomer.name : "Khách lẻ",
       customerId: selectedCustomer ? selectedCustomer.id : undefined,
       total: finalTotal,
-      paid: amountPaid,
+      paid: amountPaid + creditAmount,
+      returnedAmount: 0,
       status: (debtAmount > 0) ? "Nợ" : "Đã thanh toán",
       items: cart.map(item => ({
         id: item.id,
@@ -256,6 +266,7 @@ export function POS() {
           customerId: selectedCustomer?.id,
           paymentMethod,
           paidAmount: amountPaid,
+          creditAmount,
           discountAmount: canDiscount ? discountAmount : 0,
           note: paymentMethod === "TRANSFER" ? `Xác nhận chuyển khoản: ${transferReferenceRef.current || "CK-POS"}` : undefined,
           idempotencyKey,
@@ -282,6 +293,7 @@ export function POS() {
         customerId: selectedCustomer?.id,
         total: Number(savedOrder.total_amount ?? finalTotal),
         paid: Number(savedOrder.paid_amount ?? amountPaid),
+        returnedAmount: 0,
         status: Number(savedOrder.debt_amount ?? 0) > 0 ? "Nợ" : "Đã thanh toán",
         items: (body.items ?? []).map((item: any) => ({
           id: item.product_id,
@@ -310,6 +322,7 @@ export function POS() {
     setCustomerSearch("");
     setDiscountPercent(0);
     setCustomerPaid("");
+    setCreditUse("");
     transferReferenceRef.current = "";
     setIsMobileCheckoutOpen(false);
     navigate(`/orders/${encodeURIComponent(newOrder.id)}/bill`, { state: { order: newOrder } });
@@ -322,6 +335,7 @@ export function POS() {
       setCustomerSearch("");
       setDiscountPercent(0);
       setCustomerPaid("");
+      setCreditUse("");
       checkoutKeyRef.current = undefined;
       transferReferenceRef.current = "";
     }
@@ -398,6 +412,7 @@ export function POS() {
         address: row.address ?? "",
         oldDebt: Number(row.current_debt ?? 0),
         creditLimit: Number(row.credit_limit ?? 0),
+        creditBalance: Number(row.credit_balance ?? 0),
         note: row.note ?? "",
         customerGroup: row.customer_group ?? "RETAIL"
       };
@@ -726,9 +741,12 @@ export function POS() {
                   <div className="flex items-center justify-between p-3 border rounded-[var(--radius-card)] bg-white border-emerald-200 ring-1 ring-emerald-500/20 shadow-sm">
                     <div className="min-w-0">
                       <div className="line-clamp-2 break-words text-sm font-semibold text-zinc-900">{selectedCustomer.name}</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">Nợ cũ: <span className="text-red-600 font-medium">{selectedCustomer.oldDebt.toLocaleString()}đ</span></div>
+                      <div className="text-xs text-zinc-500 mt-0.5">
+                        Nợ cũ: <span className="text-red-600 font-medium">{selectedCustomer.oldDebt.toLocaleString()}đ</span>
+                        {availableCredit > 0 && <> · Số dư: <span className="text-emerald-600 font-medium">{availableCredit.toLocaleString()}đ</span></>}
+                      </div>
                     </div>
-                    <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-zinc-100 rounded-[var(--radius-control)] text-zinc-500">
+                    <button onClick={() => { setSelectedCustomer(null); setCreditUse(""); }} className="p-2 hover:bg-zinc-100 rounded-[var(--radius-control)] text-zinc-500">
                       <X size={18} />
                     </button>
                   </div>
@@ -754,10 +772,11 @@ export function POS() {
                               setSelectedCustomer(c);
                               setCustomerSearch("");
                               setShowCustomerDropdown(false);
+                              setCreditUse("");
                             }}
                           >
                             <div className="line-clamp-2 break-words text-sm font-semibold text-zinc-900">{c.name}</div>
-                            <div className="truncate text-xs text-zinc-500">{c.phone} - Hạn mức: {c.creditLimit.toLocaleString()}</div>
+                            <div className="truncate text-xs text-zinc-500">{c.phone} - Hạn mức: {c.creditLimit.toLocaleString()}{c.creditBalance > 0 ? ` - Số dư: ${c.creditBalance.toLocaleString()}` : ""}</div>
                           </div>
                         ))}
                         {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)).length === 0 && (
@@ -800,7 +819,43 @@ export function POS() {
                   <span className="font-bold text-zinc-900 text-base">Khách cần trả</span>
                   <span className="max-w-[190px] truncate text-2xl font-bold leading-none text-emerald-600 sm:text-3xl">{finalTotal.toLocaleString()} đ</span>
                 </div>
-                
+
+                {availableCredit > 0 && (
+                  <div className="rounded-[var(--radius-card)] bg-emerald-50/70 p-3 ring-1 ring-emerald-200">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-emerald-800">Dùng số dư ({availableCredit.toLocaleString()} đ)</span>
+                      <button
+                        type="button"
+                        onClick={() => setCreditUse(Math.min(availableCredit, finalTotal).toLocaleString())}
+                        className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+                      >
+                        Dùng tối đa
+                      </button>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type="text"
+                          placeholder="0"
+                          value={creditUse}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
+                            setCreditUse(val ? Number(val).toLocaleString() : "");
+                          }}
+                          className="w-full text-right pr-8 font-semibold"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 font-medium">đ</span>
+                      </div>
+                    </div>
+                    {creditAmount > 0 && (
+                      <div className="mt-2 flex justify-between text-xs font-medium text-emerald-800">
+                        <span>Trừ số dư: -{creditAmount.toLocaleString()} đ</span>
+                        <span>Còn phải thu: {remainingAfterCredit.toLocaleString()} đ</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center pt-4">
                   <span className="text-zinc-500 font-medium">Khách đưa</span>
                   <div className="relative">
@@ -821,7 +876,7 @@ export function POS() {
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-zinc-500 font-medium">Tiền thừa</span>
                     <span className="font-semibold text-zinc-900">
-                      {Math.max(0, Number(customerPaid.replace(/\D/g, "")) - finalTotal).toLocaleString()} đ
+                      {Math.max(0, Number(customerPaid.replace(/\D/g, "")) - remainingAfterCredit).toLocaleString()} đ
                     </span>
                   </div>
                 )}

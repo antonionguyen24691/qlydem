@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDataStore, Order } from "../store/data";
-import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText, Trash2 } from "lucide-react";
+import { Search, Filter, Settings2, Printer, X, Receipt, ScrollText, Trash2, Undo2 } from "lucide-react";
+import { ReturnOrderDialog } from "../components/orders/ReturnOrderDialog";
+import { canReturnOrders } from "../lib/permissions";
 import { Dialog } from "../components/ui/Dialog";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -47,6 +49,7 @@ export function Orders() {
   const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [returnOrder, setReturnOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -592,9 +595,11 @@ export function Orders() {
                   <div className="col-span-2 pt-2 border-t border-zinc-200">
                     <span className="text-zinc-500 block mb-1">Trạng thái:</span>
                     <div className={`font-bold inline-flex items-center px-2.5 py-0.5 rounded-full text-xs ${
-                      selectedOrder.status === 'Đã thanh toán' 
-                        ? 'bg-emerald-100 text-emerald-800' 
-                        : selectedOrder.status === 'Đã hủy' ? 'bg-zinc-200 text-zinc-700' : 'bg-red-100 text-red-800'
+                      selectedOrder.status === 'Đã thanh toán'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : selectedOrder.status === 'Đã hủy' ? 'bg-zinc-200 text-zinc-700'
+                        : ['Đã trả hàng', 'Trả một phần'].includes(selectedOrder.status) ? 'bg-amber-100 text-amber-800'
+                        : 'bg-red-100 text-red-800'
                     }`}>
                       {selectedOrder.status}
                     </div>
@@ -629,6 +634,12 @@ export function Orders() {
                   <span>Khách đã trả:</span>
                   <span className="font-medium text-emerald-400">{selectedOrder.paid.toLocaleString()} ₫</span>
                 </div>
+                {selectedOrder.returnedAmount > 0 && (
+                  <div className="flex justify-between text-zinc-400 text-sm">
+                    <span>Đã trả hàng/hoàn:</span>
+                    <span className="font-medium text-amber-400">-{selectedOrder.returnedAmount.toLocaleString()} ₫</span>
+                  </div>
+                )}
                 <div className="border-t border-zinc-700 pt-3 flex justify-between items-center">
                   <span className="font-medium text-zinc-300">CÒN PHẢI THU:</span>
                   <span className={`font-bold text-2xl ${
@@ -668,6 +679,11 @@ export function Orders() {
               >
                 Share ảnh bill
               </Button>
+              {canReturnOrders(user ?? undefined) && selectedOrder.dbId && !["Đã hủy", "Đã trả hàng"].includes(selectedOrder.status) && (
+                <Button onClick={() => setReturnOrder(selectedOrder)} variant="outline" className="border-amber-200 text-amber-700 hover:bg-amber-50">
+                  <Undo2 className="mr-2 h-4 w-4" /> Trả hàng
+                </Button>
+              )}
               {["ADMIN", "ACCOUNTANT"].includes(user?.role ?? "") && selectedOrder.status !== "Đã hủy" && (
                 <Button onClick={() => void cancelOrder(selectedOrder)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
                   <Trash2 className="mr-2 h-4 w-4" /> Hủy đơn
@@ -677,6 +693,18 @@ export function Orders() {
           </div>
         )}
       </Dialog>
+
+      {returnOrder && (
+        <ReturnOrderDialog
+          order={returnOrder}
+          onClose={() => setReturnOrder(null)}
+          onCompleted={() => {
+            setReturnOrder(null);
+            setSelectedOrder(null);
+            void loadLiveData();
+          }}
+        />
+      )}
     </div>
   );
 }

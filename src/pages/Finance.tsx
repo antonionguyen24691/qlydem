@@ -33,7 +33,38 @@ const CASHBOOK_SOURCE_LABEL: Record<string, string> = {
   FUND_TRANSFER: "Chuyển quỹ",
   FUND_WITHDRAWAL: "Rút quỹ",
   FUND_ADJUSTMENT: "Điều chỉnh quỹ",
-  EXPENSE: "Chi phí"
+  EXPENSE: "Chi phí",
+  SALES_REFUND: "Hoàn tiền trả hàng",
+  CREDIT_REFUND: "Rút số dư trả khách"
+};
+
+const RETURN_REASON_LABEL: Record<string, string> = {
+  HANG_LOI: "Hàng lỗi",
+  HANG_DU: "Trả hàng dư",
+  GIAO_NHAM: "Giao nhầm",
+  KHAC: "Khác"
+};
+
+const REFUND_METHOD_LABEL: Record<string, string> = {
+  CASH: "Tiền mặt",
+  TRANSFER: "Chuyển khoản",
+  CREDIT: "Cộng số dư",
+  DEBT_OFFSET: "Cấn công nợ"
+};
+
+type SalesReturnRow = {
+  id: string;
+  code: string;
+  order_id: string;
+  customer_id?: string | null;
+  total_amount: number;
+  refund_method: string;
+  refund_cash_amount?: number;
+  debt_offset_amount?: number;
+  credit_amount?: number;
+  reason_code?: string;
+  reason?: string | null;
+  created_at: string;
 };
 type OrderDebtRow = { id: string; order_id: string; customer_id: string; remaining_amount: number; due_date?: string; status: string };
 type PromiseRow = { id: string; customer_id: string; promised_amount: number; promised_date: string; status: string; contact_name?: string; note?: string; created_at: string };
@@ -97,6 +128,13 @@ export function Finance() {
   const [promiseContact, setPromiseContact] = useState("");
   const [promiseNote, setPromiseNote] = useState("");
   const [isSavingPromise, setIsSavingPromise] = useState(false);
+  const [salesReturns, setSalesReturns] = useState<SalesReturnRow[]>([]);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [withdrawCustomerId, setWithdrawCustomerId] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState<number | "">("");
+  const [withdrawMethod, setWithdrawMethod] = useState("CASH");
+  const [withdrawNote, setWithdrawNote] = useState("");
+  const [isSavingWithdraw, setIsSavingWithdraw] = useState(false);
 
   useEffect(() => {
     if (location.hash !== "#cong-no") return;
@@ -106,27 +144,30 @@ export function Finance() {
   const loadFinanceRows = async () => {
     try {
       const headers = await getAuthHeaders();
-      const [receiptResponse, supplierResponse, cashbookResponse, debtResponse, promiseResponse] = await Promise.all([
+      const [receiptResponse, supplierResponse, cashbookResponse, debtResponse, promiseResponse, returnResponse] = await Promise.all([
         fetch("/api/data/receipts", { headers }),
         fetch("/api/data/suppliers", { headers }),
         fetch("/api/data/cashbook_entries", { headers }),
         fetch("/api/data/order_debts", { headers }),
-        fetch("/api/data/payment-promises", { headers })
+        fetch("/api/data/payment-promises", { headers }),
+        fetch("/api/data/sales_returns", { headers })
       ]);
-      const [receiptBody, supplierBody, cashbookBody, debtBody, promiseBody] = await Promise.all([
-        receiptResponse.json(), supplierResponse.json(), cashbookResponse.json(), debtResponse.json(), promiseResponse.json()
+      const [receiptBody, supplierBody, cashbookBody, debtBody, promiseBody, returnBody] = await Promise.all([
+        receiptResponse.json(), supplierResponse.json(), cashbookResponse.json(), debtResponse.json(), promiseResponse.json(), returnResponse.json()
       ]);
       if (receiptResponse.ok && receiptBody.ok) setReceipts(receiptBody.rows ?? []);
       if (supplierResponse.ok && supplierBody.ok) setSuppliers(supplierBody.rows ?? []);
       if (cashbookResponse.ok && cashbookBody.ok) setCashbookEntries(cashbookBody.rows ?? []);
       if (debtResponse.ok && debtBody.ok) setOrderDebts(debtBody.rows ?? []);
       if (promiseResponse.ok && promiseBody.ok) setPromises(promiseBody.rows ?? []);
+      if (returnResponse.ok && returnBody.ok) setSalesReturns(returnBody.rows ?? []);
     } catch {
       setReceipts([]);
       setSuppliers([]);
       setCashbookEntries([]);
       setOrderDebts([]);
       setPromises([]);
+      setSalesReturns([]);
     }
   };
 
@@ -150,6 +191,8 @@ export function Finance() {
   const periodReceipts = receipts.filter((receipt) => isInPeriod(receipt.receipt_date));
   const periodCashbook = cashbookEntries.filter((entry) => isInPeriod(entry.created_at));
   const totalReceivables = customers.reduce((acc, c) => acc + c.oldDebt, 0);
+  const totalCreditBalance = customers.reduce((acc, c) => acc + c.creditBalance, 0);
+  const periodReturns = salesReturns.filter((entry) => isInPeriod(entry.created_at));
   const totalPayables = suppliers.reduce((acc, supplier) => acc + Number(supplier.current_payable ?? 0), 0);
   const periodRevenue = periodOrders.reduce((sum, order) => sum + order.total, 0);
   const periodCollected = periodCashbook.filter((entry) => entry.direction === "IN" && ["RECEIPT", "SALES_ORDER"].includes(entry.source_type ?? "")).reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
@@ -395,6 +438,48 @@ export function Finance() {
     }
   };
 
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(withdrawAmount);
+    const customer = customers.find((item) => item.id === withdrawCustomerId);
+    if (!customer || amount <= 0) {
+      alert("Vui lòng chọn khách hàng và nhập số tiền hợp lệ.");
+      return;
+    }
+    if (amount > customer.creditBalance) {
+      alert(`Số dư của khách chỉ còn ${customer.creditBalance.toLocaleString()} đ.`);
+      return;
+    }
+    setIsSavingWithdraw(true);
+    try {
+      const idempotencyKey = window.crypto?.randomUUID?.() ?? `cw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const response = await fetch("/api/data/customer-credit-withdrawals", {
+        method: "POST",
+        headers: { ...(await getAuthHeaders()), "content-type": "application/json" },
+        body: JSON.stringify({
+          customerId: withdrawCustomerId,
+          amount,
+          paymentMethod: withdrawMethod,
+          note: withdrawNote.trim() || undefined,
+          idempotencyKey
+        })
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Không rút được số dư.");
+      alert(`Đã rút ${amount.toLocaleString()} đ trả khách ${customer.name}.\nSố dư còn lại: ${Number(body.creditBalanceAfter ?? 0).toLocaleString()} đ`);
+      setIsWithdrawOpen(false);
+      setWithdrawCustomerId("");
+      setWithdrawAmount("");
+      setWithdrawNote("");
+      await loadLiveData();
+      await loadFinanceRows();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không rút được số dư.");
+    } finally {
+      setIsSavingWithdraw(false);
+    }
+  };
+
   const selectReceiptCustomer = (customerId: string) => {
     setSelectedCustomerForReceipt(customerId);
     const customer = customers.find((item) => item.id === customerId);
@@ -480,6 +565,11 @@ export function Finance() {
               Điều chỉnh quỹ
             </Button>
           )}
+          {totalCreditBalance > 0 && (
+            <Button variant="outline" onClick={() => setIsWithdrawOpen(true)} className="w-full sm:w-auto">
+              Rút số dư khách
+            </Button>
+          )}
           <Button onClick={() => setIsReceiptOpen(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Lập phiếu thu
@@ -500,6 +590,7 @@ export function Finance() {
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải thu</span></div>
             <div className="text-lg sm:text-2xl font-bold text-red-600 truncate tabular-nums">{totalReceivables.toLocaleString()} ₫</div>
+            {totalCreditBalance > 0 && <div className="mt-0.5 truncate text-[11px] font-semibold text-emerald-600">Khách gửi dư: {totalCreditBalance.toLocaleString()} ₫</div>}
           </div>
           <div className="min-w-0 bg-white p-2 sm:p-4 rounded-[var(--radius-card)] border border-zinc-200 shadow-sm">
             <div className="mb-1 flex min-h-[28px] items-start gap-1.5 text-[11px] font-semibold uppercase leading-tight tracking-wider text-zinc-500 sm:mb-2 sm:min-h-0 sm:text-xs"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"/> <span className="line-clamp-2">Phải trả</span></div>
@@ -608,6 +699,31 @@ export function Finance() {
               </div>
             ))}
             {cashbookEntries.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có giao dịch sổ quỹ.</div>}
+          </div>
+        </div>
+
+        <div className="rounded-[var(--radius-card)] border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-bold text-zinc-900">Phiếu trả hàng</h2>
+            <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{periodReturns.length}</span>
+          </div>
+          <div className="space-y-2">
+            {periodReturns.slice(0, 8).map((entry) => {
+              const customer = customers.find((item) => item.id === entry.customer_id);
+              return (
+                <div key={entry.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <div className="truncate font-bold text-amber-700">{entry.code}</div>
+                    <div className="truncate text-xs text-zinc-500">
+                      {[customer?.name ?? "Khách lẻ", RETURN_REASON_LABEL[entry.reason_code ?? ""] ?? entry.reason_code, REFUND_METHOD_LABEL[entry.refund_method] ?? entry.refund_method].filter(Boolean).join(" · ")}
+                      {" · "}{new Date(entry.created_at).toLocaleString("vi-VN")}
+                    </div>
+                  </div>
+                  <div className="shrink-0 font-black tabular-nums text-amber-700">-{Number(entry.total_amount ?? 0).toLocaleString()} ₫</div>
+                </div>
+              );
+            })}
+            {periodReturns.length === 0 && <div className="rounded-[var(--radius-control)] border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">Chưa có phiếu trả hàng trong kỳ.</div>}
           </div>
         </div>
 
@@ -1068,7 +1184,7 @@ export function Finance() {
           <div className="space-y-5 flex-1">
             <div>
               <label className="block text-sm font-bold text-zinc-700 mb-2">Chọn Khách hàng</label>
-              <SearchableSelect value={selectedCustomerForReceipt} onChange={selectReceiptCustomer} required placeholder="-- Chọn khách hàng --" searchPlaceholder="Tìm tên, SĐT khách hàng..." options={customers.filter((customer) => customer.oldDebt > 0).map((customer) => ({ value: customer.id, label: customer.name, description: `${customer.phone || "Chưa có SĐT"} · Nợ ${customer.oldDebt.toLocaleString()} đ` }))} />
+              <SearchableSelect value={selectedCustomerForReceipt} onChange={selectReceiptCustomer} required placeholder="-- Chọn khách hàng --" searchPlaceholder="Tìm tên, SĐT khách hàng..." options={customers.map((customer) => ({ value: customer.id, label: customer.name, description: `${customer.phone || "Chưa có SĐT"} · Nợ ${customer.oldDebt.toLocaleString()} đ${customer.creditBalance > 0 ? ` · Dư ${customer.creditBalance.toLocaleString()} đ` : ""}` }))} />
             </div>
             
             {selectedCustomerForReceipt && (
@@ -1103,6 +1219,7 @@ export function Finance() {
                 min={1000}
                 className="text-lg font-bold text-emerald-600"
               />
+              <p className="mt-1.5 text-xs leading-5 text-zinc-500">Thu vượt số nợ được phép: phần vượt sẽ cộng vào <span className="font-semibold text-emerald-700">số dư (tiền gửi)</span> của khách để dùng cho đơn sau.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức thu</label><select value={receiptPaymentMethod} onChange={(event) => setReceiptPaymentMethod(event.target.value)} className="flex h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm"><option value="CASH">Tiền mặt</option><option value="TRANSFER">Chuyển khoản</option></select></div>
@@ -1127,6 +1244,59 @@ export function Finance() {
             >
               {isSavingReceipt ? "Đang xử lý..." : "Xác nhận thu tiền"}
             </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog isOpen={isWithdrawOpen} onClose={() => setIsWithdrawOpen(false)} title="Rút số dư trả khách">
+        <form onSubmit={handleWithdrawSubmit} className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-bold text-zinc-700">Chọn khách hàng (có số dư)</label>
+            <SearchableSelect
+              value={withdrawCustomerId}
+              onChange={(customerId) => {
+                setWithdrawCustomerId(customerId);
+                const customer = customers.find((item) => item.id === customerId);
+                if (customer) setWithdrawAmount(customer.creditBalance);
+              }}
+              required
+              placeholder="-- Chọn khách hàng --"
+              searchPlaceholder="Tìm tên, SĐT khách hàng..."
+              options={customers.filter((customer) => customer.creditBalance > 0).map((customer) => ({ value: customer.id, label: customer.name, description: `${customer.phone || "Chưa có SĐT"} · Số dư ${customer.creditBalance.toLocaleString()} đ` }))}
+            />
+          </div>
+          {withdrawCustomerId && (
+            <div className="flex items-center justify-between rounded-[var(--radius-card)] border border-emerald-100 bg-emerald-50 p-4">
+              <span className="text-sm font-semibold text-emerald-800">Số dư hiện tại:</span>
+              <span className="text-xl font-bold text-emerald-600">{Number(customers.find((c) => c.id === withdrawCustomerId)?.creditBalance ?? 0).toLocaleString()} ₫</span>
+            </div>
+          )}
+          <div>
+            <label className="mb-2 block text-sm font-bold text-zinc-700">Số tiền rút trả khách</label>
+            <Input
+              type="number"
+              min={1000}
+              required
+              value={withdrawAmount}
+              onChange={(event) => setWithdrawAmount(Number(event.target.value) || "")}
+              placeholder="0"
+              className="text-lg font-bold text-emerald-600"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-bold text-zinc-700">Phương thức chi</label>
+            <select value={withdrawMethod} onChange={(event) => setWithdrawMethod(event.target.value)} className="flex h-11 w-full rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 text-[16px] sm:h-10 sm:text-sm">
+              <option value="CASH">Tiền mặt</option>
+              <option value="TRANSFER">Chuyển khoản</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-bold text-zinc-700">Ghi chú</label>
+            <textarea value={withdrawNote} onChange={(event) => setWithdrawNote(event.target.value)} rows={2} placeholder="VD: Khách xin rút lại tiền gửi dư..." className="w-full resize-none rounded-[var(--radius-control)] border border-zinc-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsWithdrawOpen(false)}>Hủy</Button>
+            <Button type="submit" disabled={isSavingWithdraw} className="flex-1">{isSavingWithdraw ? "Đang xử lý..." : "Xác nhận rút số dư"}</Button>
           </div>
         </form>
       </Dialog>

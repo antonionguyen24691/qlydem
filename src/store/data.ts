@@ -9,6 +9,7 @@ export interface Customer {
   address: string;
   oldDebt: number;
   creditLimit: number;
+  creditBalance: number;
   note?: string;
   customerGroup?: string;
 }
@@ -55,6 +56,7 @@ export interface Order {
   items: OrderItem[];
   total: number;
   paid: number;
+  returnedAmount: number;
   status: string;
 }
 
@@ -97,6 +99,7 @@ function mapCustomer(row: any): Customer {
     address: row.address ?? "",
     oldDebt: money(row.current_debt ?? row.oldDebt),
     creditLimit: money(row.credit_limit ?? row.creditLimit),
+    creditBalance: money(row.credit_balance ?? row.creditBalance),
     note: row.note ?? "",
     customerGroup: row.customer_group ?? ""
   };
@@ -147,7 +150,14 @@ function mapOrder(row: any, itemsByOrder: Map<string, any[]>, customersById: Map
     items: orderItems,
     total: money(row.total_amount),
     paid: money(row.paid_amount),
-    status: row.status === "CANCELLED" ? "Đã hủy" : money(row.debt_amount) > 0 ? "Nợ" : "Đã thanh toán"
+    returnedAmount: money(row.returned_amount),
+    status: row.status === "CANCELLED"
+      ? "Đã hủy"
+      : row.status === "RETURNED"
+        ? "Đã trả hàng"
+        : money(row.returned_amount) > 0
+          ? "Trả một phần"
+          : money(row.debt_amount) > 0 ? "Nợ" : "Đã thanh toán"
   };
 }
 

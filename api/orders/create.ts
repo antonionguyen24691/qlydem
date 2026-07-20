@@ -21,6 +21,7 @@ type OrderPayload = {
   warehouseId?: string;
   paymentMethod?: string;
   paidAmount?: number;
+  creditAmount?: number;
   discountAmount?: number;
   dueDate?: string;
   note?: string;
@@ -64,6 +65,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       ? optionalString(body.warehouseId)
       : undefined;
     const discountAmount = canOverridePrice ? toNumber(body.discountAmount) : 0;
+    const creditAmount = Math.max(0, toNumber(body.creditAmount));
+    if (creditAmount > 0 && !optionalString(body.customerId)) {
+      res.status(400).json({ ok: false, error: "Dùng số dư phải chọn khách hàng." });
+      return;
+    }
 
     const supabase = getSupabaseAdmin();
     const rpcPayload = {
@@ -83,10 +89,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     let usedLegacyOrderRpc = false;
     let { data, error } = await supabase.rpc("create_sales_order_secure", {
       ...rpcPayload,
-      p_allow_price_override: canOverridePrice
+      p_allow_price_override: canOverridePrice,
+      p_credit_amount: creditAmount
     });
-    // The earlier secure RPC has the same transactional guarantees but no price/unit override argument.
-    // Keep POS available while a production database is catching up with its migration.
+    // The earlier secure RPCs have the same transactional guarantees but miss the newer
+    // arguments. Keep POS available while a production database is catching up with its
+    // migrations — but never silently drop a requested store-credit payment.
+    if (error?.message.includes("p_credit_amount")) {
+      if (creditAmount > 0) {
+        throw new Error("Server chưa cập nhật chức năng số dư khách hàng (thiếu migration). Vui lòng bỏ chọn dùng số dư hoặc chạy migration.");
+      }
+      ({ data, error } = await supabase.rpc("create_sales_order_secure", {
+        ...rpcPayload,
+        p_allow_price_override: canOverridePrice
+      }));
+    }
     if (error?.message.includes("p_allow_price_override")) {
       usedLegacyOrderRpc = true;
       ({ data, error } = await supabase.rpc("create_sales_order_secure", rpcPayload));
@@ -96,7 +113,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     // Sheets backup runs best-effort in the background; the daily cron guarantees consistency.
     void bestEffortSyncTables([
-      "sales_orders", "sales_order_items", "customers", "customer_debt_ledger", "order_debts",
+      "sales_orders", "sales_order_items", "customers", "customer_debt_ledger", "customer_credit_ledger", "order_debts",
       "receipts", "receipt_allocations", "cashbook_entries", "debt_reminders", "inventory_balances", "inventory_transactions"
     ]);
 

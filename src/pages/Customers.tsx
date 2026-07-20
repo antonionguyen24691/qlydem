@@ -81,6 +81,7 @@ function mapSavedCustomer(row: any): Customer {
     address: row.address ?? "",
     oldDebt: Number(row.current_debt ?? 0),
     creditLimit: Number(row.credit_limit ?? 0),
+    creditBalance: Number(row.credit_balance ?? 0),
     note: row.note ?? "",
     customerGroup: row.customer_group ?? ""
   };
@@ -325,7 +326,7 @@ export function Customers() {
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar">
           <div className="mb-3 grid grid-cols-2 gap-2 sm:mb-5 sm:grid-cols-4 sm:gap-3">
             <SummaryCard label="Công nợ hiện tại" value={`${selectedCustomer.oldDebt.toLocaleString()} ₫`} tone="red" />
-            <SummaryCard label="Hạn mức nợ" value={`${selectedCustomer.creditLimit.toLocaleString()} ₫`} />
+            <SummaryCard label={selectedCustomer.creditBalance > 0 ? "Số dư (tiền gửi)" : "Hạn mức nợ"} value={selectedCustomer.creditBalance > 0 ? `${selectedCustomer.creditBalance.toLocaleString()} ₫` : `${selectedCustomer.creditLimit.toLocaleString()} ₫`} tone={selectedCustomer.creditBalance > 0 ? "green" : undefined} />
             <SummaryCard label="Doanh số" value={`${selectedRevenue.toLocaleString()} ₫`} tone="green" />
             <SummaryCard label="Đã thu" value={`${selectedPaid.toLocaleString()} ₫`} tone="green" />
           </div>
@@ -529,8 +530,11 @@ export function Customers() {
                     <td className="px-4 py-4 text-sm text-zinc-900 font-bold uppercase truncate" title={customer.name}>{customer.name}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-zinc-700">{customer.phone || "-"}</td>
                     <td className="px-4 py-4 text-sm text-zinc-500 truncate" title={customer.address}>{customer.address || "-"}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-right text-red-600">
-                      {customer.oldDebt > 0 ? customer.oldDebt.toLocaleString() + " ₫" : "0"}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-right">
+                      <span className="text-red-600">{customer.oldDebt > 0 ? customer.oldDebt.toLocaleString() + " ₫" : "0"}</span>
+                      {customer.creditBalance > 0 && (
+                        <div className="text-xs font-semibold text-emerald-600">Dư: {customer.creditBalance.toLocaleString()} ₫</div>
+                      )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-500 text-right">{customer.creditLimit.toLocaleString()}</td>
                     <td className="px-3 py-4 text-right">
@@ -582,6 +586,12 @@ export function Customers() {
                   <div className="max-w-[120px] shrink-0 rounded-[var(--radius-control)] bg-red-50 px-2 py-1 text-right">
                     <div className="text-xs text-red-700 font-semibold mb-0.5">Nợ</div>
                     <div className="truncate text-sm font-bold leading-none text-red-600">{customer.oldDebt.toLocaleString()} ₫</div>
+                  </div>
+                )}
+                {customer.oldDebt <= 0 && customer.creditBalance > 0 && (
+                  <div className="max-w-[120px] shrink-0 rounded-[var(--radius-control)] bg-emerald-50 px-2 py-1 text-right">
+                    <div className="text-xs text-emerald-700 font-semibold mb-0.5">Số dư</div>
+                    <div className="truncate text-sm font-bold leading-none text-emerald-600">{customer.creditBalance.toLocaleString()} ₫</div>
                   </div>
                 )}
               </div>

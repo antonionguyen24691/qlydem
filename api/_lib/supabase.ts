@@ -32,6 +32,9 @@ export const EXPORTABLE_TABLES = [
   "inventory_adjustment_request_items",
   "inventory_edit_logs",
   "cashbook_entries",
+  "sales_returns",
+  "sales_return_items",
+  "customer_credit_ledger",
   "audit_logs",
   "import_batches",
   "import_errors"
@@ -113,6 +116,9 @@ const TABLE_READ_PERMISSION: Partial<Record<ExportableTable, string>> = {
   purchase_order_items: "inventory.manage",
   supplier_debt_ledger: "finance.view",
   cashbook_entries: "finance.view",
+  sales_returns: "orders.view",
+  sales_return_items: "orders.view",
+  customer_credit_ledger: "finance.view",
   audit_logs: "settings.manage",
   import_batches: "data.import",
   import_errors: "data.import"

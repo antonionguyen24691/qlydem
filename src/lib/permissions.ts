@@ -40,6 +40,10 @@ export function canSell(user?: UserLike) {
   return hasUserPermission(user, "pos.use") ?? ["ADMIN", "ACCOUNTANT", "SALE"].includes(userRole(user));
 }
 
+export function canReturnOrders(user?: UserLike) {
+  return hasUserPermission(user, "orders.return") ?? ["ADMIN", "ACCOUNTANT"].includes(userRole(user));
+}
+
 export function canViewFinance(user?: UserLike) {
   return hasUserPermission(user, "finance.view") ?? ["ADMIN", "ACCOUNTANT"].includes(userRole(user));
 }

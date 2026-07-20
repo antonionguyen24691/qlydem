@@ -9,6 +9,7 @@ export const PERMISSION_CATALOG = [
   { key: "orders.create", label: "Tạo đơn hàng" },
   { key: "orders.price_override", label: "Sửa giá bán" },
   { key: "orders.cancel", label: "Hủy đơn đã ghi nhận" },
+  { key: "orders.return", label: "Trả hàng / hoàn tiền" },
   { key: "price.update.apply", label: "Duyệt áp dụng bảng giá" },
   { key: "customers.view", label: "Xem khách hàng" },
   { key: "customers.create", label: "Tạo khách hàng" },
@@ -34,7 +35,7 @@ export const PERMISSION_CATALOG = [
 const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   ADMIN: { "*": "all" },
   ACCOUNTANT: {
-    "dashboard.view": "all", "pos.use": "all", "orders.view": "all", "orders.create": "all", "orders.price_override": "all", "orders.cancel": "all",
+    "dashboard.view": "all", "pos.use": "all", "orders.view": "all", "orders.create": "all", "orders.price_override": "all", "orders.cancel": "all", "orders.return": "all",
     "customers.view": "all", "customers.create": "all", "customers.update": "all", "products.view": "all",
     "inventory.view": "all", "finance.view": "all", "finance.receipt.create": "all", "finance.expense.create": "all",
     "finance.fund.manage": "all", "finance.export": "all"

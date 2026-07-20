@@ -55,7 +55,10 @@ const TABLE_READ_PERMISSIONS: Partial<Record<ExportableTable, string>> = {
   receipt_allocations: "finance.view",
   cashbook_entries: "finance.view",
   audit_logs: "settings.manage",
-  supplier_debt_ledger: "finance.view"
+  supplier_debt_ledger: "finance.view",
+  sales_returns: "orders.view",
+  sales_return_items: "orders.view",
+  customer_credit_ledger: "finance.view"
 };
 
 type InventoryReceiptItem = { productId?: string; quantity?: number; unitCost?: number; unit?: string };
@@ -1138,6 +1141,71 @@ async function handlePaymentPromises(req: ApiRequest, res: ApiResponse) {
   return methodNotAllowed(res, ["GET", "POST", "PATCH"]);
 }
 
+type SalesReturnItemInput = { productId?: string; quantity?: number; condition?: string };
+
+// Trả hàng một phần: hàng tốt về kho bán, hàng lỗi vào KHO-LOI; tiền hoàn cấn nợ
+// trước rồi mới chi tiền/cộng số dư theo phương thức chọn.
+async function createSalesReturn(req: ApiRequest, res: ApiResponse) {
+  const actor = await requirePermission(req, "orders.return");
+  const body = getJsonBody(req);
+  const orderId = optionalString(body.orderId);
+  const key = optionalString(body.idempotencyKey);
+  const items = (Array.isArray(body.items) ? body.items as SalesReturnItemInput[] : []).map((item) => ({
+    product_id: optionalString(item.productId),
+    quantity: toNumber(item.quantity),
+    condition: toStringValue(item.condition, "GOOD").trim().toUpperCase()
+  })).filter((item) => item.product_id && item.quantity > 0);
+  if (!orderId || !key || items.length === 0) {
+    res.status(400).json({ ok: false, error: "Thiếu đơn hàng, dòng hàng trả hoặc Idempotency-Key." });
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("create_sales_return_secure", {
+    p_actor_id: actor.id,
+    p_order_id: orderId,
+    p_items: items,
+    p_reason_code: toStringValue(body.reasonCode, "KHAC").trim().toUpperCase(),
+    p_reason: optionalString(body.reason) ?? null,
+    p_refund_method: toStringValue(body.refundMethod, "CASH").trim().toUpperCase(),
+    p_note: optionalString(body.note) ?? null,
+    p_idempotency_key: key
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error ?? "Không tạo được phiếu trả hàng.");
+  void bestEffortSyncTables([
+    "sales_orders", "sales_returns", "sales_return_items", "customers", "customer_credit_ledger",
+    "customer_debt_ledger", "order_debts", "inventory_balances", "inventory_transactions", "cashbook_entries"
+  ]);
+  res.status(200).json(data);
+}
+
+// Rút số dư (tiền khách gửi/hoàn) trả lại khách bằng tiền mặt hoặc chuyển khoản.
+async function withdrawCustomerCredit(req: ApiRequest, res: ApiResponse) {
+  const actor = await requirePermission(req, "finance.fund.manage");
+  const body = getJsonBody(req);
+  const customerId = optionalString(body.customerId);
+  const amount = toNumber(body.amount);
+  const key = optionalString(body.idempotencyKey);
+  if (!customerId || amount <= 0 || !key) {
+    res.status(400).json({ ok: false, error: "Thiếu khách hàng, số tiền hoặc Idempotency-Key." });
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("withdraw_customer_credit_secure", {
+    p_actor_id: actor.id,
+    p_customer_id: customerId,
+    p_amount: amount,
+    p_payment_method: optionalString(body.paymentMethod) ?? "CASH",
+    p_note: optionalString(body.note) ?? null,
+    p_idempotency_key: key
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error ?? "Không rút được số dư.");
+  void bestEffortSyncTables(["customers", "customer_credit_ledger", "cashbook_entries"]);
+  res.status(200).json(data);
+}
+
 async function cancelSalesOrder(req: ApiRequest, res: ApiResponse) {
   const actor = await requirePermission(req, "orders.cancel");
   const body = getJsonBody(req);
@@ -1498,6 +1566,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (table === "sales-order-cancellations" && req.method === "POST") {
       await cancelSalesOrder(req, res);
+      return;
+    }
+
+    if (table === "sales-returns" && req.method === "POST") {
+      await createSalesReturn(req, res);
+      return;
+    }
+
+    if (table === "customer-credit-withdrawals" && req.method === "POST") {
+      await withdrawCustomerCredit(req, res);
       return;
     }
 
