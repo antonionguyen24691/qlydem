@@ -27,6 +27,7 @@ type OrderPayload = {
   dueDate?: string;
   note?: string;
   idempotencyKey?: string;
+  keepChange?: boolean;
   items?: OrderPayloadItem[];
 };
 
@@ -113,6 +114,29 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (error) throw new Error(error.message);
     if (!data?.ok) throw new Error(data?.error ?? "Không tạo được đơn hàng");
 
+    // Khách có tên trả dư tiền + chọn "giữ tiền thừa" -> cộng vào số dư khách, ghi sổ quỹ.
+    // Chạy sau khi tạo đơn; nếu lỗi (thiếu migration) không làm hỏng đơn đã tạo.
+    const customerId = optionalString(body.customerId);
+    const rawPaid = Math.max(0, toNumber(body.paidAmount));
+    const orderTotal = Number(data?.order?.total_amount ?? 0);
+    const creditUsed = Number(data?.creditUsed ?? 0);
+    const overpay = Math.round(rawPaid - orderTotal + creditUsed);
+    let overpayKept = 0;
+    let overpayWarning: string | undefined;
+    if (body.keepChange === true && customerId && overpay > 0) {
+      const { data: topup, error: topupError } = await supabase.rpc("topup_customer_credit_secure", {
+        p_actor_id: actor.id,
+        p_customer_id: customerId,
+        p_amount: overpay,
+        p_payment_method: optionalString(body.paymentMethod) ?? "CASH",
+        p_source_order_id: optionalString(data?.order?.id) ?? null,
+        p_note: null,
+        p_idempotency_key: `${idempotencyKey}-overpay`
+      });
+      if (!topupError && topup?.ok) overpayKept = overpay;
+      else overpayWarning = "Đơn đã tạo nhưng chưa giữ được tiền thừa vào số dư (có thể thiếu migration). Hãy cộng số dư thủ công.";
+    }
+
     // Sheets backup runs best-effort in the background; the daily cron guarantees consistency.
     void bestEffortSyncTables([
       "sales_orders", "sales_order_items", "customers", "customer_debt_ledger", "customer_credit_ledger", "order_debts",
@@ -123,7 +147,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       ...data,
       priceSource: "catalog",
       priceOverrideApplied: !usedLegacyOrderRpc && canOverridePrice && discountAmount > 0,
-      legacyOrderRpc: usedLegacyOrderRpc
+      legacyOrderRpc: usedLegacyOrderRpc,
+      overpayKept,
+      overpayWarning
     });
   } catch (error) {
     sendError(res, error);

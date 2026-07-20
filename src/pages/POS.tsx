@@ -74,6 +74,7 @@ export function POS() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">("CASH");
   const [customerPaid, setCustomerPaid] = useState<string>("");
+  const [keepChange, setKeepChange] = useState(false);
   // Số dư khách dùng thanh toán: nhân viên chủ động nhập, không tự trừ.
   const [creditUse, setCreditUse] = useState<string>("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -315,6 +316,7 @@ export function POS() {
           discountAmount: canDiscount ? discountAmount : 0,
           note: paymentMethod === "TRANSFER" ? `Xác nhận chuyển khoản: ${transferReferenceRef.current || "CK-POS"}` : undefined,
           idempotencyKey,
+          keepChange: Boolean(selectedCustomer) && keepChange,
           items: cart.map((item) => ({
             productId: item.id,
             quantity: item.quantity,
@@ -352,6 +354,7 @@ export function POS() {
           lotCode: item.lot_code ?? undefined
         }))
       };
+      if (body.overpayWarning) alert(body.overpayWarning);
       // Đơn đã ghi thành công: in bill ngay, dữ liệu nền tự làm mới để không chặn người bán.
       void loadLiveData();
       window.localStorage.removeItem(POS_DRAFT_KEY);
@@ -370,6 +373,7 @@ export function POS() {
     setDiscountPercent(0);
     setCustomerPaid("");
     setCreditUse("");
+    setKeepChange(false);
     transferReferenceRef.current = "";
     setIsMobileCheckoutOpen(false);
     navigate(`/orders/${encodeURIComponent(newOrder.id)}/bill`, { state: { order: newOrder } });
@@ -383,6 +387,7 @@ export function POS() {
       setDiscountPercent(0);
       setCustomerPaid("");
       setCreditUse("");
+      setKeepChange(false);
       checkoutKeyRef.current = undefined;
       transferReferenceRef.current = "";
     }
@@ -930,11 +935,25 @@ export function POS() {
                 </div>
                 {customerPaid && (
                   <div className="flex justify-between items-center pt-2">
-                    <span className="text-zinc-500 font-medium">Tiền thừa</span>
+                    <span className="text-zinc-500 font-medium">{selectedCustomer && keepChange ? "Cộng vào số dư" : "Tiền thừa"}</span>
                     <span className="font-semibold text-zinc-900">
                       {Math.max(0, Number(customerPaid.replace(/\D/g, "")) - remainingAfterCredit).toLocaleString()} đ
                     </span>
                   </div>
+                )}
+                {selectedCustomer && Math.max(0, Number(customerPaid.replace(/\D/g, "")) - remainingAfterCredit) > 0 && (
+                  <label className="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5">
+                    <input
+                      type="checkbox"
+                      checked={keepChange}
+                      onChange={(e) => setKeepChange(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-emerald-600"
+                    />
+                    <span className="text-xs text-zinc-600">
+                      <span className="font-semibold text-zinc-800">Giữ tiền thừa vào số dư khách</span>
+                      <span className="mt-0.5 block">Bỏ chọn = trả lại tiền thừa cho khách. Chọn = cộng vào số dư để trừ đơn sau (ghi sổ quỹ + số dư khách).</span>
+                    </span>
+                  </label>
                 )}
                 
                 <div className="flex gap-2 pt-4">
