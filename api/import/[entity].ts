@@ -272,7 +272,7 @@ function normalizeProductType(value: unknown) {
 
 function normalizeRow(entity: string, row: Record<string, unknown>) {
   if (entity === "products") {
-    const { warehouse_code, opening_stock, min_stock_level, ...productRow } = row;
+    const { warehouse_code, opening_stock, min_stock_level, lot_code, color_note, ...productRow } = row;
     return {
       ...productRow,
       product_type: normalizeProductType(row.product_type),
@@ -281,7 +281,9 @@ function normalizeRow(entity: string, row: Record<string, unknown>) {
       _inventory: {
         warehouse_code,
         opening_stock,
-        min_stock_level
+        min_stock_level,
+        lot_code,
+        color_note
       }
     };
   }
@@ -334,23 +336,33 @@ async function upsertProductOpeningStock(rows: Array<Record<string, unknown>>) {
   const codes = inventoryRows.map((row) => row.code);
   const { data: products, error } = await supabase
     .from("products")
-    .select("id,code")
+    .select("id,code,cost_price")
     .in("code", codes);
   if (error) throw new Error(error.message);
 
-  const productByCode = new Map((products ?? []).map((product) => [product.code, product.id]));
+  const productById = new Map((products ?? []).map((product) => [product.code, product]));
   const balanceRows = [];
+  const lotTargets: Array<{ productId: string; warehouseId: string; lotCode: string; colorNote: string | null; cost: number; qty: number }> = [];
   for (const row of inventoryRows) {
-    const productId = productByCode.get(row.code);
-    if (!productId) continue;
+    const product = productById.get(row.code);
+    if (!product) continue;
     const warehouseCode = String(row.inventory.warehouse_code ?? "KHO-CHINH");
     const warehouseId = await ensureWarehouse(warehouseCode);
+    const qty = Number(row.inventory.opening_stock ?? 0);
     balanceRows.push({
       warehouse_id: warehouseId,
-      product_id: productId,
-      quantity_box: Number(row.inventory.opening_stock ?? 0),
+      product_id: product.id,
+      quantity_box: qty,
       quantity_piece: 0,
       min_stock_level: Number(row.inventory.min_stock_level ?? 0)
+    });
+    lotTargets.push({
+      productId: product.id,
+      warehouseId,
+      lotCode: String(row.inventory.lot_code ?? "").trim() || "TON-DAU-KY",
+      colorNote: String(row.inventory.color_note ?? "").trim() || null,
+      cost: Number(product.cost_price ?? 0),
+      qty
     });
   }
 
@@ -359,6 +371,29 @@ async function upsertProductOpeningStock(rows: Array<Record<string, unknown>>) {
       .from("inventory_balances")
       .upsert(balanceRows, { onConflict: "warehouse_id,product_id" });
     if (balanceError) throw new Error(balanceError.message);
+  }
+
+  // Tồn đầu kỳ theo lô — best-effort: nếu chưa apply migration lô thì bỏ qua, không chặn import.
+  try {
+    for (const target of lotTargets) {
+      const { data: lot, error: lotError } = await supabase
+        .from("product_lots")
+        .upsert(
+          { product_id: target.productId, lot_code: target.lotCode, unit_cost: target.cost, color_note: target.colorNote, status: "ACTIVE", note: "Tồn đầu kỳ (import)" },
+          { onConflict: "product_id,lot_code" }
+        )
+        .select("id")
+        .single();
+      if (lotError || !lot) return; // bảng lô chưa tồn tại → dừng phần lô, giữ nguyên tồn tổng
+      await supabase
+        .from("inventory_lot_balances")
+        .upsert(
+          { warehouse_id: target.warehouseId, product_id: target.productId, lot_id: lot.id, quantity_box: target.qty, quantity_piece: 0 },
+          { onConflict: "warehouse_id,lot_id" }
+        );
+    }
+  } catch {
+    // Bỏ qua lỗi phần lô để không chặn import sản phẩm.
   }
 }
 

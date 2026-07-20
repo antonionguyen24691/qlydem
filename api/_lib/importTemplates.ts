@@ -54,6 +54,8 @@ export const IMPORT_TEMPLATES: Record<ImportEntity, TemplateColumn[]> = {
     { key: "warehouse_code", label: "Mã kho", sample: "KHO-CHINH", aliases: ["ma kho", "kho"] },
     { key: "opening_stock", label: "Tồn đầu kỳ", sample: 0, aliases: ["ton dau ky", "ton kho", "so luong ton"] },
     { key: "min_stock_level", label: "Mức tồn tối thiểu", sample: 0, aliases: ["muc ton toi thieu", "min stock"] },
+    { key: "lot_code", label: "Số lô (tồn đầu)", sample: "LO-2026-001", aliases: ["so lo", "ma lo", "lot", "lot code", "so lo hang"] },
+    { key: "color_note", label: "Màu/mẻ lô", sample: "Xanh mẻ 1", aliases: ["mau", "mau sac", "mau me", "color"] },
     { key: "lifecycle_status", label: "Trạng thái hàng", sample: "ACTIVE", aliases: ["trang thai hang"] },
     { key: "status", label: "Trạng thái", sample: "ACTIVE", aliases: ["trang thai"] }
   ]

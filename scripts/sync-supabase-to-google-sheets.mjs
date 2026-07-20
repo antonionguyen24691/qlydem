@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { google } from "googleapis";
+import { sheetNameVi, columnLabelVi } from "./pmql-sheet-locale.mjs";
 
 if (existsSync(".env.local")) dotenv.config({ path: ".env.local", quiet: true });
 
@@ -93,8 +94,8 @@ async function replaceSheetRows(sheetName, rows) {
   await ensureSheet(sheetName);
   const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
   const values = rows.length
-    ? [headers, ...rows.map((row) => headers.map((header) => toSheetValue(row[header])))]
-    : [["empty"]];
+    ? [headers.map((header) => columnLabelVi(header)), ...rows.map((row) => headers.map((header) => toSheetValue(row[header])))]
+    : [["(trống)"]];
 
   await sheets.spreadsheets.values.clear({ spreadsheetId, range: `'${sheetName}'!A:ZZ` });
   await sheets.spreadsheets.values.update({
@@ -119,11 +120,11 @@ async function fetchAllRows(table) {
 const synced = [];
 for (const table of tables) {
   const rows = await fetchAllRows(table);
-  await replaceSheetRows(table, rows);
+  await replaceSheetRows(sheetNameVi(table), rows);
   synced.push({ table, rows: rows.length });
 }
 
-await replaceSheetRows("backup_log", [{
+await replaceSheetRows(sheetNameVi("backup_log"), [{
   synced_at: new Date().toISOString(),
   tables: tables.join(","),
   result_json: JSON.stringify(synced)

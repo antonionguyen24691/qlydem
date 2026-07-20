@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { getGooglePrivateKey } from "./env.js";
 import { fetchTableRows, type ExportableTable } from "./supabase.js";
+import { sheetNameVi, columnLabelVi } from "./sheetLocale.js";
 
 export function isGoogleSheetsConfigured() {
   return Boolean(
@@ -40,7 +41,7 @@ export async function replaceSheetRows(sheetName: string, rows: Record<string, u
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
   const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
   const values = [
-    headers,
+    headers.map((header) => columnLabelVi(header)),
     ...rows.map((row) => headers.map((header) => toSheetValue(row[header])))
   ];
 
@@ -63,7 +64,7 @@ async function appendBackupLog(sheets: ReturnType<typeof google.sheets>, synced:
   const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: "'backup_log'!A:E",
+    range: `'${sheetNameVi("backup_log")}'!A:E`,
     valueInputOption: "RAW",
     insertDataOption: "INSERT_ROWS",
     requestBody: {
@@ -77,7 +78,7 @@ export async function syncTablesToGoogleSheets(tables: ExportableTable[]) {
   const sheets = await getSheetsClient();
   for (const table of tables) {
     const rows = await fetchTableRows(table);
-    await replaceSheetRows(table, rows, sheets);
+    await replaceSheetRows(sheetNameVi(table), rows, sheets);
     synced.push({ table, rows: rows.length });
   }
   await appendBackupLog(sheets, synced);
