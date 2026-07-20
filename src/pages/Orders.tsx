@@ -9,6 +9,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { exportSalesOrderXlsx, printSalesOrder, shareSalesOrderImage } from "../lib/printBill";
 import { getAuthHeaders } from "../lib/supabase";
+import { localDateKey } from "../lib/dateKey";
 import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
 
@@ -19,7 +20,7 @@ const RETAIL_CUSTOMER = "__retail__";
 
 function dateKey(value: string) {
   if (!value) return "";
-  return value.slice(0, 10);
+  return localDateKey(value);
 }
 
 function startOfWeek(date: Date) {

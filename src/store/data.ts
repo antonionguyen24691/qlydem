@@ -148,7 +148,7 @@ function mapOrder(row: any, itemsByOrder: Map<string, any[]>, customersById: Map
   return {
     dbId: row.id,
     id: row.code ?? row.id,
-    date: String(row.order_date ?? row.created_at ?? "").slice(0, 10),
+    date: String(row.order_date ?? row.created_at ?? ""),
     customerName: customer?.name ?? "Khách lẻ",
     customerId: row.customer_id,
     items: orderItems,

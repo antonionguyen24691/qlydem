@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useDataStore } from "../store/data";
 import { useThemeStore } from "../store/theme";
 import { getAuthHeaders } from "../lib/supabase";
+import { localDateKey } from "../lib/dateKey";
 
 type PromiseSummary = { customer_id: string; promised_amount: number; promised_date: string; status: string };
 type CashbookRow = { id: string; account_type: string; direction: string; source_type?: string; amount: number; entry_date?: string; created_at: string };
@@ -19,13 +20,8 @@ const DASHBOARD_TABS: Array<{ id: DashboardTab; label: string }> = [
   { id: "CASHFLOW", label: "Công nợ & dòng tiền" }
 ];
 
-function localDateKey(date = new Date()) {
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
 function keyOf(value?: string) {
-  return String(value ?? "").slice(0, 10);
+  return localDateKey(value ?? "");
 }
 
 function dateFromKey(key: string) {

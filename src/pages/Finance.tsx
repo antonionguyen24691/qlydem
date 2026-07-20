@@ -10,6 +10,7 @@ import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
 import { isAdmin } from "../lib/permissions";
 import { getAuthHeaders } from "../lib/supabase";
+import { localDateKey } from "../lib/dateKey";
 
 type ReceiptRow = {
   id: string;
@@ -72,13 +73,8 @@ type PromiseRow = { id: string; customer_id: string; promised_amount: number; pr
 type AgingFilter = "all" | "0-7" | "8-15" | "16-30" | "30+";
 type PeriodFilter = "TODAY" | "MONTH" | "30_DAYS" | "CUSTOM" | "ALL";
 
-function localDateKey(date = new Date()) {
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
 function valueDateKey(value: string) {
-  return String(value ?? "").slice(0, 10);
+  return localDateKey(value ?? "");
 }
 
 export function Finance() {
