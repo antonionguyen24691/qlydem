@@ -14,6 +14,7 @@ type OrderPayloadItem = {
   productName?: string;
   unit?: string;
   unitPrice?: number;
+  lotId?: string;
 };
 
 type OrderPayload = {
@@ -59,7 +60,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       unit_price: canOverridePrice && item.unitPrice !== undefined && item.unitPrice !== null
         ? Math.max(0, toNumber(item.unitPrice))
         : null,
-      unit: canOverridePrice ? optionalString(item.unit) ?? null : null
+      unit: canOverridePrice ? optionalString(item.unit) ?? null : null,
+      lot_id: optionalString(item.lotId) ?? null
     }));
     const warehouseId = hasPermission(actor.permissions, "inventory.manage")
       ? optionalString(body.warehouseId)

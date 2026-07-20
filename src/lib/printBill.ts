@@ -110,7 +110,7 @@ function billHtml(order: Order, company: CompanyInfo = {}, payment: PaymentSetti
     <tr>
       <td class="center">${index + 1}</td>
       <td>
-        <strong>${escapeHtml(item.name)}</strong>
+        <strong>${escapeHtml(item.name)}${item.lotCode ? ` (Lô: ${escapeHtml(item.lotCode)})` : ""}</strong>
         ${item.size ? `<div class="muted">${escapeHtml(item.size)}</div>` : ""}
       </td>
       <td class="center">${escapeHtml(item.unit)}</td>
@@ -362,7 +362,7 @@ export async function shareSalesOrderImage(order: Order) {
     ctx.fillRect(56, y - 30, 968, 76);
     ctx.fillStyle = "#111827";
     ctx.fillText(String(index + 1), 82, y);
-    const nextY = drawWrappedText(ctx, item.name, 148, y, 470, 26);
+    const nextY = drawWrappedText(ctx, item.lotCode ? `${item.name} (Lô: ${item.lotCode})` : item.name, 148, y, 470, 26);
     ctx.fillText(item.unit, 650, y);
     ctx.fillText(numberText(item.quantity), 740, y);
     ctx.font = "700 22px Arial";

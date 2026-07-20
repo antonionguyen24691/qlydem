@@ -30,6 +30,7 @@ type ProductForm = {
   vatRate: number;
   status: string;
   lifecycleStatus: string;
+  trackLots: boolean;
 };
 
 const emptyForm: ProductForm = {
@@ -48,7 +49,8 @@ const emptyForm: ProductForm = {
   priceByM2: 0,
   vatRate: 0,
   status: "ACTIVE",
-  lifecycleStatus: "ACTIVE"
+  lifecycleStatus: "ACTIVE",
+  trackLots: false
 };
 
 type PriceUnitMode = "BOX" | "M2" | "PIECE";
@@ -139,7 +141,8 @@ function toForm(product?: Product): ProductForm {
     priceByM2: product.priceByM2 ?? 0,
     vatRate: product.vatRate ?? 0,
     status: product.status ?? "ACTIVE",
-    lifecycleStatus: product.lifecycleStatus ?? "ACTIVE"
+    lifecycleStatus: product.lifecycleStatus ?? "ACTIVE",
+    trackLots: product.trackLots ?? false
   };
 }
 
@@ -161,7 +164,8 @@ function mapSavedProduct(row: any, currentStock = 0): Product {
     priceByM2: Number(row.price_by_m2 ?? 0),
     vatRate: Number(row.vat_rate ?? 0),
     status: row.status ?? "ACTIVE",
-    lifecycleStatus: row.lifecycle_status ?? "ACTIVE"
+    lifecycleStatus: row.lifecycle_status ?? "ACTIVE",
+    trackLots: row.track_lots === true
   };
 }
 
@@ -1035,6 +1039,20 @@ export function Products() {
             </Field>
             <Field label="Trạng thái"><Input value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} /></Field>
             <Field label="Vòng đời"><Input value={form.lifecycleStatus} onChange={(event) => setForm({ ...form, lifecycleStatus: event.target.value })} /></Field>
+            <div className="sm:col-span-2">
+              <label className="flex items-start gap-3 rounded-[var(--radius-control)] border border-zinc-200 bg-zinc-50 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.trackLots}
+                  onChange={(event) => setForm({ ...form, trackLots: event.target.checked })}
+                  className="mt-0.5 h-4 w-4 accent-emerald-600"
+                />
+                <span className="text-sm">
+                  <span className="font-semibold text-zinc-900">Quản lý theo lô hàng</span>
+                  <span className="mt-0.5 block text-xs text-zinc-500">Bắt buộc chọn lô khi bán. Dùng cho hàng có màu/chất lượng khác nhau giữa các lần nhập (gạch, vật liệu…).</span>
+                </span>
+              </label>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mt-8 pt-4 border-t border-zinc-100">
             <Button type="button" onClick={() => setIsFormOpen(false)} variant="outline">Hủy</Button>

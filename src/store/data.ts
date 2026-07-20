@@ -33,6 +33,7 @@ export interface Product {
   vatRate?: number;
   status?: string;
   lifecycleStatus?: string;
+  trackLots?: boolean;
 }
 
 export interface OrderItem {
@@ -44,6 +45,7 @@ export interface OrderItem {
   price: number;
   total: number;
   unitCostSnapshot?: number;
+  lotCode?: string;
 }
 
 export interface Order {
@@ -124,7 +126,8 @@ function mapProduct(row: any, stockByProduct: Map<string, number>, minStockByPro
     priceByM2: money(row.price_by_m2),
     vatRate: money(row.vat_rate),
     status: row.status ?? "ACTIVE",
-    lifecycleStatus: row.lifecycle_status ?? "ACTIVE"
+    lifecycleStatus: row.lifecycle_status ?? "ACTIVE",
+    trackLots: row.track_lots === true
   };
 }
 
@@ -138,7 +141,8 @@ function mapOrder(row: any, itemsByOrder: Map<string, any[]>, customersById: Map
     quantity: money(item.quantity),
     price: money(item.unit_price),
     total: money(item.line_total),
-    unitCostSnapshot: money(item.unit_cost_snapshot)
+    unitCostSnapshot: money(item.unit_cost_snapshot),
+    lotCode: item.lot_code ?? undefined
   }));
 
   return {

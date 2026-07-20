@@ -14,6 +14,8 @@ const TABLE_READ_ROLES: Partial<Record<ExportableTable, string[]>> = {
   products: ["ADMIN", "ACCOUNTANT", "SALE", "WAREHOUSE"],
   warehouses: ["ADMIN", "WAREHOUSE"],
   inventory_balances: ["ADMIN", "WAREHOUSE", "SALE"],
+  product_lots: ["ADMIN", "ACCOUNTANT", "WAREHOUSE", "SALE"],
+  inventory_lot_balances: ["ADMIN", "ACCOUNTANT", "WAREHOUSE", "SALE"],
   inventory_transactions: ["ADMIN", "WAREHOUSE"],
   inventory_adjustment_requests: ["ADMIN"],
   inventory_adjustment_request_items: ["ADMIN"],
@@ -40,6 +42,8 @@ const TABLE_READ_PERMISSIONS: Partial<Record<ExportableTable, string>> = {
   products: "products.view",
   warehouses: "inventory.view",
   inventory_balances: "inventory.view",
+  product_lots: "inventory.view",
+  inventory_lot_balances: "inventory.view",
   inventory_transactions: "inventory.view",
   inventory_adjustment_requests: "inventory.manage",
   inventory_adjustment_request_items: "inventory.manage",
@@ -61,7 +65,7 @@ const TABLE_READ_PERMISSIONS: Partial<Record<ExportableTable, string>> = {
   customer_credit_ledger: "finance.view"
 };
 
-type InventoryReceiptItem = { productId?: string; quantity?: number; unitCost?: number; unit?: string };
+type InventoryReceiptItem = { productId?: string; quantity?: number; unitCost?: number; unit?: string; lotCode?: string; colorNote?: string; qualityNote?: string; imageUrls?: string[] };
 type InventoryReceiptPayload = {
   supplierId?: string;
   warehouseCode?: string;
@@ -124,6 +128,7 @@ function productPayload(body: Record<string, unknown>) {
     barcode: optionalString(body.barcode),
     status: toStringValue(body.status, "ACTIVE").toUpperCase(),
     lifecycle_status: toStringValue(body.lifecycleStatus ?? body.lifecycle_status, "ACTIVE").toUpperCase(),
+    track_lots: (body.trackLots ?? body.track_lots) === true,
     updated_at: new Date().toISOString()
   };
 }
@@ -644,7 +649,7 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
 
   if (mode === "IN") {
     const key = optionalString(body.idempotencyKey) ?? createCode("IN");
-    const { data, error } = await supabase.rpc("create_inventory_stock_in_secure", {
+    const baseStockInPayload = {
       p_actor_id: actor.id,
       p_product_id: productId,
       p_warehouse_id: warehouseId,
@@ -660,10 +665,22 @@ async function adjustInventory(req: ApiRequest, res: ApiResponse) {
       p_vat_amount: vatAmount,
       p_paid_amount: paidAmount,
       p_idempotency_key: key
+    };
+    let { data, error } = await supabase.rpc("create_inventory_stock_in_secure", {
+      ...baseStockInPayload,
+      p_lot_code: optionalString(body.lotCode) ?? null,
+      p_lot_id: optionalString(body.lotId) ?? null,
+      p_color_note: optionalString(body.colorNote) ?? null,
+      p_quality_note: optionalString(body.qualityNote) ?? null,
+      p_image_urls: Array.isArray(body.imageUrls) ? body.imageUrls : []
     });
+    // Fallback khi migration lô chưa được apply trên Supabase (RPC còn chữ ký cũ, chưa có tham số lô).
+    if (error && /PGRST202|could not find|function .* does not exist|schema cache/i.test(error.message)) {
+      ({ data, error } = await supabase.rpc("create_inventory_stock_in_secure", baseStockInPayload));
+    }
     if (error) throw new Error(error.message);
     if (!data?.ok) throw new Error(data?.error ?? "Không nhập kho được.");
-    await bestEffortSyncTables(["inventory_balances", "inventory_transactions", "purchase_orders", "purchase_order_items"]);
+    await bestEffortSyncTables(["inventory_balances", "inventory_transactions", "purchase_orders", "purchase_order_items", "product_lots", "inventory_lot_balances"]);
     res.status(200).json(data);
     return;
   }
@@ -723,7 +740,11 @@ async function createInventoryReceipt(req: ApiRequest, res: ApiResponse) {
     product_id: optionalString(item.productId),
     quantity: toNumber(item.quantity),
     unit_cost: toNumber(item.unitCost),
-    unit: optionalString(item.unit)
+    unit: optionalString(item.unit),
+    lot_code: optionalString(item.lotCode) ?? null,
+    color_note: optionalString(item.colorNote) ?? null,
+    quality_note: optionalString(item.qualityNote) ?? null,
+    image_urls: Array.isArray(item.imageUrls) ? item.imageUrls : []
   }));
   if (!supplierId || !key || items.length === 0) {
     const error = new Error("Thiếu nhà cung cấp, dòng hàng hoặc Idempotency-Key.");

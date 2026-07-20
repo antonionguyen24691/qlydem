@@ -4,6 +4,8 @@ import { Product as StoreProduct } from './data';
 export interface CartItem extends StoreProduct {
   quantity: number;
   total: number;
+  lotId?: string;
+  lotCode?: string;
 }
 
 interface POSStore {
@@ -13,6 +15,7 @@ interface POSStore {
   updateQuantity: (productId: string, quantity: number) => void;
   updatePrice: (productId: string, price: number) => void;
   updateUnit: (productId: string, unit: string) => void;
+  updateLot: (productId: string, lotId?: string, lotCode?: string) => void;
   clearCart: () => void;
   getCartTotal: () => number;
 }
@@ -64,6 +67,13 @@ export const usePOSStore = create<POSStore>((set, get) => ({
     set((state) => ({
       cart: state.cart.map((item) =>
         item.id === productId ? { ...item, unit } : item
+      ),
+    }));
+  },
+  updateLot: (productId, lotId, lotCode) => {
+    set((state) => ({
+      cart: state.cart.map((item) =>
+        item.id === productId ? { ...item, lotId, lotCode } : item
       ),
     }));
   },

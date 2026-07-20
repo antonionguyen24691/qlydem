@@ -12,6 +12,8 @@ export const EXPORTABLE_TABLES = [
   "price_edit_logs",
   "warehouses",
   "inventory_balances",
+  "product_lots",
+  "inventory_lot_balances",
   "sales_orders",
   "sales_order_items",
   "purchase_orders",

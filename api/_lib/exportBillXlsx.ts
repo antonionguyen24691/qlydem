@@ -100,7 +100,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         text("SL", tableHeader), text("Đơn giá", tableHeader), text("Thành tiền", tableHeader)
       ],
       ...(items ?? []).map((item: any, index: number) => [
-        text(index + 1, { ...tableCell, align: "center" }), text(item.product_code ?? "", tableCell), text(item.product_name ?? "", tableCell),
+        text(index + 1, { ...tableCell, align: "center" }), text(item.product_code ?? "", tableCell), text(item.lot_code ? `${item.product_name ?? ""} (Lô: ${item.lot_code})` : (item.product_name ?? ""), tableCell),
         text(item.unit ?? "", { ...tableCell, align: "center" }), amount(item.quantity, { ...tableCell, align: "right", format: "#,##0.##" }),
         amount(item.unit_price, { ...tableCell, align: "right" }), amount(item.line_total, { ...tableCell, align: "right", fontWeight: "bold" })
       ]),

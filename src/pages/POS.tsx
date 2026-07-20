@@ -11,6 +11,7 @@ import { defaultUnitOptions, loadUnitOptions } from "../lib/unitOptions";
 import { Search, Trash2, Plus, Minus, X, ChevronDown, Package, Menu } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { LotPickerModal, type LotOption } from "../components/pos/LotPickerModal";
 
 const POS_DRAFT_KEY = "pmql-pos-draft";
 const POS_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -46,7 +47,7 @@ function normalizeSearch(value: string) {
 }
 
 export function POS() {
-  const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, updateUnit, clearCart, getCartTotal } = usePOSStore();
+  const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, updateUnit, updateLot, clearCart, getCartTotal } = usePOSStore();
   const { products, customers, loadLiveData, upsertCustomerLocal } = useDataStore();
   const { isAuthenticated, user } = useAuthStore();
   const themeId = useThemeStore((state) => state.themeId);
@@ -89,6 +90,8 @@ export function POS() {
   });
   const [unitOptions, setUnitOptions] = useState(defaultUnitOptions);
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({});
+  const [lotsByProduct, setLotsByProduct] = useState<Record<string, LotOption[]>>({});
+  const [lotPickerProductId, setLotPickerProductId] = useState<string | null>(null);
 
   const subTotal = getCartTotal();
   const discountAmount = Math.round(subTotal * (discountPercent / 100));
@@ -155,6 +158,43 @@ export function POS() {
 
   useEffect(() => { void loadPaymentConfig(); }, []);
 
+  const loadLots = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const [lotsRes, balRes] = await Promise.all([
+        fetch("/api/data/product_lots", { headers }),
+        fetch("/api/data/inventory_lot_balances", { headers })
+      ]);
+      const lotsBody = await lotsRes.json();
+      const balBody = await balRes.json();
+      if (!lotsRes.ok || !lotsBody.ok || !balRes.ok || !balBody.ok) return;
+      const stockByLot = new Map<string, number>();
+      for (const b of (balBody.rows ?? [])) {
+        stockByLot.set(b.lot_id, (stockByLot.get(b.lot_id) ?? 0) + Number(b.quantity_box ?? 0));
+      }
+      const map: Record<string, LotOption[]> = {};
+      for (const row of (lotsBody.rows ?? [])) {
+        const stock = stockByLot.get(row.id) ?? 0;
+        if (stock <= 0) continue; // chỉ hiện lô còn tồn
+        const option: LotOption = {
+          id: row.id,
+          lotCode: row.lot_code ?? "",
+          receivedDate: row.received_date ?? undefined,
+          colorNote: row.color_note ?? undefined,
+          qualityNote: row.quality_note ?? undefined,
+          unitCost: Number(row.unit_cost ?? 0),
+          stock
+        };
+        (map[row.product_id] ??= []).push(option);
+      }
+      setLotsByProduct(map);
+    } catch {
+      setLotsByProduct({});
+    }
+  };
+
+  useEffect(() => { void loadLots(); }, []);
+
   useEffect(() => {
     if (!canDiscount && discountPercent !== 0) setDiscountPercent(0);
   }, [canDiscount, discountPercent]);
@@ -217,6 +257,11 @@ export function POS() {
       alert("Chiết khấu phải nằm trong khoảng 0-100%.");
       return;
     }
+    const missingLot = cart.find((item) => item.trackLots && !item.lotId);
+    if (missingLot) {
+      alert(`Sản phẩm "${missingLot.name}" yêu cầu chọn lô hàng trước khi bán.`);
+      return;
+    }
     const amountPaid = paymentMethod === "TRANSFER" && !selectedCustomer
       ? finalTotal
       : (customerPaid.trim() ? Number(customerPaid.replace(/\D/g, "")) : remainingAfterCredit);
@@ -273,6 +318,7 @@ export function POS() {
           items: cart.map((item) => ({
             productId: item.id,
             quantity: item.quantity,
+            lotId: item.lotId,
             // Chỉ có tác dụng khi tài khoản có quyền sửa giá bán (orders.price_override).
             unitPrice: canDiscount ? item.price : undefined,
             unit: canDiscount ? item.unit : undefined
@@ -302,7 +348,8 @@ export function POS() {
           unit: item.unit ?? "",
           quantity: Number(item.quantity ?? 0),
           price: Number(item.unit_price ?? 0),
-          total: Number(item.line_total ?? 0)
+          total: Number(item.line_total ?? 0),
+          lotCode: item.lot_code ?? undefined
         }))
       };
       // Đơn đã ghi thành công: in bill ngay, dữ liệu nền tự làm mới để không chặn người bán.
@@ -584,6 +631,15 @@ export function POS() {
                         <td className="px-3 py-3 align-top text-sm font-semibold leading-5 text-zinc-900">
                           <div className="line-clamp-3 break-words" title={item.name}>{item.name}</div>
                           {item.size && <div className="mt-1 text-xs font-medium text-zinc-500">{item.size}</div>}
+                          {(item.trackLots || (lotsByProduct[item.id]?.length ?? 0) > 0) && (
+                            <button
+                              type="button"
+                              onClick={() => setLotPickerProductId(item.id)}
+                              className={`mt-1 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium transition ${item.lotId ? "border-emerald-300 bg-emerald-50 text-emerald-700" : item.trackLots ? "border-red-300 bg-red-50 text-red-600" : "border-zinc-200 text-zinc-500 hover:bg-zinc-50"}`}
+                            >
+                              {item.lotId ? `Lô: ${item.lotCode}` : "Chọn lô"}
+                            </button>
+                          )}
                         </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap text-sm text-zinc-500">
                           {canDiscount ? (
@@ -1092,6 +1148,15 @@ export function POS() {
           </div>
         </div>
       )}
+
+      <LotPickerModal
+        isOpen={lotPickerProductId !== null}
+        productName={cart.find((item) => item.id === lotPickerProductId)?.name ?? ""}
+        lots={lotPickerProductId ? (lotsByProduct[lotPickerProductId] ?? []) : []}
+        selectedLotId={cart.find((item) => item.id === lotPickerProductId)?.lotId}
+        onSelect={(lot) => { if (lotPickerProductId) updateLot(lotPickerProductId, lot?.id, lot?.lotCode); }}
+        onClose={() => setLotPickerProductId(null)}
+      />
     </div>
   );
 }

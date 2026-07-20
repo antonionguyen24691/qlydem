@@ -132,7 +132,7 @@ export function Bill() {
                   <tr key={`${item.id}-${index}`}>
                     <td className="px-4 py-4 text-center font-semibold text-zinc-500">{index + 1}</td>
                     <td className="px-4 py-4">
-                      <div className="font-bold text-zinc-900">{item.name}</div>
+                      <div className="font-bold text-zinc-900">{item.name}{item.lotCode ? ` (Lô: ${item.lotCode})` : ""}</div>
                       {item.size && <div className="mt-1 text-xs text-zinc-500">{item.size}</div>}
                     </td>
                     <td className="px-4 py-4 text-center text-zinc-600">{item.unit}</td>

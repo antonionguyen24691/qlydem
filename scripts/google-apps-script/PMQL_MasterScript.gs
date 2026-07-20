@@ -68,9 +68,26 @@ const PMQL_TABLES = [
     frozenRows: 1
   },
   {
+    name: "product_lots",
+    headers: [
+      "id", "product_id", "lot_code", "supplier_id", "purchase_id", "received_date",
+      "unit_cost", "color_note", "quality_note", "image_urls", "status", "note",
+      "created_at", "updated_at"
+    ],
+    frozenRows: 1
+  },
+  {
+    name: "inventory_lot_balances",
+    headers: [
+      "id", "warehouse_id", "product_id", "lot_id", "quantity_box", "quantity_piece",
+      "created_at", "updated_at"
+    ],
+    frozenRows: 1
+  },
+  {
     name: "inventory_transactions",
     headers: [
-      "id", "warehouse_id", "product_id", "source_type", "source_id", "quantity_change",
+      "id", "warehouse_id", "product_id", "lot_id", "source_type", "source_id", "quantity_change",
       "stock_after", "note", "created_at"
     ],
     frozenRows: 1
@@ -88,7 +105,8 @@ const PMQL_TABLES = [
     name: "sales_order_items",
     headers: [
       "id", "order_id", "product_id", "product_code", "product_name", "unit",
-      "quantity", "unit_price", "discount_amount", "vat_rate", "line_total", "created_at"
+      "quantity", "unit_price", "discount_amount", "vat_rate", "line_total",
+      "lot_id", "lot_code", "unit_cost_snapshot", "created_at"
     ],
     frozenRows: 1
   },
@@ -199,7 +217,7 @@ const PMQL_TABLES = [
   { name: "price_update_request_items", headers: ["id", "created_at"], frozenRows: 1 },
   { name: "price_edit_logs", headers: ["id", "created_at"], frozenRows: 1 },
   { name: "purchase_orders", headers: ["id", "code", "created_at", "updated_at"], frozenRows: 1 },
-  { name: "purchase_order_items", headers: ["id", "created_at"], frozenRows: 1 },
+  { name: "purchase_order_items", headers: ["id", "purchase_id", "product_id", "product_code", "product_name", "unit", "quantity", "unit_cost", "line_total", "lot_id", "created_at"], frozenRows: 1 },
   { name: "debt_assignments", headers: ["id", "created_at", "updated_at"], frozenRows: 1 },
   { name: "inventory_adjustment_requests", headers: ["id", "created_at", "updated_at"], frozenRows: 1 },
   { name: "inventory_adjustment_request_items", headers: ["id", "created_at"], frozenRows: 1 },

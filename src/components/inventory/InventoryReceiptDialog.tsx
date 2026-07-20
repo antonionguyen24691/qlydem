@@ -8,7 +8,7 @@ import { getAuthHeaders } from "../../lib/supabase";
 import type { Product } from "../../store/data";
 
 type Supplier = { id: string; code?: string; name: string; phone?: string };
-type ReceiptLine = { productId: string; quantity: number; unitCost: number; unit: string };
+type ReceiptLine = { productId: string; quantity: number; unitCost: number; unit: string; lotCode?: string; colorNote?: string };
 
 type InventoryReceiptDialogProps = {
   isOpen: boolean;
@@ -64,10 +64,6 @@ export function InventoryReceiptDialog({ isOpen, products, suppliers, initialPro
       alert("Chọn nhà cung cấp và nhập đủ sản phẩm, số lượng, giá nhập.");
       return;
     }
-    if (new Set(productIds).size !== productIds.length) {
-      alert("Mỗi hàng hóa chỉ nên xuất hiện một lần trong phiếu nhập.");
-      return;
-    }
     if (paidAmount > total) {
       alert("Số đã trả không thể lớn hơn tổng nhập.");
       return;
@@ -101,12 +97,12 @@ export function InventoryReceiptDialog({ isOpen, products, suppliers, initialPro
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="min-w-[880px] w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs font-bold uppercase tracking-wide text-zinc-500"><tr><th className="px-3 py-3">Hàng hóa</th><th className="w-32 px-3 py-3 text-right">Số lượng</th><th className="w-28 px-3 py-3">ĐVT</th><th className="w-40 px-3 py-3 text-right">Giá nhập</th><th className="w-40 px-3 py-3 text-right">Thành tiền</th><th className="w-12 px-3 py-3" /></tr></thead>
+        <table className="min-w-[1080px] w-full text-sm">
+          <thead className="bg-zinc-50 text-left text-xs font-bold uppercase tracking-wide text-zinc-500"><tr><th className="px-3 py-3">Hàng hóa</th><th className="w-32 px-3 py-3 text-right">Số lượng</th><th className="w-28 px-3 py-3">ĐVT</th><th className="w-36 px-3 py-3">Mã lô</th><th className="w-36 px-3 py-3">Màu sắc</th><th className="w-40 px-3 py-3 text-right">Giá nhập</th><th className="w-40 px-3 py-3 text-right">Thành tiền</th><th className="w-12 px-3 py-3" /></tr></thead>
           <tbody className="divide-y divide-zinc-100">
             {lines.map((line, index) => {
               const product = products.find((item) => item.id === line.productId);
-              return <tr key={`${index}-${line.productId}`}><td className="px-3 py-2"><SearchableSelect value={line.productId} onChange={(value) => { const picked = products.find((item) => item.id === value); updateLine(index, { productId: value, unitCost: Number(picked?.cost ?? 0), unit: picked?.unit ?? "" }); }} placeholder="Chọn hàng hóa" searchPlaceholder="Tìm mã hoặc tên hàng…" options={products.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}`, description: `Tồn ${item.stock.toLocaleString()} ${item.unit}` }))} /></td><td className="px-3 py-2"><Input name={`quantity-${index}`} type="number" min="0.001" step="any" value={line.quantity || ""} onChange={(event) => updateLine(index, { quantity: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2"><Input name={`unit-${index}`} value={product?.unit ?? line.unit} readOnly className="bg-zinc-50 uppercase text-zinc-500" title="Đổi đơn vị tại Danh mục hàng hóa trước khi nhập kho" /></td><td className="px-3 py-2"><Input name={`cost-${index}`} type="number" min="0" value={line.unitCost || ""} onChange={(event) => updateLine(index, { unitCost: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2 text-right font-bold tabular-nums text-zinc-900">{(line.quantity * line.unitCost).toLocaleString()} ₫<div className="text-xs font-normal text-zinc-500">{product?.unit || line.unit || ""}</div></td><td className="px-3 py-2 text-right"><Button type="button" aria-label="Xóa dòng hàng" variant="ghost" size="sm" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}><Trash2 className="h-4 w-4" /></Button></td></tr>;
+              return <tr key={`${index}-${line.productId}`}><td className="px-3 py-2"><SearchableSelect value={line.productId} onChange={(value) => { const picked = products.find((item) => item.id === value); updateLine(index, { productId: value, unitCost: Number(picked?.cost ?? 0), unit: picked?.unit ?? "" }); }} placeholder="Chọn hàng hóa" searchPlaceholder="Tìm mã hoặc tên hàng…" options={products.map((item) => ({ value: item.id, label: `${item.code} - ${item.name}`, description: `Tồn ${item.stock.toLocaleString()} ${item.unit}` }))} /></td><td className="px-3 py-2"><Input name={`quantity-${index}`} type="number" min="0.001" step="any" value={line.quantity || ""} onChange={(event) => updateLine(index, { quantity: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2"><Input name={`unit-${index}`} value={product?.unit ?? line.unit} readOnly className="bg-zinc-50 uppercase text-zinc-500" title="Đổi đơn vị tại Danh mục hàng hóa trước khi nhập kho" /></td><td className="px-3 py-2"><Input name={`lot-${index}`} value={line.lotCode ?? ""} onChange={(event) => updateLine(index, { lotCode: event.target.value })} placeholder="Tự tạo nếu trống" /></td><td className="px-3 py-2"><Input name={`color-${index}`} value={line.colorNote ?? ""} onChange={(event) => updateLine(index, { colorNote: event.target.value })} placeholder="Màu/mẻ" /></td><td className="px-3 py-2"><Input name={`cost-${index}`} type="number" min="0" value={line.unitCost || ""} onChange={(event) => updateLine(index, { unitCost: Number(event.target.value) || 0 })} className="text-right" /></td><td className="px-3 py-2 text-right font-bold tabular-nums text-zinc-900">{(line.quantity * line.unitCost).toLocaleString()} ₫<div className="text-xs font-normal text-zinc-500">{product?.unit || line.unit || ""}</div></td><td className="px-3 py-2 text-right"><Button type="button" aria-label="Xóa dòng hàng" variant="ghost" size="sm" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}><Trash2 className="h-4 w-4" /></Button></td></tr>;
             })}
           </tbody>
         </table>
