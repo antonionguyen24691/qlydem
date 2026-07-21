@@ -795,6 +795,17 @@ type CashbookEntryDraft = {
   codePrefix: string;
 };
 
+// Ngày làm việc theo giờ Việt Nam (YYYY-MM-DD) — dùng cho entry_date của sổ quỹ.
+const vnDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+});
+function vnDateKey(date = new Date()) {
+  return vnDateFormatter.format(date);
+}
+
 function cashbookRow(entry: CashbookEntryDraft, codeSuffix = "") {
   return {
     code: `${cashbookCode(entry.codePrefix)}${codeSuffix}`,
@@ -806,7 +817,9 @@ function cashbookRow(entry: CashbookEntryDraft, codeSuffix = "") {
     note: entry.note ?? null,
     category: entry.category ?? null,
     person: entry.person ?? null,
-    entry_date: entry.entryDate ?? new Date().toISOString().slice(0, 10),
+    // Ngày sổ quỹ phải theo NGÀY LÀM VIỆC VN, không phải ngày UTC (toISOString),
+    // nếu không giao dịch lúc 00:00–07:00 giờ VN sẽ bị ghi lùi 1 ngày.
+    entry_date: entry.entryDate ?? vnDateKey(),
     created_by: entry.actorId
   };
 }

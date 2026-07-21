@@ -10,7 +10,9 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'prompt',
+        // autoUpdate: service worker tự nạp bản mới sau khi deploy, tránh tình trạng
+        // người dùng vẫn chạy bundle cũ (gây ra bug "đã deploy nhưng không thấy đổi").
+        registerType: 'autoUpdate',
         injectRegister: false,
         includeAssets: [
           'favicon.ico',
