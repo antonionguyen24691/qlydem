@@ -70,8 +70,10 @@ begin
   v_balance_after := coalesce(v_customer.credit_balance, 0) + v_amount;
   update public.customers set credit_balance = v_balance_after, updated_at = now() where id = p_customer_id;
 
+  -- source_type PHẢI thuộc CHECK của customer_credit_ledger:
+  -- ('OVERPAYMENT', 'RETURN_REFUND', 'ORDER_PAYMENT', 'CREDIT_WITHDRAW', 'ADJUST')
   insert into public.customer_credit_ledger (customer_id, direction, amount, balance_after, source_type, source_id, note, created_by)
-  values (p_customer_id, 'IN', v_amount, v_balance_after, 'ORDER_OVERPAY', p_source_order_id, v_note, p_actor_id);
+  values (p_customer_id, 'IN', v_amount, v_balance_after, 'OVERPAYMENT', p_source_order_id, v_note, p_actor_id);
 
   v_cash_code := 'TM' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSMS') || '-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 5));
   insert into public.cashbook_entries (code, account_type, direction, source_type, source_id, amount, payment_method, note, created_by)

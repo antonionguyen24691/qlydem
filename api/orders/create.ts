@@ -134,7 +134,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         p_idempotency_key: `${idempotencyKey}-overpay`
       });
       if (!topupError && topup?.ok) overpayKept = overpay;
-      else overpayWarning = "Đơn đã tạo nhưng chưa giữ được tiền thừa vào số dư (có thể thiếu migration). Hãy cộng số dư thủ công.";
+      else {
+        const reason = topupError?.message ?? topup?.error ?? "lỗi không xác định";
+        overpayWarning = `Đơn đã tạo nhưng chưa giữ được tiền thừa vào số dư. Lý do: ${reason}. Hãy cộng số dư thủ công.`;
+      }
     }
 
     // Sheets backup runs best-effort in the background; the daily cron guarantees consistency.
