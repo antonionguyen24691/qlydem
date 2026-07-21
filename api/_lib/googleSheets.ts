@@ -14,9 +14,16 @@ export function isGoogleSheetsConfigured() {
 export async function getSheetsClient() {
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = getGooglePrivateKey();
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
-  if (!clientEmail || !privateKey || !process.env.GOOGLE_SHEETS_SPREADSHEET_ID) {
-    throw new Error("Missing Google Sheets service account env.");
+  // Nêu ĐÍCH DANH biến nào thiếu — thông báo chung chung khiến rất khó chẩn đoán.
+  const missing = [
+    !clientEmail && "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+    !privateKey && "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
+    !spreadsheetId && "GOOGLE_SHEETS_SPREADSHEET_ID"
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    throw new Error(`Thiếu biến môi trường Google Sheets: ${missing.join(", ")}. Kiểm tra Vercel > Settings > Environment Variables (Production) rồi deploy lại.`);
   }
 
   const auth = new google.auth.JWT({
@@ -29,10 +36,17 @@ export async function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
+// Google Sheets giới hạn 50.000 ký tự/ô — audit_logs (before_json/after_json) dễ vượt.
+const MAX_CELL_CHARS = 49000;
+function clampCell(text: string) {
+  return text.length > MAX_CELL_CHARS ? `${text.slice(0, MAX_CELL_CHARS)}…(đã cắt bớt)` : text;
+}
+
 function toSheetValue(value: unknown) {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) return value.toISOString();
-  if (typeof value === "object") return JSON.stringify(value);
+  if (typeof value === "object") return clampCell(JSON.stringify(value));
+  if (typeof value === "string") return clampCell(value);
   return value;
 }
 

@@ -289,7 +289,42 @@ function onOpen() {
     .addItem("Tạo file sao lưu mới", "PMQL_createBackupSpreadsheet")
     .addItem("Làm mới trang Tổng quan", "PMQL_refreshDashboard")
     .addItem("Gửi thay đổi về PMQL", "PMQL_submitChangeInbox")
+    .addSeparator()
+    .addItem("Xoá sạch dữ liệu (giữ tiêu đề)", "PMQL_clearAllData")
     .addToUi();
+}
+
+/**
+ * Xoá toàn bộ DÒNG DỮ LIỆU trên các tab PMQL, giữ nguyên dòng tiêu đề và định dạng.
+ * KHÔNG đụng tới Supabase — đây chỉ là bản sao lưu. Lần đồng bộ kế tiếp sẽ đổ dữ liệu lại.
+ * Không xoá tab "Hàng chờ duyệt" (dữ liệu bạn tự nhập) và tab "Tổng quan" (công thức).
+ */
+function PMQL_clearAllData() {
+  const ui = SpreadsheetApp.getUi();
+  const answer = ui.alert(
+    "Xoá sạch dữ liệu",
+    "Xoá toàn bộ dòng dữ liệu trên các tab sao lưu (giữ tiêu đề).\n\n" +
+    "• KHÔNG ảnh hưởng dữ liệu thật trong phần mềm (Supabase).\n" +
+    "• Lần đồng bộ kế tiếp sẽ đổ dữ liệu trở lại.\n\nTiếp tục?",
+    ui.ButtonSet.YES_NO
+  );
+  if (answer !== ui.Button.YES) return;
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const skip = [PMQL_CHANGE_INBOX, pmqlSheetName_("dashboard")];
+  let cleared = 0;
+  PMQL_TABLES.forEach(function(table) {
+    const name = pmqlSheetName_(table.name);
+    if (skip.indexOf(name) >= 0) return;
+    const sheet = spreadsheet.getSheetByName(name);
+    if (!sheet) return;
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, sheet.getMaxColumns()).clearContent();
+      cleared++;
+    }
+  });
+  ui.alert("Đã xoá dữ liệu ở " + cleared + " tab (tiêu đề và định dạng giữ nguyên).");
 }
 
 function PMQL_createBackupSpreadsheet() {
@@ -350,18 +385,18 @@ function PMQL_refreshDashboard() {
 function PMQL_refreshDashboardFor_(spreadsheet) {
   const sheet = PMQL_getOrCreateSheet_(spreadsheet, pmqlSheetName_("dashboard"));
   PMQL_setupSheet_(sheet, ["Chỉ số", "Giá trị", "Cập nhật lúc"], 1);
-  const nowFormula = '=TEXT(NOW(),"yyyy-mm-dd hh:mm:ss")';
-  var q = function(table) { return "'" + pmqlSheetName_(table) + "'"; };
+  // KHÔNG dùng công thức: bảng tính locale Việt Nam dùng ";" làm dấu phân cách tham số,
+  // nên công thức viết bằng "," sẽ lỗi #ERROR!. Số liệu do lần đồng bộ ghi thẳng vào.
   const rows = [
-    ["Số sản phẩm", '=MAX(0,COUNTA(' + q("products") + '!A:A)-1)', nowFormula],
-    ["Số khách hàng", '=MAX(0,COUNTA(' + q("customers") + '!A:A)-1)', nowFormula],
-    ["Số nhà cung cấp", '=MAX(0,COUNTA(' + q("suppliers") + '!A:A)-1)', nowFormula],
-    ["Số dòng tồn kho", '=MAX(0,COUNTA(' + q("inventory_balances") + '!A:A)-1)', nowFormula],
-    ["Số lô hàng", '=MAX(0,COUNTA(' + q("product_lots") + '!A:A)-1)', nowFormula],
-    ["Số đơn bán", '=MAX(0,COUNTA(' + q("sales_orders") + '!A:A)-1)', nowFormula],
-    ["Số phiếu thu", '=MAX(0,COUNTA(' + q("receipts") + '!A:A)-1)', nowFormula],
-    ["Tổng công nợ khách", '=IFERROR(SUM(' + q("customers") + '!P:P),0)', nowFormula],
-    ["Sao lưu gần nhất", '=IFERROR(MAX(' + q("backup_log") + '!A:A),"")', nowFormula]
+    ["Số sản phẩm", "", "Chờ đồng bộ"],
+    ["Số khách hàng", "", "Chờ đồng bộ"],
+    ["Số nhà cung cấp", "", "Chờ đồng bộ"],
+    ["Số dòng tồn kho", "", "Chờ đồng bộ"],
+    ["Số lô hàng", "", "Chờ đồng bộ"],
+    ["Số đơn bán", "", "Chờ đồng bộ"],
+    ["Số phiếu thu", "", "Chờ đồng bộ"],
+    ["Tổng công nợ khách", "", "Chờ đồng bộ"],
+    ["Sao lưu gần nhất", "", "Chờ đồng bộ"]
   ];
   sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
   sheet.autoResizeColumns(1, 3);

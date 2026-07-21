@@ -16,3 +16,8 @@ firebase-applet-config.json
 .codex-remote-attachments/
 
 .vercel
+
+# Khoá service account Google - TUYET DOI KHONG commit
+docs/*.json
+*service-account*.json
+*.iam.gserviceaccount.json

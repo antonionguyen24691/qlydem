@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useDataStore, Product } from "../store/data";
@@ -69,6 +69,24 @@ type InventoryTransactionRow = {
   created_at: string;
 };
 
+type ProductLotRow = {
+  id: string;
+  product_id: string;
+  lot_code: string;
+  received_date?: string;
+  unit_cost?: number;
+  color_note?: string;
+  quality_note?: string;
+  status?: string;
+};
+
+type LotBalanceRow = {
+  warehouse_id: string;
+  product_id: string;
+  lot_id: string;
+  quantity_box: number;
+};
+
 type InventoryOperation = {
   code: string;
   name: string;
@@ -109,6 +127,9 @@ export function Inventory() {
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [transactions, setTransactions] = useState<InventoryTransactionRow[]>([]);
+  const [productLots, setProductLots] = useState<ProductLotRow[]>([]);
+  const [lotBalances, setLotBalances] = useState<LotBalanceRow[]>([]);
+  const [expandedLotProductId, setExpandedLotProductId] = useState<string | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isInventorySummaryOpen, setIsInventorySummaryOpen] = useState(false);
   const [isInventoryActionsOpen, setIsInventoryActionsOpen] = useState(false);
@@ -153,6 +174,18 @@ export function Inventory() {
         if (mounted && transactionResponse.ok && body.ok) setTransactions(body.rows ?? []);
       } catch {
         if (mounted) setTransactions([]);
+      }
+      try {
+        const headers = await getAuthHeaders();
+        const [lotResponse, balanceResponse] = await Promise.all([
+          fetch("/api/data/product_lots", { headers }),
+          fetch("/api/data/inventory_lot_balances", { headers })
+        ]);
+        const [lotBody, balanceBody] = await Promise.all([lotResponse.json(), balanceResponse.json()]);
+        if (mounted && lotResponse.ok && lotBody.ok) setProductLots(lotBody.rows ?? []);
+        if (mounted && balanceResponse.ok && balanceBody.ok) setLotBalances(balanceBody.rows ?? []);
+      } catch {
+        if (mounted) { setProductLots([]); setLotBalances([]); }
       }
       try {
         const operationResponse = await fetch("/api/settings?key=inventoryOperations", { headers: await getAuthHeaders() });
@@ -205,6 +238,26 @@ export function Inventory() {
   }, [products]);
   const stockTotalPages = Math.max(1, Math.ceil(filteredProducts.length / stockPageSize));
   const pagedProducts = filteredProducts.slice((stockPage - 1) * stockPageSize, stockPage * stockPageSize);
+
+  // Gộp lô còn tồn theo từng mã hàng: mã lô, ngày nhập, màu/chất lượng, số lượng, giá nhập.
+  const lotsByProduct = useMemo(() => {
+    const qtyByLot = new Map<string, number>();
+    for (const balance of lotBalances) {
+      qtyByLot.set(balance.lot_id, (qtyByLot.get(balance.lot_id) ?? 0) + Number(balance.quantity_box ?? 0));
+    }
+    const map = new Map<string, Array<ProductLotRow & { quantity: number }>>();
+    for (const lot of productLots) {
+      const quantity = qtyByLot.get(lot.id) ?? 0;
+      if (quantity <= 0) continue; // chỉ hiện lô còn tồn
+      const list = map.get(lot.product_id) ?? [];
+      list.push({ ...lot, quantity });
+      map.set(lot.product_id, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => String(a.received_date ?? "").localeCompare(String(b.received_date ?? "")));
+    }
+    return map;
+  }, [productLots, lotBalances]);
 
   const countVisibleRows = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -711,12 +764,30 @@ export function Inventory() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 bg-white">
-                {pagedProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-zinc-50 transition-colors">
+                {pagedProducts.map((product) => {
+                  const lots = lotsByProduct.get(product.id) ?? [];
+                  const isLotOpen = expandedLotProductId === product.id;
+                  return (
+                  <Fragment key={product.id}>
+                  <tr className="hover:bg-zinc-50 transition-colors">
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-emerald-600">{product.code}</td>
                     <td className="px-4 py-3 text-sm text-zinc-900 font-medium">
-                      {product.name}
-                      {product.size && <div className="text-xs text-zinc-500 font-normal mt-0.5">{product.size}</div>}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedLotProductId(isLotOpen ? null : product.id)}
+                        className="flex items-start gap-1.5 text-left hover:text-emerald-700"
+                        aria-expanded={isLotOpen}
+                        title="Xem chi tiết lô hàng"
+                      >
+                        <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-zinc-400 transition-transform ${isLotOpen ? "rotate-180" : ""}`} />
+                        <span>
+                          {product.name}
+                          {lots.length > 0 && (
+                            <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">{lots.length} lô</span>
+                          )}
+                        </span>
+                      </button>
+                      {product.size && <div className="text-xs text-zinc-500 font-normal mt-0.5 pl-[22px]">{product.size}</div>}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-center text-sm">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -739,7 +810,55 @@ export function Inventory() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  {isLotOpen && (
+                    <tr className="bg-zinc-50/80">
+                      <td colSpan={5} className="px-4 py-3">
+                        {lots.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-zinc-300 px-3 py-4 text-center text-sm text-zinc-500">
+                            Mã hàng này chưa có lô nào còn tồn. Lô được tạo khi nhập kho.
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+                            <table className="min-w-full text-sm">
+                              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                                <tr>
+                                  <th className="px-3 py-2 text-left">Số lô</th>
+                                  <th className="px-3 py-2 text-left">Ngày nhập</th>
+                                  <th className="px-3 py-2 text-left">Màu / Chất lượng</th>
+                                  <th className="px-3 py-2 text-right">Số lượng</th>
+                                  <th className="px-3 py-2 text-right">Giá nhập</th>
+                                  <th className="px-3 py-2 text-right">Giá trị tồn</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-zinc-100">
+                                {lots.map((lot) => (
+                                  <tr key={lot.id}>
+                                    <td className="px-3 py-2 font-semibold text-emerald-700">{lot.lot_code}</td>
+                                    <td className="px-3 py-2 text-zinc-600">{lot.received_date ? new Date(lot.received_date).toLocaleDateString("vi-VN") : "—"}</td>
+                                    <td className="px-3 py-2 text-zinc-600">{[lot.color_note, lot.quality_note].filter(Boolean).join(" · ") || "—"}</td>
+                                    <td className="px-3 py-2 text-right font-semibold text-zinc-900">{lot.quantity.toLocaleString("vi-VN")} {product.unit}</td>
+                                    <td className="px-3 py-2 text-right text-zinc-700">{Number(lot.unit_cost ?? 0).toLocaleString("vi-VN")} ₫</td>
+                                    <td className="px-3 py-2 text-right font-bold text-zinc-900">{(lot.quantity * Number(lot.unit_cost ?? 0)).toLocaleString("vi-VN")} ₫</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot className="border-t border-zinc-200 bg-zinc-50 text-sm">
+                                <tr>
+                                  <td colSpan={3} className="px-3 py-2 text-right font-semibold text-zinc-600">Tổng theo lô</td>
+                                  <td className="px-3 py-2 text-right font-bold text-zinc-900">{lots.reduce((sum, lot) => sum + lot.quantity, 0).toLocaleString("vi-VN")} {product.unit}</td>
+                                  <td />
+                                  <td className="px-3 py-2 text-right font-bold text-emerald-700">{lots.reduce((sum, lot) => sum + lot.quantity * Number(lot.unit_cost ?? 0), 0).toLocaleString("vi-VN")} ₫</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -747,7 +866,10 @@ export function Inventory() {
 
         {/* Mobile Card View */}
         <div className="space-y-2 md:hidden">
-          {pagedProducts.map((product) => (
+          {pagedProducts.map((product) => {
+            const lots = lotsByProduct.get(product.id) ?? [];
+            const isLotOpen = expandedLotProductId === product.id;
+            return (
             <div key={product.id} className="rounded-[var(--radius-control)] border border-zinc-200 bg-white px-3 py-2 shadow-sm">
               <div className="flex min-w-0 items-center gap-2">
                 <div className="min-w-0 flex-1">
@@ -759,7 +881,20 @@ export function Inventory() {
                   >
                     <h3 className="truncate text-sm font-semibold leading-5 text-zinc-900">{product.name}</h3>
                   </button>
-                  <div className="text-xs font-bold text-emerald-600">{product.code}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-emerald-600">{product.code}</span>
+                    {lots.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedLotProductId(isLotOpen ? null : product.id)}
+                        className="inline-flex items-center gap-0.5 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600"
+                        aria-expanded={isLotOpen}
+                      >
+                        {lots.length} lô
+                        <ChevronDown className={`h-3 w-3 transition-transform ${isLotOpen ? "rotate-180" : ""}`} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="shrink-0 text-right">
                   <div className={`truncate text-lg font-bold leading-none ${product.stock <= 0 ? "text-red-600" : "text-emerald-600"}`}>
@@ -783,8 +918,28 @@ export function Inventory() {
                 {canAdjust && <Button variant="outline" className="flex-1 h-9 px-0" onClick={startCountMode}>Kiểm</Button>}
                 {!canAdjust && canRequest && <Button variant="outline" className="flex-1 h-9 px-0 text-emerald-600 border-emerald-200" onClick={() => openAdjust("REQUEST_EXPORT", product)}>Đề nghị</Button>}
               </div>}
+              {isLotOpen && lots.length > 0 && (
+                <div className="mt-2 space-y-1.5 border-t border-zinc-100 pt-2">
+                  {lots.map((lot) => (
+                    <div key={lot.id} className="rounded-md bg-zinc-50 px-2.5 py-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs font-bold text-emerald-700">{lot.lot_code}</span>
+                        <span className="shrink-0 text-xs font-bold text-zinc-900">{lot.quantity.toLocaleString("vi-VN")} {product.unit}</span>
+                      </div>
+                      <div className="mt-0.5 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
+                        <span className="truncate">
+                          {lot.received_date ? new Date(lot.received_date).toLocaleDateString("vi-VN") : "—"}
+                          {[lot.color_note, lot.quality_note].filter(Boolean).length > 0 && ` · ${[lot.color_note, lot.quality_note].filter(Boolean).join(" · ")}`}
+                        </span>
+                        <span className="shrink-0">Giá nhập {Number(lot.unit_cost ?? 0).toLocaleString("vi-VN")} ₫</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
           {filteredProducts.length === 0 && (
             <div className="text-center py-12 text-zinc-500">
               <PackageSearch className="w-12 h-12 mx-auto text-zinc-300 mb-3" />
